@@ -268,7 +268,7 @@ function Auth() {
                         setName(e.target.value);
                         setErrorMsg("");
                       }}
-                      placeholder="e.g. Aakash Patel"
+                      placeholder="Aakash Patel"
                       autoComplete="name"
                       className="rounded-2xl"
                     />
