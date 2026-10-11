@@ -22,6 +22,11 @@ import {
   sanitizeUser,
   migrateUsersData,
   atomicWriteJson,
+  handleSignup,
+  handleLogin,
+  handleLogout,
+  handleMe,
+  getUserFromRequest,
 } from "./lib/security";
 import {
   usersRepo,
@@ -483,6 +488,25 @@ export default {
           { status: 200, headers: { "Content-Type": "application/json" } }
         )
       );
+    }
+
+    // 6.5 User Authentication Endpoints
+    if (url.pathname === "/api/auth/signup" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleSignup(request, clientIp);
+    }
+
+    if (url.pathname === "/api/auth/login" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleLogin(request, clientIp);
+    }
+
+    if (url.pathname === "/api/auth/logout" && request.method === "POST") {
+      return handleLogout(request);
+    }
+
+    if (url.pathname === "/api/auth/me" && request.method === "GET") {
+      return handleMe(request);
     }
 
     // 7. /api/contact

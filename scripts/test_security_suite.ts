@@ -764,6 +764,125 @@ async function runTestSuite() {
     assert.ok(secondRun.plansConfigMigrated);
   })();
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // PHASE 3 REGRESSION TESTS: SERVER-SIDE USER AUTHENTICATION
+  // ════════════════════════════════════════════════════════════════════════════
+
+  const testUserEmail = `auth_test_${Date.now()}@bg.tools`;
+  const testUserPass = "SecretPassword123!";
+  let authCookie = "";
+
+  // TEST 38: POST /api/auth/signup validates input, hashes password, sets HttpOnly cookie
+  await test("Test 38: POST /api/auth/signup creates account, enforces >= 8 char password, and sets session cookie", async () => {
+    // 1. Password < 8 characters rejected
+    const shortReq = new Request("http://localhost:3000/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Tester", email: testUserEmail, password: "short" }),
+    });
+    const shortRes = await serverHandler.fetch(shortReq, {}, {});
+    assert.strictEqual(shortRes.status, 400);
+
+    // 2. Valid signup
+    const req = new Request("http://localhost:3000/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Server Auth User", email: testUserEmail, password: testUserPass }),
+    });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.success, true);
+    assert.strictEqual(json.user.email, testUserEmail);
+    assert.strictEqual(json.user.credits, 10);
+    assert.strictEqual(json.user.password_hash, undefined, "password_hash must never be leaked");
+
+    const setCookie = res.headers.get("set-cookie") || "";
+    assert.ok(setCookie.includes("bg_session="), "Must set bg_session cookie");
+    assert.ok(setCookie.includes("HttpOnly"), "Must be HttpOnly cookie");
+    assert.ok(setCookie.includes("SameSite=Lax"), "Must have SameSite=Lax");
+    authCookie = setCookie.split(";")[0]!;
+
+    // 3. Duplicate email returns generic error (no enumeration)
+    const dupReq = new Request("http://localhost:3000/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Duplicate", email: testUserEmail, password: testUserPass }),
+    });
+    const dupRes = await serverHandler.fetch(dupReq, {}, {});
+    assert.strictEqual(dupRes.status, 400);
+  })();
+
+  // TEST 39: POST /api/auth/login validates credentials, enforces lockout, and rotates session
+  await test("Test 39: POST /api/auth/login verifies credentials, rotates session token, and enforces lockout", async () => {
+    // 1. Wrong password rejected
+    const wrongReq = new Request("http://localhost:3000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: testUserEmail, password: "WrongPassword999!" }),
+    });
+    const wrongRes = await serverHandler.fetch(wrongReq, {}, {});
+    assert.strictEqual(wrongRes.status, 401);
+    const wrongJson = await wrongRes.json();
+    assert.ok(wrongJson.error?.includes("Invalid email or password"));
+
+    // 2. Successful login rotates session
+    const loginReq = new Request("http://localhost:3000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: testUserEmail, password: testUserPass }),
+    });
+    const loginRes = await serverHandler.fetch(loginReq, {}, {});
+    assert.strictEqual(loginRes.status, 200);
+    const loginJson = await loginRes.json();
+    assert.strictEqual(loginJson.success, true);
+    assert.strictEqual(loginJson.user.email, testUserEmail);
+
+    const newCookie = loginRes.headers.get("set-cookie") || "";
+    assert.ok(newCookie.includes("bg_session="));
+    authCookie = newCookie.split(";")[0]!;
+  })();
+
+  // TEST 40: GET /api/auth/me verifies session cookie and strips sensitive attributes
+  await test("Test 40: GET /api/auth/me returns current user from session cookie", async () => {
+    // 1. Anonymous request rejected with 401
+    const anonReq = new Request("http://localhost:3000/api/auth/me", { method: "GET" });
+    const anonRes = await serverHandler.fetch(anonReq, {}, {});
+    assert.strictEqual(anonRes.status, 401);
+
+    // 2. Authenticated request with bg_session cookie returns 200
+    const authReq = new Request("http://localhost:3000/api/auth/me", {
+      method: "GET",
+      headers: { Cookie: authCookie },
+    });
+    const authRes = await serverHandler.fetch(authReq, {}, {});
+    assert.strictEqual(authRes.status, 200);
+    const meJson = await authRes.json();
+    assert.strictEqual(meJson.authenticated, true);
+    assert.strictEqual(meJson.user.email, testUserEmail);
+    assert.strictEqual(meJson.user.password_hash, undefined);
+  })();
+
+  // TEST 41: POST /api/auth/logout deletes session from DB and expires cookie
+  await test("Test 41: POST /api/auth/logout deletes session from database and expires cookie", async () => {
+    const logoutReq = new Request("http://localhost:3000/api/auth/logout", {
+      method: "POST",
+      headers: { Cookie: authCookie },
+    });
+    const logoutRes = await serverHandler.fetch(logoutReq, {}, {});
+    assert.strictEqual(logoutRes.status, 200);
+    const clearCookie = logoutRes.headers.get("set-cookie") || "";
+    assert.ok(clearCookie.includes("Max-Age=0"), "Cookie must be cleared with Max-Age=0");
+
+    // After logout, GET /api/auth/me with old cookie must fail with 401
+    const verifyReq = new Request("http://localhost:3000/api/auth/me", {
+      method: "GET",
+      headers: { Cookie: authCookie },
+    });
+    const verifyRes = await serverHandler.fetch(verifyReq, {}, {});
+    assert.strictEqual(verifyRes.status, 401, "Revoked session must be rejected");
+  })();
+
   // Summary
   console.log("\n=================================================");
   console.log("TEST SUITE EXECUTION SUMMARY");

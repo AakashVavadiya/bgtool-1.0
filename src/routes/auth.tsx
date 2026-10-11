@@ -61,7 +61,7 @@ function Auth() {
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -77,9 +77,9 @@ function Auth() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
       if (isLogin) {
-        const res = AuthUser.login(email, password);
+        const res = await AuthUser.login(email, password);
         if (!res.success) {
           setErrorMsg(res.error || "Login failed. Please check your credentials.");
           toast.error(res.error || "Login failed.");
@@ -93,7 +93,7 @@ function Auth() {
           window.location.href = "/";
         }, 300);
       } else {
-        const res = AuthUser.signUp(name, email, password);
+        const res = await AuthUser.signUp(name, email, password);
         if (!res.success) {
           setErrorMsg(res.error || "Registration failed.");
           toast.error(res.error || "Registration failed.");
@@ -107,7 +107,10 @@ function Auth() {
           window.location.href = "/";
         }, 300);
       }
-    }, 350);
+    } catch {
+      setErrorMsg("Authentication request failed. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   const handleLogout = () => {
