@@ -12,9 +12,9 @@ export interface ToolSecurityProfile {
 
 // Configurable limits via Environment Variables or safe defaults
 export const SECURITY_CONFIG = {
-  MAX_FILE_SIZE: parseInt(process.env["MAX_FILE_SIZE_BYTES"] || "", 10) || 10 * 1024 * 1024, // 10 MB
+  MAX_FILE_SIZE: parseInt(process.env["MAX_FILE_SIZE_BYTES"] || "", 10) || 30 * 1024 * 1024, // 30 MB
   MAX_BATCH_FILES: parseInt(process.env["MAX_BATCH_FILES"] || "", 10) || 10,
-  MAX_REQUEST_SIZE: parseInt(process.env["MAX_REQUEST_SIZE_BYTES"] || "", 10) || 25 * 1024 * 1024, // 25 MB
+  MAX_REQUEST_SIZE: parseInt(process.env["MAX_REQUEST_SIZE_BYTES"] || "", 10) || 60 * 1024 * 1024, // 60 MB
   MAX_IMAGE_WIDTH: parseInt(process.env["MAX_IMAGE_WIDTH"] || "", 10) || 6000,
   MAX_IMAGE_HEIGHT: parseInt(process.env["MAX_IMAGE_HEIGHT"] || "", 10) || 6000,
   MAX_IMAGE_PIXELS: parseInt(process.env["MAX_IMAGE_PIXELS"] || "", 10) || 36_000_000, // 36 Megapixels
@@ -206,7 +206,7 @@ export function validateBuffer(
     };
   }
 
-  // 2. Maximum file size check (Default 10 MB)
+  // 2. Maximum file size check (Default 30 MB)
   if (buffer.length > toolProfile.maxFileSize) {
     const maxMb = Math.round(toolProfile.maxFileSize / (1024 * 1024));
     return {

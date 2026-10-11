@@ -59,9 +59,9 @@ def validate_image_payload(raw_b64):
     if "," in raw_b64:
         raw_b64 = raw_b64.split(",", 1)[1]
     
-    # Check estimated size (max 10MB decoded, approx 14MB base64)
-    if len(raw_b64) > 15 * 1024 * 1024:
-        return False, "File size exceeds the 10 MB limit. Please upload a smaller file."
+    # Check estimated size (max 30MB decoded, approx 40-42MB base64)
+    if len(raw_b64) > 45 * 1024 * 1024:
+        return False, "File size exceeds the 30 MB limit. Please upload a smaller file."
     
     try:
         raw_bytes = base64.b64decode(raw_b64)
@@ -70,8 +70,8 @@ def validate_image_payload(raw_b64):
     
     if len(raw_bytes) == 0:
         return False, "Uploaded image is empty (0 bytes)."
-    if len(raw_bytes) > 10 * 1024 * 1024:
-        return False, "File size exceeds the 10 MB limit. Please upload a smaller file."
+    if len(raw_bytes) > 30 * 1024 * 1024:
+        return False, "File size exceeds the 30 MB limit. Please upload a smaller file."
     
     # Magic Byte Validation: PNG, JPEG, WebP
     is_png = len(raw_bytes) >= 8 and raw_bytes[:8] == b"\x89PNG\r\n\x1a\n"
@@ -153,9 +153,9 @@ class GangaRequestHandler(BaseHTTPRequestHandler):
             return
 
         content_len = int(self.headers.get("Content-Length", 0))
-        # Reject requests exceeding 20 MB immediately
-        if content_len > 20 * 1024 * 1024:
-            self.send_json({"success": False, "error": "File size exceeds the 10 MB limit. Please upload a smaller file."}, status=413)
+        # Reject requests exceeding 55 MB immediately
+        if content_len > 55 * 1024 * 1024:
+            self.send_json({"success": False, "error": "File size exceeds the 30 MB limit. Please upload a smaller file."}, status=413)
             return
 
         post_data = self.rfile.read(content_len)

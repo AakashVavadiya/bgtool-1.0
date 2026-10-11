@@ -154,8 +154,8 @@ export function RemovalProcess() {
       window.dispatchEvent(new CustomEvent("bg:show_restricted_dialog"));
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size exceeds the 10 MB limit. Please upload a smaller file.");
+    if (file.size > 30 * 1024 * 1024) {
+      toast.error("File size exceeds the 30 MB limit. Please upload a smaller file.");
       return;
     }
     if (!file.type.startsWith("image/")) {

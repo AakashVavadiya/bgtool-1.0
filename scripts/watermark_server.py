@@ -38,8 +38,8 @@ Image.MAX_IMAGE_PIXELS = 36_000_000
 def validate_image_bytes(raw_bytes):
     if not raw_bytes or len(raw_bytes) == 0:
         return False, "Uploaded image is empty (0 bytes).", None
-    if len(raw_bytes) > 10 * 1024 * 1024:
-        return False, "File size exceeds the 10 MB limit. Please upload a smaller file.", None
+    if len(raw_bytes) > 30 * 1024 * 1024:
+        return False, "File size exceeds the 30 MB limit. Please upload a smaller file.", None
 
     # Magic byte check
     if len(raw_bytes) >= 2 and (raw_bytes[:2] == b"MZ" or raw_bytes[:4] == b"\x7fELF"):
@@ -491,8 +491,8 @@ class WatermarkServerHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         content_len = int(self.headers.get("Content-Length", 0))
-        if content_len > 20 * 1024 * 1024:
-            self.send_json({"success": False, "error": "File size exceeds the 10 MB limit. Please upload a smaller file."}, status=413)
+        if content_len > 55 * 1024 * 1024:
+            self.send_json({"success": False, "error": "File size exceeds the 30 MB limit. Please upload a smaller file."}, status=413)
             return
 
         post_data = self.rfile.read(content_len)

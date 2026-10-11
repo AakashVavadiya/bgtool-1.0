@@ -153,7 +153,7 @@ export default {
       const declaredLen = parseInt(contentLengthHeader, 10);
       if (declaredLen > SECURITY_CONFIG.MAX_REQUEST_SIZE) {
         return applySecurityHeaders(
-          createSafeErrorResponse(413, "File size exceeds the 10 MB limit. Please upload a smaller file.")
+          createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
         );
       }
     }
@@ -172,9 +172,9 @@ export default {
 
       try {
         const bodyText = await request.text();
-        if (bodyText.length > 20 * 1024 * 1024) {
+        if (bodyText.length > 55 * 1024 * 1024) {
           return applySecurityHeaders(
-            createSafeErrorResponse(413, "File size exceeds the 10 MB limit. Please upload a smaller file.")
+            createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
           );
         }
 
@@ -244,9 +244,9 @@ export default {
 
       try {
         const bodyText = await request.text();
-        if (bodyText.length > 20 * 1024 * 1024) {
+        if (bodyText.length > 55 * 1024 * 1024) {
           return applySecurityHeaders(
-            createSafeErrorResponse(413, "File size exceeds the 10 MB limit. Please upload a smaller file.")
+            createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
           );
         }
 
@@ -318,9 +318,9 @@ export default {
 
       try {
         const bodyText = await request.text();
-        if (bodyText.length > 20 * 1024 * 1024) {
+        if (bodyText.length > 55 * 1024 * 1024) {
           return applySecurityHeaders(
-            createSafeErrorResponse(413, "File size exceeds the 10 MB limit. Please upload a smaller file.")
+            createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
           );
         }
 

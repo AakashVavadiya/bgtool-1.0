@@ -96,7 +96,7 @@ function PrivacyPage() {
             <section className="rounded-3xl border border-border bg-card p-8 space-y-4">
               <h2 className="font-display text-2xl font-bold">4. Upload Security & Temporary Retention Policy</h2>
               <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-                To guarantee maximum infrastructure stability and privacy, our platform strictly enforces a <strong>10 MB per-file upload limit</strong> with binary magic-byte validation against executables. Any files requiring temporary processing are held in private, non-public storage directories with strict filesystem access controls. Original inputs and generated outputs are permanently purged immediately upon download completion, and an automated lifecycle daemon purges any orphaned temporary files older than <strong>1 hour</strong>. We never transmit files to third-party APIs.
+                To guarantee maximum infrastructure stability and privacy, our platform strictly enforces a <strong>30 MB per-file upload limit</strong> with binary magic-byte validation against executables. Any files requiring temporary processing are held in private, non-public storage directories with strict filesystem access controls. Original inputs and generated outputs are permanently purged immediately upon download completion, and an automated lifecycle daemon purges any orphaned temporary files older than <strong>1 hour</strong>. We never transmit files to third-party APIs.
               </p>
             </section>
 

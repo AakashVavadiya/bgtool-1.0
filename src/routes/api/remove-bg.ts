@@ -89,9 +89,9 @@ export const Route = createFileRoute("/api/remove-bg")({
 
         try {
           const bodyText = await request.text();
-          if (bodyText.length > 20 * 1024 * 1024) {
+          if (bodyText.length > 55 * 1024 * 1024) {
             return applySecurityHeaders(
-              createSafeErrorResponse(413, "File size exceeds the 10 MB limit. Please upload a smaller file.")
+              createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
             );
           }
 

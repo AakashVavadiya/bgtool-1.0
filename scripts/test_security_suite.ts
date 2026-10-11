@@ -55,8 +55,8 @@ async function runTestSuite() {
   console.log("RUNNING BG TOOL AUTOMATED SECURITY AUDIT SUITE");
   console.log("=================================================\n");
 
-  // TEST 1: Valid PNG image below 10 MB is accepted
-  await test("Test 1: Valid file below 10 MB is accepted", () => {
+  // TEST 1: Valid PNG image below 30 MB is accepted
+  await test("Test 1: Valid file below 30 MB is accepted", () => {
     // 1x1 valid PNG buffer
     const validPng = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -69,9 +69,9 @@ async function runTestSuite() {
     assert.ok(res.safeFilename, "Must produce random unguessable safeFilename");
   })();
 
-  // TEST 2: File exceeding 10 MB is rejected (HTTP 413)
-  await test("Test 2: File exceeding 10 MB is rejected with HTTP 413", () => {
-    const oversizedBuffer = Buffer.alloc(11 * 1024 * 1024); // 11 MB
+  // TEST 2: File exceeding 30 MB is rejected (HTTP 413)
+  await test("Test 2: File exceeding 30 MB is rejected with HTTP 413", () => {
+    const oversizedBuffer = Buffer.alloc(32 * 1024 * 1024); // 32 MB
     // Set valid PNG header on oversized buffer
     oversizedBuffer[0] = 0x89;
     oversizedBuffer[1] = 0x50;
@@ -88,10 +88,10 @@ async function runTestSuite() {
     assert.ok(res.error?.includes("exceeds"), "Error message must indicate size limit");
   })();
 
-  // TEST 3: Pre-flight Base64 exceeding 10 MB limit is rejected without decoding
+  // TEST 3: Pre-flight Base64 exceeding 30 MB limit is rejected without decoding
   await test("Test 3: Pre-flight Base64 payload exceeding size limit is rejected", () => {
-    // String representing ~12 MB of Base64 data
-    const oversizedB64 = "data:image/png;base64," + "A".repeat(16 * 1024 * 1024);
+    // String representing ~36 MB of Base64 data (exceeding 30 MB binary)
+    const oversizedB64 = "data:image/png;base64," + "A".repeat(45 * 1024 * 1024);
     const res = validateBase64Payload(oversizedB64, TOOL_PROFILES["remove-bg"]);
     assert.strictEqual(res.valid, false);
     assert.strictEqual(res.status, 413);
@@ -257,12 +257,12 @@ async function runTestSuite() {
     assert.strictEqual(json.stack, undefined, "Stack trace must not be exposed");
   })();
 
-  // TEST 17: Server entry rejects requests with declared Content-Length > 25MB (HTTP 413)
+  // TEST 17: Server entry rejects requests with declared Content-Length > 60MB (HTTP 413)
   await test("Test 17: server.fetch rejects oversized Content-Length with HTTP 413", async () => {
     const req = new Request("http://localhost:3000/api/remove-bg", {
       method: "POST",
       headers: {
-        "content-length": "30000000", // 30 MB
+        "content-length": "70000000", // 70 MB
         "content-type": "application/json",
       },
       body: JSON.stringify({ image: "toolarge" }),
@@ -271,7 +271,7 @@ async function runTestSuite() {
     const res = await serverHandler.fetch(req, {}, {});
     assert.strictEqual(res.status, 413, "Must reject oversized body pre-flight with 413");
     const json = await res.json();
-    assert.ok(json.error?.includes("10 MB limit"), "Friendly error text required");
+    assert.ok(json.error?.includes("30 MB limit"), "Friendly error text required");
   })();
 
   // TEST 18: Server entry rejects fake base64 executable payload (HTTP 415)

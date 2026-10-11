@@ -373,8 +373,8 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
         continue;
       }
 
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`"${file.name}" exceeds the 10 MB limit. Please upload a smaller file.`);
+      if (file.size > 30 * 1024 * 1024) {
+        toast.error(`"${file.name}" exceeds the 30 MB limit. Please upload a smaller file.`);
         continue;
       }
 
