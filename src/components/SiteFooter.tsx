@@ -48,35 +48,35 @@ export function SiteFooter() {
   return (
     <footer className="w-full border-t border-border bg-card/60 text-foreground transition-colors">
       {/* Top Banner: Newsletter & Live Status */}
-      <div className="border-b border-border bg-muted/30 px-6 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-10">
-        <div className="w-full flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="border-b border-border bg-muted/30 px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8 sm:py-10">
+        <div className="w-full flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>All 5 AI Models Online • 99.9% Uptime</span>
             </div>
-            <h3 className="mt-3 font-display text-2xl md:text-3xl font-extrabold tracking-tight">
+            <h3 className="mt-3 font-display text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
               Stay ahead with AI image processing releases
             </h3>
-            <p className="mt-1.5 text-sm text-muted-foreground font-medium">
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground font-medium">
               Get weekly updates on model accuracy improvements, 4K batch features & bonus credits.
             </p>
           </div>
 
           {/* Newsletter Form */}
-          <form onSubmit={handleSubscribe} className="flex w-full max-w-md items-center gap-2">
+          <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row w-full max-w-md items-stretch sm:items-center gap-2.5">
             <div className="relative flex-1">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your work email…"
-                className="w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-sm"
+                className="w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-xs"
               />
             </div>
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3 text-sm font-extrabold text-background shadow-md transition-all hover:scale-105"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3 text-sm font-extrabold text-background shadow-md transition-all hover:scale-105 shrink-0"
             >
               {subscribed ? (
                 <>
@@ -93,7 +93,7 @@ export function SiteFooter() {
       </div>
 
       {/* Main Grid Section */}
-      <div className="w-full px-6 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-16 md:py-20">
+      <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-12 sm:py-16 md:py-20">
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {/* Brand Column */}
           <div className="sm:col-span-2 md:col-span-3 lg:col-span-1">
@@ -304,26 +304,28 @@ export function SiteFooter() {
         </div>
 
         {/* Feature Badges & Security */}
-        <div className="mt-16 flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-border bg-muted/20 p-6 md:p-8">
-          <div className="flex flex-wrap items-center gap-6 text-xs md:text-sm font-bold">
+        <div className="mt-12 sm:mt-16 flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6 rounded-2xl sm:rounded-3xl border border-border bg-muted/20 p-5 sm:p-6 md:p-8">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3.5 sm:gap-6 text-xs md:text-sm font-bold">
             <div className="flex items-center gap-2 text-foreground">
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
               <span>Zero File Storage Guarantee</span>
             </div>
             <div className="flex items-center gap-2 text-foreground">
-              <Zap className="h-4 w-4 text-amber-500" />
+              <Zap className="h-4 w-4 text-amber-500 shrink-0" />
               <span>Sub-Second Latency</span>
             </div>
             <div className="flex items-center gap-2 text-foreground">
-              <CheckCircle2 className="h-4 w-4 text-orange-500" />
+              <CheckCircle2 className="h-4 w-4 text-orange-500 shrink-0" />
               <span>4K HD Lossless Exports</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-            <Mail className="h-4 w-4 text-foreground" />
-            <span>Need enterprise high-volume batch API?</span>
-            <Link to="/contact" className="font-bold text-foreground hover:underline">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground pt-3 md:pt-0 border-t md:border-t-0 border-border/50">
+            <div className="flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-foreground shrink-0" />
+              <span>Need enterprise high-volume batch API?</span>
+            </div>
+            <Link to="/contact" className="font-bold text-foreground hover:underline inline-flex items-center gap-1">
               Contact Team →
             </Link>
           </div>
@@ -331,14 +333,14 @@ export function SiteFooter() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-border bg-background px-6 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8">
+      <div className="border-t border-border bg-background px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-6 sm:py-8">
         <div className="w-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-xs md:text-sm font-semibold text-muted-foreground">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <span>© {new Date().getFullYear()} bg Inc. All rights reserved.</span>
             <LanguageTranslator variant="footer" />
           </div>
 
-          <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-wrap items-center gap-3.5 sm:gap-6">
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Notice</Link>
             <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>

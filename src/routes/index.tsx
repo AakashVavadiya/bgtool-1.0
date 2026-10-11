@@ -220,15 +220,15 @@ function TypewriterHeroTitle() {
 
   return (
     <h1
-      className="rise-in halftone-text notranslate relative mx-auto w-full text-center font-display text-5xl font-black leading-[1.02] pb-3 tracking-tighter text-foreground sm:text-7xl md:text-[5.5vw] lg:text-[6vw] xl:text-[6.5vw] min-h-[2.3em] flex flex-col items-center justify-center select-none"
+      className="rise-in halftone-text notranslate relative mx-auto w-full text-center font-display text-3xl sm:text-5xl md:text-6xl lg:text-[5.5vw] xl:text-[6vw] font-black leading-[1.08] sm:leading-[1.02] pb-3 tracking-tight sm:tracking-tighter text-foreground min-h-[2.4em] flex flex-col items-center justify-center select-none max-w-full px-1"
       translate="no"
     >
-      <span className="block min-h-[1.05em]">
-        <span className="inline-title-text">{currentLine1 || "\u00A0"}</span>
+      <span className="block min-h-[1.1em] max-w-full">
+        <span className="inline-title-text break-words">{currentLine1 || "\u00A0"}</span>
         {showCursorOnLine1 && (
           <span
             aria-hidden="true"
-            className="inline-block ml-1.5 w-[3px] sm:w-[4px] md:w-[6px] h-[0.82em] bg-accent align-baseline rounded-full animate-pulse shadow-[0_0_10px_var(--color-accent)]"
+            className="inline-block ml-1 sm:ml-1.5 w-[3px] sm:w-[4px] md:w-[6px] h-[0.82em] bg-accent align-baseline rounded-full animate-pulse shadow-[0_0_10px_var(--color-accent)]"
             style={{
               WebkitBackgroundClip: "border-box",
               backgroundClip: "border-box",
@@ -236,12 +236,12 @@ function TypewriterHeroTitle() {
           />
         )}
       </span>
-      <span className="block mt-2 min-h-[1.05em]">
-        <span className="inline-title-text">{currentLine2 || "\u00A0"}</span>
+      <span className="block mt-1 sm:mt-2 min-h-[1.1em] max-w-full">
+        <span className="inline-title-text break-words">{currentLine2 || "\u00A0"}</span>
         {showCursorOnLine2 && (
           <span
             aria-hidden="true"
-            className="inline-block ml-1.5 w-[3px] sm:w-[4px] md:w-[6px] h-[0.82em] bg-accent align-baseline rounded-full animate-pulse shadow-[0_0_10px_var(--color-accent)]"
+            className="inline-block ml-1 sm:ml-1.5 w-[3px] sm:w-[4px] md:w-[6px] h-[0.82em] bg-accent align-baseline rounded-full animate-pulse shadow-[0_0_10px_var(--color-accent)]"
             style={{
               WebkitBackgroundClip: "border-box",
               backgroundClip: "border-box",
@@ -270,20 +270,20 @@ function Index() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground w-full">
       <SiteHeader />
 
       {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center overflow-hidden px-6 pb-16 pt-12 md:pb-28 md:pt-20 w-full">
-        <p className="rise-in text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+      <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pb-14 pt-10 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20 w-full max-w-full">
+        <p className="rise-in text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-muted-foreground text-center">
           free · online · unlimited
         </p>
 
-        <div className="relative mt-6 w-full max-w-[98%] mx-auto">
+        <div className="relative mt-4 sm:mt-6 w-full max-w-[98%] mx-auto">
           {/* Charcoal typographic mark behind title */}
           <span
             aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 -translate-x-1/2 -translate-y-1/2 font-display text-[22vw] font-bold leading-none tracking-tighter text-foreground/[0.04] md:text-[18vw]"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 -translate-x-1/2 -translate-y-1/2 font-display text-[18vw] sm:text-[20vw] md:text-[18vw] font-bold leading-none tracking-tighter text-foreground/[0.03] select-none"
           >
             BG.
           </span>
@@ -291,35 +291,35 @@ function Index() {
           <TypewriterHeroTitle />
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-2">
           {["· Transparent PNG", "· 4K export", "· Batch upload", "· No watermark"].map((p, i) => (
             <span
               key={p}
               style={{ animationDelay: `${300 + i * 120}ms` }}
-              className="rise-in rounded-full bg-card px-5 py-2.5 text-xs font-semibold shadow-sm border border-border md:text-sm"
+              className="rise-in rounded-full bg-card px-3.5 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-xs md:text-sm font-semibold shadow-xs border border-border"
             >
               {p}
             </span>
           ))}
         </div>
 
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
+        <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full max-w-xs sm:max-w-none">
           <Link
             to="/tools/$slug"
             params={{ slug: "remove-background" }}
-            className="inline-flex items-center gap-3 rounded-full bg-foreground px-9 py-5 text-base font-bold text-background shadow-xl transition-all hover:scale-105 hover:gap-5"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-full bg-foreground px-7 sm:px-9 py-4 sm:py-5 text-sm sm:text-base font-bold text-background shadow-xl transition-all hover:scale-105 hover:gap-5"
           >
             Remove a background <span aria-hidden>→</span>
           </Link>
           <Link
             to="/pricing"
-            className="inline-flex items-center gap-3 rounded-full border-2 border-border bg-card px-9 py-5 text-base font-bold transition-all hover:scale-105 hover:border-foreground shadow-md"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-full border-2 border-border bg-card px-7 sm:px-9 py-4 sm:py-5 text-sm sm:text-base font-bold transition-all hover:scale-105 hover:border-foreground shadow-md"
           >
             See pricing
           </Link>
         </div>
 
-        <p className="mt-8 max-w-md text-center text-sm text-muted-foreground">
+        <p className="mt-6 sm:mt-8 max-w-md text-center text-xs sm:text-sm text-muted-foreground px-4">
           Free online background remover for people who care about edges.
         </p>
       </section>

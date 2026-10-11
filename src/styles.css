@@ -180,6 +180,14 @@
   padding-bottom: 0.18em;
   margin-bottom: -0.18em;
 
+  @media (max-width: 768px) {
+    background-image: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    color: currentColor !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
   & font,
   & font *,
   & span:not([aria-hidden="true"]) {
@@ -191,6 +199,14 @@
     -webkit-text-fill-color: transparent !important;
     background-color: transparent !important;
     box-shadow: none !important;
+
+    @media (max-width: 768px) {
+      background-image: none !important;
+      -webkit-background-clip: border-box !important;
+      background-clip: border-box !important;
+      color: currentColor !important;
+      -webkit-text-fill-color: currentColor !important;
+    }
   }
 }
 

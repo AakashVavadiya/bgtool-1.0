@@ -133,7 +133,7 @@ export function ScrollBeforeAfter() {
   return (
     <div
       ref={containerRef}
-      className="group relative h-[420px] sm:h-[540px] md:h-[640px] w-full max-w-5xl mx-auto overflow-hidden rounded-3xl border-2 border-border shadow-2xl select-none"
+      className="group relative h-[380px] xs:h-[440px] sm:h-[540px] md:h-[640px] w-full max-w-5xl mx-auto overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-border shadow-2xl select-none"
       style={{
         ...cleanCheckerStyle,
         userSelect: "none",
@@ -193,12 +193,12 @@ export function ScrollBeforeAfter() {
             setIsDragging(true);
             if (e.touches[0]) updatePosFromClientX(e.touches[0].clientX, true);
           }}
-          className={`pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-2xl transition-transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-accent/30 ${
+          className={`pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-foreground text-background shadow-2xl transition-transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-accent/30 ${
             isDragging ? "cursor-grabbing scale-110" : "cursor-grab"
           }`}
         >
           <svg
-            className="h-7 w-7 stroke-current pointer-events-none"
+            className="h-5 w-5 sm:h-7 sm:w-7 stroke-current pointer-events-none"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth="2.5"
@@ -211,17 +211,20 @@ export function ScrollBeforeAfter() {
         </button>
       </div>
 
-      {/* Badges */}
-      <div className="pointer-events-none select-none absolute bottom-6 left-6 z-30 rounded-full bg-foreground/95 px-5 py-2.5 text-xs font-bold text-background backdrop-blur shadow-xl border border-foreground/20">
-        Background Removed ({Math.round(displayPos)}%)
+      {/* Badges: responsive and spaced so they never collide or overlap on mobile */}
+      <div className="pointer-events-none select-none absolute bottom-3 sm:bottom-6 left-3 sm:left-6 z-30 rounded-full bg-foreground/95 px-3 sm:px-5 py-1.5 sm:py-2.5 text-[11px] sm:text-xs font-bold text-background backdrop-blur shadow-xl border border-foreground/20 whitespace-nowrap">
+        <span className="hidden sm:inline">Background Removed ({Math.round(displayPos)}%)</span>
+        <span className="inline sm:hidden">Removed ({Math.round(displayPos)}%)</span>
       </div>
-      <div className="pointer-events-none select-none absolute bottom-6 right-6 z-30 rounded-full bg-background/95 px-5 py-2.5 text-xs font-bold text-foreground backdrop-blur shadow-xl border border-border">
-        Original Photo
+      <div className="pointer-events-none select-none absolute bottom-3 sm:bottom-6 right-3 sm:right-6 z-30 rounded-full bg-background/95 px-3 sm:px-5 py-1.5 sm:py-2.5 text-[11px] sm:text-xs font-bold text-foreground backdrop-blur shadow-xl border border-border whitespace-nowrap">
+        <span className="hidden sm:inline">Original Photo</span>
+        <span className="inline sm:hidden">Original</span>
       </div>
 
-      {/* Top Banner Prompt */}
-      <div className="pointer-events-none select-none absolute top-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full bg-background/90 px-5 py-2 text-xs font-semibold text-foreground backdrop-blur border border-border shadow-md">
-        <span>Scroll page to reveal, or drag center button ↔</span>
+      {/* Top Banner Prompt: compact on mobile so it never obscures the subject's face */}
+      <div className="pointer-events-none select-none absolute top-3 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center rounded-full bg-background/90 px-3.5 sm:px-5 py-1 sm:py-2 text-[10px] sm:text-xs font-semibold text-foreground backdrop-blur border border-border shadow-md whitespace-nowrap max-w-[92%] sm:max-w-none">
+        <span className="hidden sm:inline">Scroll page to reveal, or drag center button ↔</span>
+        <span className="inline sm:hidden">Drag slider to compare ↔</span>
       </div>
     </div>
   );
