@@ -7,6 +7,7 @@ import {
   createRateLimitResponse,
   applySecurityHeaders,
   createSafeErrorResponse,
+  enforceToolCreditsAndLimits,
 } from "@/lib/security";
 
 type ChatRequestBody = {
@@ -31,6 +32,17 @@ export const Route = createFileRoute("/api/chat")({
           );
         }
 
+        const creditCheck = await enforceToolCreditsAndLimits(request, "chat", clientIp);
+        if (!creditCheck.allowed) {
+          const errRes = applySecurityHeaders(
+            createSafeErrorResponse(creditCheck.status || 402, creditCheck.error || "Credit limit exceeded.")
+          );
+          if (creditCheck.guestCookieHeader) {
+            errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+          }
+          return errRes;
+        }
+
         try {
           const body = (await request.json().catch(() => ({}))) as ChatRequestBody;
           const messages = body.messages;
@@ -39,16 +51,26 @@ export const Route = createFileRoute("/api/chat")({
           const threadId = typeof body.id === "string" ? body.id.slice(0, 100) : undefined;
 
           if (!Array.isArray(messages)) {
-            return applySecurityHeaders(
+            creditCheck.refund?.("Invalid messages array");
+            const res = applySecurityHeaders(
               createSafeErrorResponse(400, "Messages array is required.")
             );
+            if (creditCheck.guestCookieHeader) {
+              res.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+            }
+            return res;
           }
 
           // Guard against unbounded prompt sizes and memory exhaustion
           if (messages.length > 50) {
-            return applySecurityHeaders(
+            creditCheck.refund?.("Exceeded 50 messages limit");
+            const res = applySecurityHeaders(
               createSafeErrorResponse(400, "Conversation history exceeds the maximum 50 message limit.")
             );
+            if (creditCheck.guestCookieHeader) {
+              res.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+            }
+            return res;
           }
 
           // Execute real LLM Tool-Calling Agent Loop
@@ -59,15 +81,30 @@ export const Route = createFileRoute("/api/chat")({
             threadId,
           });
 
-          return applySecurityHeaders(aiResponse);
+          if (!aiResponse.ok) {
+            creditCheck.refund?.(`AI status ${aiResponse.status}`);
+          } else {
+            creditCheck.recordSuccess?.();
+          }
+
+          const finalRes = applySecurityHeaders(aiResponse);
+          if (creditCheck.guestCookieHeader) {
+            finalRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+          }
+          return finalRes;
         } catch (err: any) {
+          creditCheck.refund?.(err?.message || "Internal failure");
           console.error("Error in /api/chat:", err?.message || err);
-          return applySecurityHeaders(
+          const errRes = applySecurityHeaders(
             createSafeErrorResponse(
               500,
               "Karudi encountered an unexpected issue while processing your request. Please try again."
             )
           );
+          if (creditCheck.guestCookieHeader) {
+            errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+          }
+          return errRes;
         }
       },
     },

@@ -5,3 +5,4 @@ export * from "./headers";
 export * from "./auth-admin";
 export * from "./login-lockout";
 export * from "./auth-user-server";
+export * from "./credit-guard";

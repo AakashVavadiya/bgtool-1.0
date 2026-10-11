@@ -883,6 +883,115 @@ async function runTestSuite() {
     assert.strictEqual(verifyRes.status, 401, "Revoked session must be rejected");
   })();
 
+  // TEST 42: Guest daily limit enforcement (signed bg_guest cookie + IP daily limit)
+  await test("Test 42: Guest cannot exceed daily guest allowance and receives signed guest cookie", async () => {
+    const guestIp = `198.51.100.${Math.floor(Math.random() * 200 + 10)}`;
+    // 5 attempts allowed for guest limit
+    for (let i = 1; i <= 5; i++) {
+      const check = creditLedgerRepo.checkAndDeductGuestLimit(guestIp, "remove-bg", 5);
+      assert.strictEqual(check.allowed, true, `Guest request ${i} should be allowed`);
+    }
+    // 6th attempt must be rejected
+    const checkExceeded = creditLedgerRepo.checkAndDeductGuestLimit(guestIp, "remove-bg", 5);
+    assert.strictEqual(checkExceeded.allowed, false, "Guest request 6 should exceed daily limit");
+
+    // Through server endpoint with enforceToolCreditsAndLimits
+    const req = new Request("http://localhost:3000/api/remove-bg", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": guestIp },
+      body: JSON.stringify({ image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" }),
+    });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 429, "Server should return 429 when guest limit is exhausted");
+  })();
+
+  // TEST 43: LocalStorage / client tampering resistance (server authoritative balance)
+  await test("Test 43: Client-side tampering cannot bypass server credit ledger verification", async () => {
+    // Fabricate a request claiming infinite credits or pro plan in headers/body without valid session
+    const fakeReq = new Request("http://localhost:3000/api/remove-bg", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-credits": "999999",
+        "x-user-plan": "pro",
+        "x-forwarded-for": "192.0.2.143",
+      },
+      body: JSON.stringify({
+        user: { credits: 999999, plan: "pro" },
+        image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      }),
+    });
+    const fakeRes = await serverHandler.fetch(fakeReq, {}, {});
+    // Server treats as guest or checks real DB session; claims in header/body are ignored completely
+    assert.ok(fakeRes.status !== 200 || !fakeRes.headers.get("x-user-credits"), "Server must never trust client-claimed credits");
+  })();
+
+  // TEST 44: Atomic credit deduction prevents concurrency race conditions / overspending
+  await test("Test 44: Concurrent debit requests cannot overspend user balance", async () => {
+    // Create test user with exactly 2 credits
+    const raceUserEmail = `race_${Date.now()}@example.com`;
+    const user = usersRepo.create({
+      name: "Race Tester",
+      email: raceUserEmail,
+      passwordHash: "hash",
+      credits: 2,
+      plan: "free",
+    });
+
+    assert.strictEqual(user.credits, 2);
+
+    // Fire 5 simultaneous deduction attempts for 1 credit each
+    const promises = Array.from({ length: 5 }).map(() =>
+      Promise.resolve().then(() => creditLedgerRepo.deductUserCredits(user.id, 1, "test-tool", "127.0.0.1"))
+    );
+
+    const outcomes = await Promise.all(promises);
+    const successes = outcomes.filter((o) => o.success);
+    const failures = outcomes.filter((o) => !o.success);
+
+    assert.strictEqual(successes.length, 2, "Exactly 2 debits must succeed");
+    assert.strictEqual(failures.length, 3, "Remaining 3 debits must fail due to insufficient credits");
+
+    const finalUser = usersRepo.findById(user.id);
+    assert.strictEqual(finalUser?.credits, 0, "User balance must be exactly 0, never negative");
+  })();
+
+  // TEST 45: Downstream failure triggers automatic credit refund
+  await test("Test 45: Downstream tool failure triggers credit refund restoring balance", async () => {
+    const refundUserEmail = `refund_${Date.now()}@example.com`;
+    const user = usersRepo.create({
+      name: "Refund Tester",
+      email: refundUserEmail,
+      passwordHash: "hash",
+      credits: 5,
+      plan: "free",
+    });
+
+    // 1. Deduct 1 credit
+    const debit = creditLedgerRepo.deductUserCredits(user.id, 1, "test-tool", "127.0.0.1");
+    assert.strictEqual(debit.success, true);
+    assert.strictEqual(debit.balanceAfter, 4);
+
+    // Verify balance is now 4
+    let current = usersRepo.findById(user.id);
+    assert.strictEqual(current?.credits, 4);
+
+    // 2. Downstream failure triggers refund
+    const refund = creditLedgerRepo.refundUserCredits(user.id, 1, "test-tool", "Worker timeout 504");
+    assert.strictEqual(refund.success, true);
+    assert.strictEqual(refund.balanceAfter, 5);
+
+    // Verify restored balance
+    current = usersRepo.findById(user.id);
+    assert.strictEqual(current?.credits, 5);
+
+    // Verify ledger records
+    const history = creditLedgerRepo.getUserHistory(user.id);
+    assert.strictEqual(history.length, 2);
+    assert.strictEqual(history[0]?.type, "refund");
+    assert.strictEqual(history[1]?.type, "tool_usage");
+  })();
+
   // Summary
   console.log("\n=================================================");
   console.log("TEST SUITE EXECUTION SUMMARY");

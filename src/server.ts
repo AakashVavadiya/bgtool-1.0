@@ -27,6 +27,7 @@ import {
   handleLogout,
   handleMe,
   getUserFromRequest,
+  enforceToolCreditsAndLimits,
 } from "./lib/security";
 import {
   usersRepo,
@@ -194,9 +195,21 @@ export default {
         );
       }
 
+      const creditCheck = await enforceToolCreditsAndLimits(request, "remove-bg", clientIp);
+      if (!creditCheck.allowed) {
+        const errRes = applySecurityHeaders(
+          createSafeErrorResponse(creditCheck.status || 402, creditCheck.error || "Credit limit exceeded.")
+        );
+        if (creditCheck.guestCookieHeader) {
+          errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+        }
+        return errRes;
+      }
+
       try {
         const bodyText = await request.text();
         if (bodyText.length > 55 * 1024 * 1024) {
+          creditCheck.refund?.("Oversized payload");
           return applySecurityHeaders(
             createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
           );
@@ -206,17 +219,20 @@ export default {
         try {
           parsed = JSON.parse(bodyText);
         } catch {
+          creditCheck.refund?.("Invalid JSON");
           return applySecurityHeaders(createSafeErrorResponse(400, "Invalid JSON payload."));
         }
 
         const rawB64 = parsed.base64Image || parsed.image;
         if (!rawB64) {
+          creditCheck.refund?.("No image payload");
           return applySecurityHeaders(createSafeErrorResponse(400, "No image payload provided."));
         }
 
         // Validate actual file magic bytes and enforce 10MB limit
         const validation = validateBase64Payload(rawB64, TOOL_PROFILES["remove-bg"]);
         if (!validation.valid) {
+          creditCheck.refund?.(validation.error || "Invalid file format");
           return applySecurityHeaders(
             createSafeErrorResponse(validation.status || 400, validation.error || "Invalid file format.")
           );
@@ -235,6 +251,7 @@ export default {
           console.warn("[Server] Python backend unreachable. Attempting auto-spawn...");
           const running = await ensurePythonServerRunning();
           if (!running) {
+            creditCheck.refund?.("Python backend offline");
             throw new Error("Python background remover server is offline and auto-spawn failed.");
           }
           pythonResponse = await fetch("http://127.0.0.1:5000/remove-base64", {
@@ -245,8 +262,20 @@ export default {
             body: bodyText,
           });
         }
-        return applySecurityHeaders(pythonResponse);
+
+        if (!pythonResponse.ok) {
+          creditCheck.refund?.(`Python status ${pythonResponse.status}`);
+        } else {
+          creditCheck.recordSuccess?.();
+        }
+
+        const finalRes = applySecurityHeaders(pythonResponse);
+        if (creditCheck.guestCookieHeader) {
+          finalRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+        }
+        return finalRes;
       } catch (err: any) {
+        creditCheck.refund?.(err?.message || "Internal failure");
         console.error("Proxy error /api/remove-bg:", err?.message || err);
         return applySecurityHeaders(
           createSafeErrorResponse(502, "Server is busy. Please try again in a few moments.")
@@ -266,9 +295,21 @@ export default {
         );
       }
 
+      const creditCheck = await enforceToolCreditsAndLimits(request, "remove-watermark", clientIp);
+      if (!creditCheck.allowed) {
+        const errRes = applySecurityHeaders(
+          createSafeErrorResponse(creditCheck.status || 402, creditCheck.error || "Credit limit exceeded.")
+        );
+        if (creditCheck.guestCookieHeader) {
+          errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+        }
+        return errRes;
+      }
+
       try {
         const bodyText = await request.text();
         if (bodyText.length > 55 * 1024 * 1024) {
+          creditCheck.refund?.("Oversized payload");
           return applySecurityHeaders(
             createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
           );
@@ -278,16 +319,19 @@ export default {
         try {
           parsed = JSON.parse(bodyText);
         } catch {
+          creditCheck.refund?.("Invalid JSON");
           return applySecurityHeaders(createSafeErrorResponse(400, "Invalid JSON payload."));
         }
 
         const rawB64 = parsed.base64Image || parsed.image;
         if (!rawB64) {
+          creditCheck.refund?.("No image payload");
           return applySecurityHeaders(createSafeErrorResponse(400, "No image payload provided."));
         }
 
         const validation = validateBase64Payload(rawB64, TOOL_PROFILES["remove-watermark"]);
         if (!validation.valid) {
+          creditCheck.refund?.(validation.error || "Invalid file format");
           return applySecurityHeaders(
             createSafeErrorResponse(validation.status || 400, validation.error || "Invalid file format.")
           );
@@ -319,8 +363,20 @@ export default {
             body: bodyText,
           });
         }
-        return applySecurityHeaders(pythonResponse);
+
+        if (!pythonResponse.ok) {
+          creditCheck.refund?.(`Python status ${pythonResponse.status}`);
+        } else {
+          creditCheck.recordSuccess?.();
+        }
+
+        const finalRes = applySecurityHeaders(pythonResponse);
+        if (creditCheck.guestCookieHeader) {
+          finalRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+        }
+        return finalRes;
       } catch (err: any) {
+        creditCheck.refund?.(err?.message || "Internal failure");
         console.error("Proxy error /api/remove-watermark:", err?.message || err);
         return applySecurityHeaders(
           createSafeErrorResponse(502, "Watermark Engine is busy. Please try again in a few moments.")
@@ -340,9 +396,21 @@ export default {
         );
       }
 
+      const creditCheck = await enforceToolCreditsAndLimits(request, "blur-face", clientIp);
+      if (!creditCheck.allowed) {
+        const errRes = applySecurityHeaders(
+          createSafeErrorResponse(creditCheck.status || 402, creditCheck.error || "Credit limit exceeded.")
+        );
+        if (creditCheck.guestCookieHeader) {
+          errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+        }
+        return errRes;
+      }
+
       try {
         const bodyText = await request.text();
         if (bodyText.length > 55 * 1024 * 1024) {
+          creditCheck.refund?.("Oversized payload");
           return applySecurityHeaders(
             createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
           );
@@ -352,16 +420,19 @@ export default {
         try {
           parsed = JSON.parse(bodyText);
         } catch {
+          creditCheck.refund?.("Invalid JSON");
           return applySecurityHeaders(createSafeErrorResponse(400, "Invalid JSON payload."));
         }
 
         const rawB64 = parsed.base64Image || parsed.image;
         if (!rawB64) {
+          creditCheck.refund?.("No image payload");
           return applySecurityHeaders(createSafeErrorResponse(400, "No image payload provided."));
         }
 
         const validation = validateBase64Payload(rawB64, TOOL_PROFILES["blur-face"]);
         if (!validation.valid) {
+          creditCheck.refund?.(validation.error || "Invalid file format");
           return applySecurityHeaders(
             createSafeErrorResponse(validation.status || 400, validation.error || "Invalid file format.")
           );
@@ -394,8 +465,20 @@ export default {
             body: bodyText,
           });
         }
-        return applySecurityHeaders(pythonResponse);
+
+        if (!pythonResponse.ok) {
+          creditCheck.refund?.(`Python status ${pythonResponse.status}`);
+        } else {
+          creditCheck.recordSuccess?.();
+        }
+
+        const finalRes = applySecurityHeaders(pythonResponse);
+        if (creditCheck.guestCookieHeader) {
+          finalRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+        }
+        return finalRes;
       } catch (err: any) {
+        creditCheck.refund?.(err?.message || "Internal failure");
         console.error(`Proxy error ${url.pathname}:`, err?.message || err);
         return applySecurityHeaders(
           createSafeErrorResponse(502, "Face Blur Engine is busy. Please try again in a few moments.")

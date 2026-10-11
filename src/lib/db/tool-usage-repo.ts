@@ -15,11 +15,11 @@ export interface ToolUsageRecord {
 export const toolUsageRepo = {
   record(entry: {
     toolSlug: string;
-    userId?: string;
+    userId?: string | null | undefined;
     ip: string;
-    success?: boolean;
-    durationMs?: number;
-    fileSizeBytes?: number;
+    success?: boolean | undefined;
+    durationMs?: number | undefined;
+    fileSizeBytes?: number | undefined;
   }): ToolUsageRecord {
     const db = getDb();
     const id = `use_${crypto.randomBytes(8).toString("hex")}`;

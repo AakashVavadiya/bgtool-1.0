@@ -82,15 +82,19 @@ export const usersRepo = {
       )
     `);
 
+    const paidCredits = user.paidCredits ?? 0;
+    const freeCredits = user.freeCredits ?? (user.credits !== undefined ? Math.max(0, user.credits - paidCredits) : 10);
+    const totalCredits = user.credits ?? (freeCredits + paidCredits);
+
     const newRecord: DbUser = {
       id,
       name: user.name.trim(),
       email: cleanEmail,
       password_hash: user.passwordHash,
       plan: user.plan || "free",
-      credits: user.credits ?? 10,
-      free_credits: user.freeCredits ?? 10,
-      paid_credits: user.paidCredits ?? 0,
+      credits: totalCredits,
+      free_credits: freeCredits,
+      paid_credits: paidCredits,
       total_processed: 0,
       status: user.status || "active",
       registered_at: now,

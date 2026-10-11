@@ -232,4 +232,8 @@ export const creditLedgerRepo = {
       `)
       .all(userId, limit) as CreditLedgerEntry[];
   },
+
+  getUserHistory(userId: string, limit = 50): CreditLedgerEntry[] {
+    return this.getHistory(userId, limit);
+  },
 };
