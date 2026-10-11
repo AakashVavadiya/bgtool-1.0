@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { execSync, spawn } from "child_process";
 import path from "path";
+import {
+  validateBase64Payload,
+  TOOL_PROFILES,
+  expensiveInferenceLimiter,
+  extractClientIp,
+  createRateLimitResponse,
+  applySecurityHeaders,
+  createSafeErrorResponse,
+} from "@/lib/security";
 
 function getPythonCommand(): string {
   if (process.env["PYTHON_PATH"]) return process.env["PYTHON_PATH"];
@@ -59,7 +68,7 @@ async function ensureWatermarkServerRunning(): Promise<boolean> {
     }
     return false;
   } catch (err) {
-    console.error("[Auto-Spawn] Watermark server spawn failed:", err);
+    console.error("[Auto-Spawn] Spawn failed:", err);
     return false;
   } finally {
     isSpawningWatermarkPython = false;
@@ -70,8 +79,43 @@ export const Route = createFileRoute("/api/remove-watermark")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const clientIp = extractClientIp(request);
+        const rateCheck = expensiveInferenceLimiter.check(clientIp);
+        if (!rateCheck.allowed) {
+          return applySecurityHeaders(
+            createRateLimitResponse(
+              rateCheck.retryAfter,
+              "Watermark Remover is busy. Rate limit exceeded, please wait."
+            )
+          );
+        }
+
         try {
           const bodyText = await request.text();
+          if (bodyText.length > 20 * 1024 * 1024) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(413, "File size exceeds the 10 MB limit. Please upload a smaller file.")
+            );
+          }
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(bodyText);
+          } catch {
+            return applySecurityHeaders(createSafeErrorResponse(400, "Invalid JSON payload."));
+          }
+
+          const rawB64 = parsed.base64Image || parsed.image;
+          if (!rawB64) {
+            return applySecurityHeaders(createSafeErrorResponse(400, "No image payload provided."));
+          }
+
+          const validation = validateBase64Payload(rawB64, TOOL_PROFILES["remove-watermark"]);
+          if (!validation.valid) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(validation.status || 400, validation.error || "Invalid file format.")
+            );
+          }
 
           let pythonResponse: Response;
           try {
@@ -81,15 +125,14 @@ export const Route = createFileRoute("/api/remove-watermark")({
               body: bodyText,
             });
           } catch {
-            console.warn("[API Route] Watermark Python backend unreachable. Auto-spawning...");
+            console.warn("[API Route] Watermark backend unreachable. Auto-spawning port 5001...");
             const running = await ensureWatermarkServerRunning();
             if (!running) {
-              return new Response(
-                JSON.stringify({
-                  success: false,
-                  error: "Watermark AI Engine is starting up. Please try again in a moment.",
-                }),
-                { status: 503, headers: { "Content-Type": "application/json" } }
+              return applySecurityHeaders(
+                createSafeErrorResponse(
+                  503,
+                  "Watermark Remover service is starting up. Please try again in a few moments."
+                )
               );
             }
             pythonResponse = await fetch("http://127.0.0.1:5001/remove-watermark", {
@@ -100,18 +143,16 @@ export const Route = createFileRoute("/api/remove-watermark")({
           }
 
           const responseData = await pythonResponse.text();
-          return new Response(responseData, {
-            status: pythonResponse.status,
-            headers: { "Content-Type": "application/json" },
-          });
+          return applySecurityHeaders(
+            new Response(responseData, {
+              status: pythonResponse.status,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
         } catch (err: any) {
-          console.error("API /api/remove-watermark error:", err);
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: err.message || "Failed to process image.",
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+          console.error("API /api/remove-watermark error:", err?.message || err);
+          return applySecurityHeaders(
+            createSafeErrorResponse(500, "Failed to remove watermark. Please try again.")
           );
         }
       },

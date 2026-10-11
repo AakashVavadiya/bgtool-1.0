@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { execSync, spawn } from "child_process";
 import path from "path";
+import {
+  validateBase64Payload,
+  TOOL_PROFILES,
+  expensiveInferenceLimiter,
+  extractClientIp,
+  createRateLimitResponse,
+  applySecurityHeaders,
+  createSafeErrorResponse,
+} from "@/lib/security";
 
 function getPythonCommand(): string {
   if (process.env["PYTHON_PATH"]) return process.env["PYTHON_PATH"];
@@ -70,8 +79,43 @@ export const Route = createFileRoute("/api/blur-face")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const clientIp = extractClientIp(request);
+        const rateCheck = expensiveInferenceLimiter.check(clientIp);
+        if (!rateCheck.allowed) {
+          return applySecurityHeaders(
+            createRateLimitResponse(
+              rateCheck.retryAfter,
+              "Face Blur Engine is busy. Rate limit exceeded, please wait."
+            )
+          );
+        }
+
         try {
           const bodyText = await request.text();
+          if (bodyText.length > 20 * 1024 * 1024) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(413, "File size exceeds the 10 MB limit. Please upload a smaller file.")
+            );
+          }
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(bodyText);
+          } catch {
+            return applySecurityHeaders(createSafeErrorResponse(400, "Invalid JSON payload."));
+          }
+
+          const rawB64 = parsed.base64Image || parsed.image;
+          if (!rawB64) {
+            return applySecurityHeaders(createSafeErrorResponse(400, "No image payload provided."));
+          }
+
+          const validation = validateBase64Payload(rawB64, TOOL_PROFILES["blur-face"]);
+          if (!validation.valid) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(validation.status || 400, validation.error || "Invalid file format.")
+            );
+          }
 
           let pythonResponse: Response;
           try {
@@ -84,12 +128,11 @@ export const Route = createFileRoute("/api/blur-face")({
             console.warn("[API Route] Face blur Python backend unreachable. Auto-spawning...");
             const running = await ensureFaceServerRunning();
             if (!running) {
-              return new Response(
-                JSON.stringify({
-                  success: false,
-                  error: "Face Blur AI Engine is starting up. Please try again in a moment.",
-                }),
-                { status: 503, headers: { "Content-Type": "application/json" } }
+              return applySecurityHeaders(
+                createSafeErrorResponse(
+                  503,
+                  "Face Blur AI Engine is starting up. Please try again in a moment."
+                )
               );
             }
             pythonResponse = await fetch("http://127.0.0.1:5001/blur-face", {
@@ -100,18 +143,16 @@ export const Route = createFileRoute("/api/blur-face")({
           }
 
           const responseData = await pythonResponse.text();
-          return new Response(responseData, {
-            status: pythonResponse.status,
-            headers: { "Content-Type": "application/json" },
-          });
+          return applySecurityHeaders(
+            new Response(responseData, {
+              status: pythonResponse.status,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
         } catch (err: any) {
-          console.error("API /api/blur-face error:", err);
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: err.message || "Failed to blur faces.",
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+          console.error("API /api/blur-face error:", err?.message || err);
+          return applySecurityHeaders(
+            createSafeErrorResponse(500, "Failed to blur faces. Please try again.")
           );
         }
       },

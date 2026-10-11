@@ -357,13 +357,44 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
   const handleFilesChosen = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
+    if (fileList.length > 10) {
+      toast.error("Maximum 10 files allowed per request. Please select up to 10 files.");
+      return;
+    }
+
     setProcessing(true);
     const newItems: UploadedPdfItem[] = [];
 
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i]!;
+
+      if (file.size === 0) {
+        toast.error(`"${file.name}" is empty (0 bytes).`);
+        continue;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`"${file.name}" exceeds the 10 MB limit. Please upload a smaller file.`);
+        continue;
+      }
+
       try {
         const buffer = await file.arrayBuffer();
+        const header = new Uint8Array(buffer.slice(0, 5));
+        // Check %PDF magic bytes (0x25, 0x50, 0x44, 0x46)
+        if (
+          file.type === "application/pdf" ||
+          file.name.toLowerCase().endsWith(".pdf")
+        ) {
+          if (
+            header.length >= 4 &&
+            !(header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46)
+          ) {
+            toast.error(`"${file.name}" has invalid PDF file signature.`);
+            continue;
+          }
+        }
+
         newItems.push({
           id: `${file.name}-${Date.now()}-${i}`,
           file,

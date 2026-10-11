@@ -5493,6 +5493,11 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   };
 
   const processSelectedFile = (selected: File) => {
+    if (selected.size > 10 * 1024 * 1024) {
+      toast.error("File size exceeds the 10 MB limit. Please upload a smaller file.");
+      return;
+    }
+
     // Base64-to-image tool: read as text (.txt, .b64, etc.) and auto-decode
     if (tool.slug === "base64-to-image") {
       setFile(selected);

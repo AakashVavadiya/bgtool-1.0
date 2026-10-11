@@ -33,20 +33,41 @@ except ImportError as e:
     print(f"Failed to import dependencies: {e}")
     sys.exit(1)
 
-Image.MAX_IMAGE_PIXELS = 100_000_000
+Image.MAX_IMAGE_PIXELS = 36_000_000
 
 def validate_image_bytes(raw_bytes):
     if not raw_bytes or len(raw_bytes) == 0:
-        return False, "Empty image data", None
+        return False, "Uploaded image is empty (0 bytes).", None
+    if len(raw_bytes) > 10 * 1024 * 1024:
+        return False, "File size exceeds the 10 MB limit. Please upload a smaller file.", None
+
+    # Magic byte check
+    if len(raw_bytes) >= 2 and (raw_bytes[:2] == b"MZ" or raw_bytes[:4] == b"\x7fELF"):
+        return False, "Executable files and active scripts are strictly prohibited.", None
+
+    is_png = len(raw_bytes) >= 8 and raw_bytes[:8] == b"\x89PNG\r\n\x1a\n"
+    is_jpg = len(raw_bytes) >= 3 and raw_bytes[:3] == b"\xff\xd8\xff"
+    is_webp = len(raw_bytes) >= 12 and raw_bytes[:4] == b"RIFF" and raw_bytes[8:12] == b"WEBP"
+    is_gif = len(raw_bytes) >= 4 and raw_bytes[:4] == b"GIF8"
+    is_bmp = len(raw_bytes) >= 2 and raw_bytes[:2] == b"BM"
+
+    if not (is_png or is_jpg or is_webp or is_gif or is_bmp):
+        return False, "Unsupported image format. Please upload PNG, JPG, or WebP.", None
+
     try:
         bio = io.BytesIO(raw_bytes)
         img = Image.open(bio)
         img.verify()
         bio.seek(0)
         img = Image.open(bio)
+        w, h = img.size
+        if w > 6000 or h > 6000:
+            return False, f"Image dimensions ({w}x{h}) exceed maximum allowed 6000x6000px.", None
+        if (w * h) > 36_000_000:
+            return False, "Image pixel count exceeds the 36 Megapixel limit.", None
         return True, None, img
     except Exception as e:
-        return False, f"Invalid image format: {e}", None
+        return False, f"Invalid or corrupted image format: {e}", None
 
 def remove_watermark_cv(input_image, mode="full_auto", sensitivity=55, engine="smart_neural", preserve_details=True):
     """
@@ -470,19 +491,37 @@ class WatermarkServerHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         content_len = int(self.headers.get("Content-Length", 0))
-        post_data = self.rfile.read(content_len)
-        data = json.loads(post_data.decode("utf-8"))
+        if content_len > 20 * 1024 * 1024:
+            self.send_json({"success": False, "error": "File size exceeds the 10 MB limit. Please upload a smaller file."}, status=413)
+            return
 
-        if self.path in ["/remove-watermark", "/api/remove-watermark"]:
-            res = process_watermark_base64(data)
-            self.send_json(res, status=200 if res.get("success") else 400)
-        elif self.path in ["/blur-face", "/api/blur-face", "/detect-faces", "/api/detect-faces"]:
-            if "detect-faces" in self.path:
-                data["detectOnly"] = True
-            res = process_face_blur_base64(data)
-            self.send_json(res, status=200 if res.get("success") else 400)
-        else:
-            self.send_json({"error": "Not Found"}, status=404)
+        post_data = self.rfile.read(content_len)
+        try:
+            data = json.loads(post_data.decode("utf-8"))
+        except Exception:
+            self.send_json({"success": False, "error": "Invalid JSON payload."}, status=400)
+            return
+
+        import gc
+        try:
+            if self.path in ["/remove-watermark", "/api/remove-watermark"]:
+                res = process_watermark_base64(data)
+                status_code = 200 if res.get("success") else 400
+                if "exceeds" in str(res.get("error", "")).lower():
+                    status_code = 413
+                self.send_json(res, status=status_code)
+            elif self.path in ["/blur-face", "/api/blur-face", "/detect-faces", "/api/detect-faces"]:
+                if "detect-faces" in self.path:
+                    data["detectOnly"] = True
+                res = process_face_blur_base64(data)
+                status_code = 200 if res.get("success") else 400
+                if "exceeds" in str(res.get("error", "")).lower():
+                    status_code = 413
+                self.send_json(res, status=status_code)
+            else:
+                self.send_json({"error": "Not Found"}, status=404)
+        finally:
+            gc.collect()
 
 def run_server(port=5001):
     ThreadingHTTPServer.allow_reuse_address = True
