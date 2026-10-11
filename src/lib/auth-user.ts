@@ -56,28 +56,6 @@ export const AuthUser = {
       let user: CurrentUser | null = null;
 
       if (!raw) {
-        const users = AdminStore.getUsers();
-        if (users.length > 0) {
-          const active = users.find((u) => u.status === "active") || users[0];
-          if (active) {
-            ensureUserDailyCredits(active);
-            user = {
-              id: active.id,
-              name: active.name,
-              email: active.email,
-              plan: active.plan as any,
-              credits: active.credits,
-              freeCredits: active.freeCredits ?? 10,
-              paidCredits: active.paidCredits ?? 0,
-              lastCreditReset: active.lastCreditReset ?? today,
-              totalProcessed: active.totalProcessed,
-              registeredAt: active.registeredAt,
-              token: `tok_${active.id}`,
-            };
-            localStorage.setItem(USER_SESSION_KEY, JSON.stringify(user));
-            return user;
-          }
-        }
         return null;
       }
 
