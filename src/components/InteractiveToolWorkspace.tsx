@@ -4831,6 +4831,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [focusedDim, setFocusedDim] = useState<"width" | "height" | null>(null);
   const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
   const [showDynamicIsland, setShowDynamicIsland] = useState(false);
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
 
   // 14. Binary & Code Research Editor Modal State
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState<boolean>(false);
@@ -4872,9 +4873,15 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
     }
 
     const handleScroll = () => {
-      // Trigger when scrolled down past 180px
-      const isScrolled = window.scrollY > 180;
-      setShowDynamicIsland(isScrolled);
+      if (workspaceContainerRef.current) {
+        const rect = workspaceContainerRef.current.getBoundingClientRect();
+        // Only show sticky Dynamic Island when user has scrolled past the main workspace actions
+        const isPastWorkspace = rect.bottom < 100;
+        setShowDynamicIsland(isPastWorkspace);
+      } else {
+        const isScrolled = window.scrollY > 480;
+        setShowDynamicIsland(isScrolled);
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -8848,10 +8855,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   })();
 
   return (
-    <div className="w-full flex flex-col gap-8">
+    <div ref={workspaceContainerRef} className="w-full flex flex-col gap-8">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Smooth Centered Animation) ─────── */}
       {hasProcessed && !isEditingSettings && !isCodeEditorOpen && (
-        <div className="fixed top-4 sm:top-6 inset-x-0 flex justify-center items-center z-50 pointer-events-none px-3">
+        <div className="fixed top-4 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-3">
           <aside
             aria-label="Quick download dynamic island"
             className={`pointer-events-auto dynamic-island-box flex items-center gap-3 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[96vw] sm:max-w-2xl ${

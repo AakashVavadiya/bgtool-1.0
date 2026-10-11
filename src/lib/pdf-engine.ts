@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, degrees, StandardFonts } from "pdf-lib";
+import { getPdfJs } from "./pdf-preview";
 
 export interface InvoiceItem {
   id: string;
@@ -287,34 +288,211 @@ export async function extractPdfPages(
   return { pdfBytes, pageCount: newDoc.getPageCount() };
 }
 
+export interface CompressPdfOptions {
+  qualityLevel?: "extreme" | "recommended" | "high" | undefined;
+  targetSizeBytes?: number | undefined;
+  convertToGrayscale?: boolean | undefined;
+}
+
 /**
- * Compress PDF by rebuilding objects, stripping unused xrefs and stream deflating
+ * Compress PDF by optimizing pages, stream deflating, and re-encoding embedded graphics
+ * to meet user-specified quality levels or direct target sizes (e.g. 100 KB).
  */
 export async function compressPdfDocument(
   buffer: ArrayBuffer,
-  _qualityLevel: "extreme" | "recommended" | "high" = "recommended"
+  optionsOrQuality: "extreme" | "recommended" | "high" | CompressPdfOptions = "recommended"
 ): Promise<{
   pdfBytes: Uint8Array;
   pageCount: number;
   originalSize: number;
   compressedSize: number;
 }> {
-  const originalSize = buffer.byteLength;
-  const doc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+  const options: CompressPdfOptions =
+    typeof optionsOrQuality === "string"
+      ? { qualityLevel: optionsOrQuality }
+      : optionsOrQuality;
 
-  // Use compact object streams and remove duplicate objects
-  const pdfBytes = await doc.save({
+  const originalSize = buffer.byteLength;
+  const qualityLevel = options.qualityLevel || "recommended";
+  const targetSizeBytes =
+    options.targetSizeBytes && options.targetSizeBytes > 0
+      ? options.targetSizeBytes
+      : null;
+  const isGrayscale = !!options.convertToGrayscale;
+
+  // 1. Load the original document with pdf-lib to get metadata and vector structure
+  const origDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+  const totalPages = origDoc.getPageCount();
+  if (totalPages === 0) {
+    const raw = new Uint8Array(buffer);
+    return { pdfBytes: raw, pageCount: 0, originalSize, compressedSize: raw.byteLength };
+  }
+
+  // 2. Try fast pdf-lib stream deflating
+  const pureStreamBytes = await origDoc.save({
     useObjectStreams: true,
     addDefaultPage: false,
   });
 
-  const compressedSize = pdfBytes.byteLength;
-  return {
-    pdfBytes,
-    pageCount: doc.getPageCount(),
-    originalSize,
-    compressedSize,
-  };
+  try {
+    const pdfjs = await getPdfJs();
+    const copyBuffer = buffer.slice(0);
+    const loadingTask = pdfjs.getDocument({
+      data: new Uint8Array(copyBuffer),
+      useSystemFonts: true,
+      cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.3.289"}/cmaps/`,
+      cMapPacked: true,
+      standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || "6.3.289"}/standard_fonts/`,
+    });
+    const pdfDoc = await loadingTask.promise;
+    const numPages = Math.min(totalPages, pdfDoc.numPages);
+
+    // Calculate budget & starting parameters
+    let scale = 1.25;
+    let initialQuality = 0.65;
+
+    if (targetSizeBytes) {
+      // Structure overhead: ~1.2KB per page + ~2KB header/catalog
+      const structureOverhead = numPages * 1200 + 2048;
+      const availableImageBudget = Math.max(2048 * numPages, targetSizeBytes - structureOverhead);
+      const budgetPerPage = Math.floor(availableImageBudget / numPages);
+
+      // Adjust scale and initial quality based on per-page budget
+      if (budgetPerPage >= 200 * 1024) {
+        scale = 1.6;
+        initialQuality = 0.85;
+      } else if (budgetPerPage >= 100 * 1024) {
+        scale = 1.4;
+        initialQuality = 0.75;
+      } else if (budgetPerPage >= 50 * 1024) {
+        scale = 1.2;
+        initialQuality = 0.65;
+      } else if (budgetPerPage >= 25 * 1024) {
+        scale = 1.0;
+        initialQuality = 0.50;
+      } else {
+        scale = 0.85;
+        initialQuality = 0.35;
+      }
+    } else {
+      if (qualityLevel === "extreme") {
+        scale = 0.95;
+        initialQuality = 0.45;
+      } else if (qualityLevel === "high") {
+        scale = 1.5;
+        initialQuality = 0.82;
+      } else {
+        // recommended
+        scale = 1.2;
+        initialQuality = 0.65;
+      }
+    }
+
+    const structureOverhead = numPages * 1200 + 2048;
+    const budgetPerPage = targetSizeBytes
+      ? Math.floor(Math.max(2048 * numPages, targetSizeBytes - structureOverhead) / numPages)
+      : null;
+
+    const pageJpgs: string[] = [];
+
+    for (let p = 1; p <= numPages; p++) {
+      const page = await pdfDoc.getPage(p);
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(10, Math.round(viewport.width));
+      canvas.height = Math.max(10, Math.round(viewport.height));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context unavailable");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (isGrayscale) {
+        ctx.filter = "grayscale(100%)";
+      }
+
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+        intent: "display",
+      } as any).promise;
+
+      let quality = initialQuality;
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+      // If targeting specific size and this page exceeds budget, down-tune quality
+      if (budgetPerPage && budgetPerPage > 0) {
+        let approxBytes = Math.round((dataUrl.length - 22) * 0.75);
+        let attempts = 0;
+        while (approxBytes > budgetPerPage && quality > 0.15 && attempts < 4) {
+          attempts++;
+          quality = Math.max(0.12, quality * (budgetPerPage / approxBytes) * 0.92);
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+          approxBytes = Math.round((dataUrl.length - 22) * 0.75);
+        }
+      }
+
+      pageJpgs.push(dataUrl);
+    }
+
+    // Build new compact PDF document with embedded compressed pages
+    const newDoc = await PDFDocument.create();
+    for (let i = 0; i < numPages; i++) {
+      const origPage = origDoc.getPage(i);
+      const { width, height } = origPage.getSize();
+      const jpgImage = await newDoc.embedJpg(pageJpgs[i]!);
+      const newPage = newDoc.addPage([width, height]);
+      newPage.drawImage(jpgImage, {
+        x: 0,
+        y: 0,
+        width,
+        height,
+      });
+    }
+
+    const compressedPdfBytes = await newDoc.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+    });
+
+    // If targetSizeBytes was explicitly requested, always return the target-optimized result
+    if (targetSizeBytes) {
+      return {
+        pdfBytes: compressedPdfBytes,
+        pageCount: numPages,
+        originalSize,
+        compressedSize: compressedPdfBytes.byteLength,
+      };
+    }
+
+    // Otherwise, pick the smaller of pure stream or rasterized
+    if (
+      pureStreamBytes.byteLength < compressedPdfBytes.byteLength &&
+      pureStreamBytes.byteLength < originalSize
+    ) {
+      return {
+        pdfBytes: pureStreamBytes,
+        pageCount: totalPages,
+        originalSize,
+        compressedSize: pureStreamBytes.byteLength,
+      };
+    }
+
+    return {
+      pdfBytes: compressedPdfBytes,
+      pageCount: numPages,
+      originalSize,
+      compressedSize: compressedPdfBytes.byteLength,
+    };
+  } catch (err) {
+    console.warn("Visual page compression fallback to pureStreamBytes:", err);
+    return {
+      pdfBytes: pureStreamBytes,
+      pageCount: totalPages,
+      originalSize,
+      compressedSize: pureStreamBytes.byteLength,
+    };
+  }
 }
 
 /**

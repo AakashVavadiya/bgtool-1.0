@@ -13,7 +13,6 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { bgModels } from "@/lib/bg-models";
 import { CutoutBrushEditorModal } from "@/components/CutoutBrushEditorModal";
 import { AuthUser } from "@/lib/auth-user";
 
@@ -112,7 +111,7 @@ export function RemovalProcess() {
   const [fileName, setFileName] = useState<string>("");
 
   const [step, setStep] = useState<number>(0);
-  const [model, setModel] = useState<string>("karudi");
+  const model = "ganga";
   const [processing, setProcessing] = useState<boolean>(false);
   const [hasProcessed, setHasProcessed] = useState<boolean>(false);
   const [duration, setDuration] = useState<number | null>(null);
@@ -123,6 +122,7 @@ export function RemovalProcess() {
   const [showCutoutEditor, setShowCutoutEditor] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Dynamic Island scroll listener
   useEffect(() => {
@@ -131,7 +131,12 @@ export function RemovalProcess() {
       return;
     }
     const handleScroll = () => {
-      setShowDynamicIsland(window.scrollY > 180);
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setShowDynamicIsland(rect.bottom < 100);
+      } else {
+        setShowDynamicIsland(window.scrollY > 480);
+      }
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
@@ -327,10 +332,10 @@ export function RemovalProcess() {
   };
 
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll) ─────── */}
-      {hasProcessed && (
-        <div className="fixed top-4 sm:top-6 inset-x-0 flex justify-center items-center z-50 pointer-events-none px-3">
+      {hasProcessed && !showCutoutEditor && (
+        <div className="fixed top-4 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-3">
           <aside
             aria-label="Quick download dynamic island"
             className={`pointer-events-auto dynamic-island-box flex items-center gap-3 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[96vw] sm:max-w-2xl ${
@@ -655,28 +660,7 @@ export function RemovalProcess() {
             </div>
 
             <div className="mt-8 border-t border-border pt-6">
-              <p className="text-xs md:text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                Select AI Model Engine
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {bgModels.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    disabled={processing}
-                    onClick={() => setModel(m.id)}
-                    className={`rounded-full border-2 px-3.5 py-1.5 text-xs font-bold transition-all hover:scale-105 ${
-                      model === m.id
-                        ? "border-foreground bg-foreground text-background shadow-md"
-                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {m.name}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-3">
+              <div className="flex flex-col gap-3">
                 {/* Credit Cost Indicator */}
                 <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">
                   <span className="flex items-center gap-1.5">

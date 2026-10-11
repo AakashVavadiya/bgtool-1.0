@@ -57,7 +57,6 @@ export const RICH_OCR_LANGUAGES: OcrLanguageOption[] = [
   { code: "kan", name: "Kannada", nativeName: "ಕನ್ನಡ", flag: "🇮🇳", region: "Karnataka / India", category: "Indic & South Asian" },
   { code: "mal", name: "Malayalam", nativeName: "മലയാളം", flag: "🇮🇳", region: "Kerala / India", category: "Indic & South Asian" },
   { code: "pan", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", flag: "🇮🇳", region: "Punjab (Gurmukhi)", category: "Indic & South Asian" },
-  { code: "urd", name: "Urdu", nativeName: "اردو", flag: "🇵🇰", region: "Pakistan / South Asia", category: "Indic & South Asian" },
   { code: "san", name: "Sanskrit", nativeName: "संस्कृतम्", flag: "🕉️", region: "Classical Devanagari", category: "Indic & South Asian" },
   { code: "nep", name: "Nepali", nativeName: "नेपाली", flag: "🇳🇵", region: "Nepal / Himalayas", category: "Indic & South Asian" },
   { code: "sin", name: "Sinhala", nativeName: "සිංහල", flag: "🇱🇰", region: "Sri Lanka", category: "Indic & South Asian" },

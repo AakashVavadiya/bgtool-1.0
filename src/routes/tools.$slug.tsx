@@ -11,10 +11,71 @@ import { ToolMaintenanceDialog } from "@/components/ToolMaintenanceDialog";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { CheckCircle2, ShieldAlert, Wrench } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Wrench, UploadCloud, Download, Zap, Sliders, Sparkles } from "lucide-react";
+import { MandalaDecor, MandalaCorner } from "@/components/decorations/MandalaDecor";
 
 import { ToolLimitReachedDialog } from "@/components/ToolLimitReachedDialog";
 import { AddCreditsDialog } from "@/components/AddCreditsDialog";
+
+function getStepMeta(step: string, i: number, total: number) {
+  const lower = step.toLowerCase();
+  let title = `Step 0${i + 1}`;
+  let Icon = Sparkles;
+
+  if (
+    i === 0 ||
+    lower.includes("upload") ||
+    lower.includes("select") ||
+    lower.includes("choose") ||
+    lower.includes("paste") ||
+    lower.includes("open") ||
+    lower.includes("allow")
+  ) {
+    Icon = UploadCloud;
+    if (lower.includes("upload")) title = "Upload Files";
+    else if (lower.includes("paste")) title = "Paste Input";
+    else if (lower.includes("select") || lower.includes("choose")) title = "Select Source";
+    else if (lower.includes("camera")) title = "Capture Photo";
+    else title = "Upload & Prepare";
+  } else if (
+    i === total - 1 ||
+    lower.includes("download") ||
+    lower.includes("save") ||
+    lower.includes("copy") ||
+    lower.includes("export")
+  ) {
+    Icon = Download;
+    if (lower.includes("download")) title = "Download Result";
+    else if (lower.includes("copy")) title = "Copy to Clipboard";
+    else if (lower.includes("save")) title = "Save Output File";
+    else title = "Export Result";
+  } else if (
+    lower.includes("click") ||
+    lower.includes("convert") ||
+    lower.includes("process") ||
+    lower.includes("compress") ||
+    lower.includes("merge") ||
+    lower.includes("split") ||
+    lower.includes("generate")
+  ) {
+    Icon = Zap;
+    if (lower.includes("merge")) title = "Merge Files";
+    else if (lower.includes("split")) title = "Split Document";
+    else if (lower.includes("compress")) title = "Compress Document";
+    else if (lower.includes("convert")) title = "Convert Format";
+    else if (lower.includes("generate") || lower.includes("process")) title = "Process Output";
+    else title = "Execute Action";
+  } else {
+    Icon = Sliders;
+    if (lower.includes("reorder") || lower.includes("drag")) title = "Arrange & Reorder";
+    else if (lower.includes("adjust") || lower.includes("format") || lower.includes("style")) title = "Configure Settings";
+    else if (lower.includes("signature") || lower.includes("sign")) title = "Apply Signature";
+    else if (lower.includes("page")) title = "Select Pages";
+    else title = "Customize Options";
+  }
+
+  return { title, Icon };
+}
 
 export const Route = createFileRoute("/tools/$slug")({
   loader: ({ params }) => {
@@ -109,8 +170,9 @@ function ToolPage() {
 
   const Icon = tool.icon;
   const isBgRemover = tool.slug === "remove-background";
-  const sameCat = tools.filter((t) => t.category === tool.category && t.slug !== tool.slug);
-  const otherCat = tools.filter((t) => t.category !== tool.category && t.slug !== tool.slug);
+  const enabledTools = tools.filter((t) => AdminStore.isToolEnabled(t.slug));
+  const sameCat = enabledTools.filter((t) => t.category === tool.category && t.slug !== tool.slug);
+  const otherCat = enabledTools.filter((t) => t.category !== tool.category && t.slug !== tool.slug);
   const related = [...sameCat, ...otherCat].slice(0, 4);
   const seo = tool.seo;
   const creditCost = AdminStore.getToolCreditCost(tool.slug);
@@ -205,8 +267,7 @@ function ToolPage() {
                     <span>View Maintenance Notice</span>
                   </button>
                   <Link
-                    to="/"
-                    hash="tools"
+                    to="/tools"
                     className="rounded-2xl border border-border bg-card px-5 py-3 text-xs font-bold text-muted-foreground hover:text-foreground transition-all flex items-center"
                   >
                     Explore Active Tools
@@ -258,8 +319,13 @@ function ToolPage() {
         </section>
 
         {/* ─── HERO: ICON + HEADING (BELOW UPLOAD) ───────────────────────── */}
-        <section className="border-b border-border px-5 py-14 md:px-10 md:py-20">
-          <div className="flex flex-col items-center text-center mx-auto max-w-3xl gap-5">
+        <section className="relative overflow-hidden border-b border-border px-5 py-14 md:px-10 md:py-20">
+          {/* Subtle light background mandala for decoration */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[580px] h-[580px] pointer-events-none opacity-[0.06] dark:opacity-[0.04] text-accent select-none" aria-hidden="true">
+            <MandalaDecor spin size={580} />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center text-center mx-auto max-w-3xl gap-5">
             <span className="tool-icon rise-in relative flex h-16 w-16 items-center justify-center rounded-2xl">
               <Icon className="relative z-10 h-8 w-8" strokeWidth={1.75} aria-hidden />
             </span>
@@ -320,12 +386,20 @@ function ToolPage() {
 
         {/* ─── SEO ARTICLE ────────────────────────────────────────────────── */}
         {seo ? (
-          <article className="border-b border-border px-5 py-20 md:px-10 md:py-28">
+          <article className="relative overflow-hidden border-b border-border px-5 py-20 md:px-10 md:py-28">
+            {/* Ambient light decorative Mandalas */}
+            <div className="absolute -top-36 -right-36 w-[480px] h-[480px] pointer-events-none opacity-20 dark:opacity-10 text-accent select-none" aria-hidden="true">
+              <MandalaDecor spin size={480} />
+            </div>
+            <div className="absolute -bottom-36 -left-36 w-[420px] h-[420px] pointer-events-none opacity-15 dark:opacity-10 text-accent select-none" aria-hidden="true">
+              <MandalaDecor spin size={420} />
+            </div>
 
+            <div className="relative z-10">
               {/* Intro */}
-              <div className="mb-14">
-                <p className="font-display text-xs uppercase tracking-[0.3em] text-muted-foreground mb-4">
-                  about this tool
+              <div className="mb-16">
+                <p className="font-display text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-3">
+                  About This Tool
                 </p>
                 <h2 className="font-display text-2xl font-semibold md:text-4xl mb-5">
                   What is the {tool.name} Tool?
@@ -336,36 +410,101 @@ function ToolPage() {
               </div>
 
               {/* How To */}
-              <div className="mb-14">
-                <h2 className="font-display text-2xl font-semibold md:text-4xl mb-8">
-                  How to Use {tool.name}
-                </h2>
-                <ol className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                  {seo.article.howTo.map((step, i) => (
-                    <li key={i} className="flex flex-col gap-3 rounded-2xl border border-border bg-card/50 p-6">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/20 border border-accent/30 text-sm font-bold text-accent-foreground font-display flex-shrink-0">
-                        {i + 1}
-                      </span>
-                      <p className="text-muted-foreground leading-relaxed text-sm">{step}</p>
-                    </li>
-                  ))}
+              <div className="mb-18">
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-3">
+                  <div>
+                    <p className="font-display text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-2">
+                      Easy {seo.article.howTo.length}-Step Guide
+                    </p>
+                    <h2 className="font-display text-2xl font-semibold md:text-4xl">
+                      How to Use {tool.name}
+                    </h2>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Follow these simple steps to get clean, professional results in seconds.
+                  </p>
+                </div>
+
+                <ol className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                  {seo.article.howTo.map((step, i) => {
+                    const stepMeta = getStepMeta(step, i, seo.article.howTo.length);
+                    const StepIcon = stepMeta.Icon;
+                    return (
+                      <li
+                        key={i}
+                        className="group relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-card/90 to-card/50 p-6 flex flex-col justify-between transition-all duration-300 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/5 hover:-translate-y-1.5 backdrop-blur-xs"
+                      >
+                        {/* Light corner mandala for decoration */}
+                        <MandalaCorner
+                          position="top-right"
+                          size={140}
+                          className="opacity-20 dark:opacity-15 group-hover:opacity-40 transition-opacity duration-300"
+                        />
+
+                        {/* Top: Step pill + Icon */}
+                        <div className="relative z-10">
+                          <div className="flex items-center justify-between mb-5">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent font-display font-bold text-xs uppercase tracking-wider">
+                              Step 0{i + 1}
+                            </span>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border/80 text-accent shadow-xs group-hover:border-accent/50 group-hover:scale-105 transition-all">
+                              <StepIcon className="h-5 w-5" strokeWidth={1.8} />
+                            </div>
+                          </div>
+
+                          <h3 className="font-display font-semibold text-lg text-foreground mb-2 group-hover:text-accent transition-colors">
+                            {stepMeta.title}
+                          </h3>
+                          <p className="text-muted-foreground text-sm leading-relaxed">
+                            {step}
+                          </p>
+                        </div>
+
+                        {/* Bottom: Step progress tracker */}
+                        <div className="relative z-10 mt-6 pt-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="font-mono text-[11px] font-medium text-accent/90">
+                            0{i + 1} / 0{seo.article.howTo.length}
+                          </span>
+                          <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full bg-accent rounded-full transition-all duration-500"
+                              style={{ width: `${((i + 1) / seo.article.howTo.length) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ol>
               </div>
 
               {/* Benefits */}
-              <div className="mb-14">
-                <h2 className="font-display text-2xl font-semibold md:text-4xl mb-8">
-                  Why Use Our {tool.name} Tool?
-                </h2>
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mb-18">
+                <div className="mb-8">
+                  <p className="font-display text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-2">
+                    Key Advantages
+                  </p>
+                  <h2 className="font-display text-2xl font-semibold md:text-4xl">
+                    Why Use Our {tool.name} Tool?
+                  </h2>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
                   {seo.article.benefits.map((b, i) => (
                     <div
                       key={i}
-                      className="rounded-2xl border border-border bg-card/60 p-6 flex flex-col gap-4"
+                      className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card/60 p-6 flex flex-col gap-4 transition-all duration-300 hover:border-accent/40 hover:shadow-lg hover:-translate-y-1"
                     >
-                      <CheckCircle2 className="h-6 w-6 text-accent flex-shrink-0" strokeWidth={2} />
-                      <div>
-                        <h3 className="font-display font-semibold text-base mb-2">
+                      {/* Subtle corner mandala decoration */}
+                      <MandalaCorner
+                        position="bottom-right"
+                        size={110}
+                        className="opacity-15 dark:opacity-10 group-hover:opacity-30 transition-opacity duration-300"
+                      />
+                      <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 border border-accent/30 text-accent flex-shrink-0">
+                        <CheckCircle2 className="h-5 w-5" strokeWidth={2} />
+                      </div>
+                      <div className="relative z-10">
+                        <h3 className="font-display font-semibold text-base mb-2 group-hover:text-accent transition-colors">
                           {b.heading}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">{b.body}</p>
@@ -409,6 +548,7 @@ function ToolPage() {
                   ))}
                 </div>
               </div>
+            </div>
           </article>
         ) : null}
 

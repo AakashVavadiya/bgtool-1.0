@@ -55,7 +55,7 @@ const freeFeatures = [
   "10 credits every day",
   "Remove background",
   "All conversion tools",
-  "Karudi 1.0 Prime AI chat",
+  "High-speed AI processing",
   "Standard quality exports",
 ];
 

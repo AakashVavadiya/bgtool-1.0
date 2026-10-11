@@ -179,6 +179,19 @@
   display: inline-block;
   padding-bottom: 0.18em;
   margin-bottom: -0.18em;
+
+  & font,
+  & font *,
+  & span:not([aria-hidden="true"]) {
+    background-image: inherit;
+    background-size: inherit;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
 }
 
 @utility marquee-track {
@@ -643,6 +656,9 @@ vite-error-overlay,
   border-radius: 9999px !important;
   background-color: #000000 !important;
   color: #ffffff !important;
+  isolation: isolate;
+  position: relative;
+  z-index: 100;
 }
 
 .dynamic-island-box.island-enter {
@@ -731,5 +747,66 @@ body {
 
 .animate-laser-sweep {
   animation: laser-sweep 2.4s ease-in-out infinite;
+}
+
+/* ── NO SCROLLBAR UTILITIES ─────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ── GOOGLE TRANSLATE SEAMLESS RESETS FOR HYBRID WEB APP ────────────────────── */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-banner-frame,
+iframe.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}
+
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+/* Bulletproof override for all Google Translate highlight boxes and frames */
+html body .goog-text-highlight,
+html body font.goog-text-highlight,
+html body span.goog-text-highlight,
+html body *[class*="goog-text-highlight"],
+.goog-text-highlight,
+font[class*="goog-text-highlight"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+.skiptranslate > iframe {
+  display: none !important;
 }
 

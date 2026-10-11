@@ -1592,11 +1592,35 @@ export function ChatWindow({ thread }: { thread: ChatThread }) {
       !isExplicitOtherAction &&
       /^(remove|remov|rmv|cutout|cut\s*out|transparent|erase|isolate|remove\s*it|remove\s*this|remove\s*bg|remove\s*background)$/i.test(trimmed);
 
-    // Background removal intent is ONLY true if user explicitly asks for it in THIS message and is NOT asking for another tool
+    // Check conversation history context: was Karudi or User waiting for an image to remove background?
+    const extractMsgText = (msg: any): string => {
+      if (!msg) return "";
+      if (typeof msg.content === "string") return msg.content;
+      if (Array.isArray(msg.parts)) {
+        return msg.parts
+          .map((p: any) => (p?.type === "text" ? p.text : typeof p === "string" ? p : ""))
+          .filter(Boolean)
+          .join(" ");
+      }
+      return "";
+    };
+
+    const previousAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant");
+    const assistantContent = extractMsgText(previousAssistantMsg);
+    const assistantWaitingBg = /(upload|share).*image.*remove.*background/i.test(assistantContent);
+
+    const previousUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    const prevUserText = extractMsgText(previousUserMsg);
+    const prevUserAskedBg = /(remove\s*bg|remove\s*background|cutout|transparent)/i.test(prevUserText);
+
+    const isContextBgRemoval = (assistantWaitingBg || prevUserAskedBg) && !isExplicitOtherAction;
+
+    // Background removal intent
     const isBgRemovalIntent =
       !isExplicitOtherAction &&
       (
         isStandaloneBgWord ||
+        isContextBgRemoval ||
         /(remov|erase|cut\s*out|isolat)\s*(the\s*)?(background|bg)/i.test(trimmed) ||
         /\b(background|bg)\s*(removal|remover|cutout|remove|erase)\b/i.test(trimmed) ||
         /(bg|background)\s*(hata\s*do|hatao|nikal\s*do)/i.test(trimmed)
@@ -1618,10 +1642,13 @@ export function ChatWindow({ thread }: { thread: ChatThread }) {
       /give\s*(me)?\s*(a|the)?\s*binary/i.test(trimmed) ||
       /^(to\s*pdf|to\s*word|to\s*docx|to\s*jpg|to\s*png|to\s*webp|to\s*binary|to\s*excel|in\s*excel)$/i.test(trimmed);
 
-    // NEVER default an image upload to remove background!
     let effectiveText = text.trim();
     if (!effectiveText && filesToUpload.length > 0) {
-      effectiveText = "convert";
+      if (isContextBgRemoval) {
+        effectiveText = "Remove background";
+      } else {
+        effectiveText = "Analyze image";
+      }
     }
 
     // Capture the index of the user message being dispatched right now

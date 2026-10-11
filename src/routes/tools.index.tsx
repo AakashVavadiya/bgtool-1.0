@@ -63,10 +63,14 @@ export function ToolsDirectoryPage() {
     };
   }, []);
 
-  // Filter tools based on category and live search
+  // Filter tools based on category and live search (only enabled tools)
   const filteredTools = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return tools.filter((tool) => {
+      // Must be enabled in admin
+      if (!AdminStore.isToolEnabled(tool.slug)) {
+        return false;
+      }
       // Category match
       if (selectedCategory !== "All" && tool.category !== selectedCategory) {
         return false;
@@ -94,8 +98,9 @@ export function ToolsDirectoryPage() {
   }, [searchQuery, selectedCategory]);
 
   const getCategoryCount = (cat: "All" | ToolCategory) => {
-    if (cat === "All") return tools.length;
-    return tools.filter((t) => t.category === cat).length;
+    const active = tools.filter((t) => AdminStore.isToolEnabled(t.slug));
+    if (cat === "All") return active.length;
+    return active.filter((t) => t.category === cat).length;
   };
 
   return (
@@ -236,7 +241,6 @@ export function ToolsDirectoryPage() {
             <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 w-full">
               {filteredTools.map((tool) => {
                 const Icon = tool.icon;
-                const isEnabled = AdminStore.isToolEnabled(tool.slug);
 
                 return (
                   <Link
@@ -246,17 +250,13 @@ export function ToolsDirectoryPage() {
                     className="tool-card group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-foreground/40 hover:shadow-lg"
                   >
                     <div>
-                      {/* Top Bar inside card: Category & Tag/Maintenance */}
+                      {/* Top Bar inside card: Category & Tag */}
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-[0.68rem] font-medium uppercase tracking-wider text-muted-foreground/80">
                           {tool.category}
                         </span>
 
-                        {!isEnabled ? (
-                          <span className="shrink-0 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[0.625rem] font-bold text-amber-600 dark:text-amber-400">
-                            Maintenance
-                          </span>
-                        ) : tool.tag ? (
+                        {tool.tag ? (
                           <span className="shrink-0 text-[0.68rem] font-medium text-muted-foreground">
                             {tool.tag}
                           </span>
@@ -286,24 +286,9 @@ export function ToolsDirectoryPage() {
 
                     {/* Bottom CTA */}
                     <div className="mt-4 border-t border-border/50 pt-3 flex items-center justify-end text-xs">
-                      <span
-                        className={`inline-flex items-center gap-1 font-semibold transition-all group-hover:gap-1.5 ${
-                          !isEnabled
-                            ? "text-amber-600 dark:text-amber-400 text-[0.68rem]"
-                            : "text-foreground group-hover:text-accent text-[0.72rem]"
-                        }`}
-                      >
-                        {!isEnabled ? (
-                          <>
-                            <Wrench className="h-3 w-3" />
-                            <span>Soon</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Open</span>
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </>
-                        )}
+                      <span className="inline-flex items-center gap-1 font-semibold text-foreground group-hover:text-accent text-[0.72rem] transition-all group-hover:gap-1.5">
+                        <span>Open</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
                   </Link>

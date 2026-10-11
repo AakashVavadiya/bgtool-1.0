@@ -13,6 +13,10 @@ import gc
 import threading
 import concurrent.futures
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+# Ensure script directory in sys.path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
 
 # Import native Ganga AI Engine (Zero rembg dependency)
 from ganga_engine import GangaEngine, MODEL_REGISTRY

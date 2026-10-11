@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import shapeTwo from "@/assets/shape-2.png";
 import girlBefore from "@/assets/girl-before.jpg";
 import girlAfter from "@/assets/girl-after.png";
@@ -9,10 +9,10 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { BgModels } from "@/components/BgModels";
 import { Faq } from "@/components/Faq";
 import { ScrollBeforeAfter } from "@/components/ScrollBeforeAfter";
-import { KarudiAvatar } from "@/components/KarudiAvatar";
-import { karudiModels } from "@/lib/krishna";
 import { AdminStore, type UiEditSettings } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
+import { tools } from "@/lib/tools";
+import { getCurrentWebsiteLanguage, getLocalizedHeroPhrases } from "@/lib/translator";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -83,20 +83,6 @@ const stats = [
   { n: "25", t: "Tools, one tab.", d: "Compress, convert, upscale, watermark and clean — all in one place." },
 ];
 
-const marquee = [
-  "Free Background Remover.",
-  "Online Image Compressor.",
-  "Free Image Resizer.",
-  "Convert PNG To JPG Online.",
-  "Free Image To Text OCR.",
-  "Online Image To PDF.",
-  "AI Image Upscaler Free.",
-  "Remove Watermark Online.",
-  "Free Photo Editor Online.",
-  "Blur Face Online Free.",
-  "Free Meme Generator.",
-  "Crop Image Online.",
-];
 
 const features = [
   {
@@ -128,38 +114,72 @@ const checkerStyle = {
   backgroundPosition: "0 0,0 13px,13px -13px,-13px 0",
 };
 
-const HERO_PHRASES = [
-  { line1: "remove any background", line2: "in one Click." },
-  { line1: "Convert any File", line2: "in one Click." },
-  { line1: "Analyze any File", line2: "in one Click." },
-  { line1: "Compress any Image", line2: "in one Click." },
-  { line1: "Upscale to 4K", line2: "in one Click." },
-  { line1: "Square your Image", line2: "in one Click." },
-];
-
-const DEFAULT_PHRASE = { line1: "remove any background", line2: "in one Click." };
+function getGraphemes(str: string): string[] {
+  if (typeof Intl !== "undefined" && (Intl as any).Segmenter) {
+    try {
+      const segmenter = new (Intl as any).Segmenter(undefined, { granularity: "grapheme" });
+      return Array.from(segmenter.segment(str), (s: any) => s.segment);
+    } catch {}
+  }
+  return Array.from(str);
+}
 
 function TypewriterHeroTitle() {
+  const [currentLang, setCurrentLang] = useState<string>(() => getCurrentWebsiteLanguage());
+  const phrases = useMemo(() => getLocalizedHeroPhrases(currentLang), [currentLang]);
+
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
-  const currentPhrase = HERO_PHRASES[phraseIndex] || DEFAULT_PHRASE;
-  const fullTextLength = currentPhrase.line1.length + currentPhrase.line2.length;
 
-  // Start with full text so first paint is instantly readable and SEO-ready
+  const currentPhrase = phrases[phraseIndex % phrases.length] || phrases[0]!;
+
+  const line1Chars = useMemo(() => getGraphemes(currentPhrase.line1), [currentPhrase.line1]);
+  const line2Chars = useMemo(() => getGraphemes(currentPhrase.line2), [currentPhrase.line2]);
+  const fullTextLength = line1Chars.length + line2Chars.length;
+
   const [charCount, setCharCount] = useState(fullTextLength);
   const [isWaiting, setIsWaiting] = useState(true);
+
+  // Sync active language dynamically when changed anywhere (header, footer, etc.)
+  useEffect(() => {
+    const handleLang = (e: any) => {
+      const newLang = e.detail?.language || getCurrentWebsiteLanguage();
+      setCurrentLang(newLang);
+    };
+    window.addEventListener("bg_language_changed", handleLang);
+    window.addEventListener("storage", handleLang);
+    return () => {
+      window.removeEventListener("bg_language_changed", handleLang);
+      window.removeEventListener("storage", handleLang);
+    };
+  }, []);
+
+  // When user changes language, re-sync to full text of phrase 0 in the new language
+  useEffect(() => {
+    setPhraseIndex(0);
+    const p = phrases[0] || currentPhrase;
+    const l1 = getGraphemes(p.line1);
+    const l2 = getGraphemes(p.line2);
+    setCharCount(l1.length + l2.length);
+    setIsWaiting(true);
+    setIsDeleting(false);
+  }, [currentLang]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
 
     if (isWaiting) {
-      const waitDuration = isDeleting ? 320 : 2200;
+      // Pause when fully written (2200ms) or when fully backspaced before next phrase (280ms)
+      const waitDuration = isDeleting ? 280 : 2200;
       timeout = setTimeout(() => {
         setIsWaiting(false);
         if (isDeleting) {
+          // Finished backspacing! Advance to next phrase and start writing from 0
           setIsDeleting(false);
-          setPhraseIndex((prev) => (prev + 1) % HERO_PHRASES.length);
+          setPhraseIndex((prev) => (prev + 1) % phrases.length);
+          setCharCount(0);
         } else {
+          // Finished writing! Start backspacing
           setIsDeleting(true);
         }
       }, waitDuration);
@@ -167,37 +187,44 @@ function TypewriterHeroTitle() {
     }
 
     if (isDeleting) {
+      // Backspace animation (deleting character-by-character)
       if (charCount > 0) {
         timeout = setTimeout(() => {
           setCharCount((prev) => prev - 1);
-        }, 34);
+        }, 24);
       } else {
+        // Fully backspaced to 0: brief pause
         setIsWaiting(true);
       }
     } else {
+      // Write animation (typing character-by-character)
       if (charCount < fullTextLength) {
         timeout = setTimeout(() => {
           setCharCount((prev) => prev + 1);
-        }, 65);
+        }, 50);
       } else {
+        // Fully typed out: pause to let user read
         setIsWaiting(true);
       }
     }
 
     return () => clearTimeout(timeout);
-  }, [charCount, isDeleting, isWaiting, fullTextLength]);
+  }, [charCount, isDeleting, isWaiting, fullTextLength, phrases.length]);
 
-  const l1Len = currentPhrase.line1.length;
-  const currentLine1 = charCount <= l1Len ? currentPhrase.line1.slice(0, charCount) : currentPhrase.line1;
-  const currentLine2 = charCount > l1Len ? currentPhrase.line2.slice(0, charCount - l1Len) : "";
+  const l1Len = line1Chars.length;
+  const currentLine1 = line1Chars.slice(0, Math.min(charCount, l1Len)).join("");
+  const currentLine2 = charCount > l1Len ? line2Chars.slice(0, charCount - l1Len).join("") : "";
 
   const showCursorOnLine1 = charCount <= l1Len;
   const showCursorOnLine2 = charCount > l1Len;
 
   return (
-    <h1 className="rise-in halftone-text relative mx-auto w-full text-center font-display text-5xl font-black leading-[1.02] pb-3 tracking-tighter text-foreground sm:text-7xl md:text-[5.5vw] lg:text-[6vw] xl:text-[6.5vw] min-h-[2.3em] flex flex-col items-center justify-center select-none">
+    <h1
+      className="rise-in halftone-text notranslate relative mx-auto w-full text-center font-display text-5xl font-black leading-[1.02] pb-3 tracking-tighter text-foreground sm:text-7xl md:text-[5.5vw] lg:text-[6vw] xl:text-[6.5vw] min-h-[2.3em] flex flex-col items-center justify-center select-none"
+      translate="no"
+    >
       <span className="block min-h-[1.05em]">
-        {currentLine1 || "\u00A0"}
+        <span className="inline-title-text">{currentLine1 || "\u00A0"}</span>
         {showCursorOnLine1 && (
           <span
             aria-hidden="true"
@@ -210,7 +237,7 @@ function TypewriterHeroTitle() {
         )}
       </span>
       <span className="block mt-2 min-h-[1.05em]">
-        {currentLine2 || "\u00A0"}
+        <span className="inline-title-text">{currentLine2 || "\u00A0"}</span>
         {showCursorOnLine2 && (
           <span
             aria-hidden="true"
@@ -228,6 +255,7 @@ function TypewriterHeroTitle() {
 
 function Index() {
   const [uiSettings, setUiSettings] = useState<UiEditSettings>(() => AdminStore.getUiSettings());
+  const scrollerTools = tools.filter((t) => AdminStore.isToolEnabled(t.slug));
 
   useEffect(() => {
     const sync = () => {
@@ -283,18 +311,6 @@ function Index() {
           >
             Remove a background <span aria-hidden>→</span>
           </Link>
-          {uiSettings.aiMasterEnabled &&
-            uiSettings.aiAssistantEnabled &&
-            uiSettings.aiHomeSectionsEnabled &&
-            AdminStore.isPageEnabled("/chat") && (
-              <Link
-                to="/chat"
-                className="inline-flex items-center gap-3 rounded-full border-2 border-foreground px-9 py-5 text-base font-bold transition-all hover:scale-105 hover:bg-foreground hover:text-background shadow-md"
-              >
-                <KarudiAvatar size="sm" />
-                Try Karudi 1.0 Prime
-              </Link>
-            )}
           <Link
             to="/pricing"
             className="inline-flex items-center gap-3 rounded-full border-2 border-border bg-card px-9 py-5 text-base font-bold transition-all hover:scale-105 hover:border-foreground shadow-md"
@@ -357,16 +373,22 @@ function Index() {
         </Reveal>
       </section>
 
-      {/* Marquee — SEO tool keywords */}
-      <div className="grain overflow-hidden border-y border-border py-6">
-        <div className="marquee-track gap-14 whitespace-nowrap">
-          {[...marquee, ...marquee].map((b, i) => (
-            <span
-              key={`${b}-${i}`}
-              className="font-display text-2xl font-medium text-muted-foreground"
+      {/* Marquee — All Tools names with orange accent dot */}
+      <div className="grain overflow-hidden border-y border-border py-6 select-none group">
+        <div
+          className="marquee-track gap-14 whitespace-nowrap group-hover:[animation-play-state:paused]"
+          style={{ animationDuration: `${Math.max(80, scrollerTools.length * 2.2)}s` }}
+        >
+          {[...scrollerTools, ...scrollerTools].map((tool, i) => (
+            <Link
+              key={`${tool.slug}-${i}`}
+              to="/tools/$slug"
+              params={{ slug: tool.slug }}
+              className="font-display text-2xl font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center"
             >
-              {b}
-            </span>
+              <span>{tool.name.replace(/\.+$/, "")}</span>
+              <span className="text-accent font-bold">.</span>
+            </Link>
           ))}
         </div>
       </div>
@@ -424,62 +446,7 @@ function Index() {
           </section>
         )}
 
-      {/* Karudi Smart Assistant */}
-      {uiSettings.aiMasterEnabled &&
-        uiSettings.aiAssistantEnabled &&
-        uiSettings.aiHomeSectionsEnabled &&
-        AdminStore.isPageEnabled("/chat") && (
-          <section className="grain border-t border-border px-5 py-24 md:px-10 md:py-32">
-            <div className="grid items-center gap-12 lg:grid-cols-2">
-              <Reveal>
-                <p className="font-display text-sm uppercase tracking-[0.3em] text-muted-foreground">
-                  karudi 1.0 prime assistant
-                </p>
-                <h2 className="mt-6 max-w-xl font-display text-4xl font-medium leading-[1.02] md:text-6xl">
-                  Meet Karudi 1.0 Prime<span className="text-accent">.</span>
-                </h2>
-                <p className="mt-6 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
-                  Ask anything, or upload a PDF, image, Excel sheet, Word doc, PowerPoint or text file
-                  and get it read, summarised and answered — powered by Karudi 1.0 Prime.
-                </p>
-                <div className="mt-8 flex flex-wrap gap-2">
-                  {["PDF", "Image", "Excel", "Word", "PowerPoint", "Text"].map((f) => (
-                    <span
-                      key={f}
-                      className="rounded-full border border-border bg-card px-4 py-2 text-xs font-medium"
-                    >
-                      {f}
-                    </span>
-                  ))}
-                </div>
-                <Link
-                  to="/chat"
-                  className="mt-10 inline-flex items-center gap-3 rounded-full bg-foreground px-8 py-4 text-sm font-medium text-background transition-all hover:gap-6"
-                >
-                  <KarudiAvatar size="sm" />
-                  Try Karudi 1.0 Prime
-                  <span aria-hidden>→</span>
-                </Link>
-              </Reveal>
 
-              <Reveal delay={120}>
-                <div className="rounded-3xl border border-border bg-card p-6 md:p-8">
-                  {karudiModels.map((m, i) => (
-                    <div
-                      key={m.id}
-                      className={`py-4 ${
-                        i > 0 ? "border-t border-border" : ""
-                      }`}
-                    >
-                      <p className="font-display text-lg font-medium">{m.fullName || m.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{m.blurb}</p>
-                    </div>
-                  ))}
-                </div>
-              </Reveal>
-            </div>
-          </section>
-        )}
 
 
 

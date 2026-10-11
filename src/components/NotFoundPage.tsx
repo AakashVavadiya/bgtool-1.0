@@ -63,11 +63,11 @@ export function NotFoundPage() {
             </Link>
 
             <Link
-              to="/chat"
-              className="inline-flex items-center gap-2.5 rounded-full border-2 border-accent/60 bg-card px-7 py-4 text-sm sm:text-base font-bold text-foreground shadow-md transition-all hover:scale-105 hover:border-accent"
+              to="/tools"
+              className="inline-flex items-center gap-2.5 rounded-full border-2 border-border bg-card px-7 py-4 text-sm sm:text-base font-bold text-foreground shadow-md transition-all hover:scale-105 hover:border-foreground"
             >
-              <Zap className="h-4 w-4 text-amber-500" />
-              Ask Karudi 1.0 Prime
+              <Zap className="h-4 w-4 text-accent" />
+              Browse All Tools
             </Link>
           </div>
 

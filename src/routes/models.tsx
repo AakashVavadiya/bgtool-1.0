@@ -250,10 +250,10 @@ function ModelsPage() {
               Start Background Removal →
             </Link>
             <Link
-              to="/chat"
+              to="/tools"
               className="rounded-full border border-border bg-card px-9 py-5 text-base font-bold text-foreground transition-all hover:border-foreground/40 hover:scale-105 shadow-sm"
             >
-              Ask Karudi Universal AI →
+              Explore All AI Tools →
             </Link>
           </div>
         </div>

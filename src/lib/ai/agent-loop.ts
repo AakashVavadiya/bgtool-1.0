@@ -6,6 +6,7 @@ import {
 import { type ToolExecutionContext } from "./tool-registry";
 import { extractDocumentContext, type ExtractedDocumentContext } from "./document-context";
 import { executeNativeKarudiModel } from "./local";
+import { executeLocalAgent } from "./local-engine";
 
 export interface AgentRequestOptions {
   messages: UIMessage[];
@@ -131,24 +132,72 @@ export async function runAgentChat(options: AgentRequestOptions): Promise<Respon
       }),
     });
   } catch (localErr: any) {
-    console.error("[AgentLoop] Native local model runtime error:", localErr);
-    const errorMessage = localErr?.message || "Karudi AI model is currently unavailable. Please verify the local model file and try again.";
+    console.warn("[AgentLoop] Native local model runtime unavailable, using Karudi local engine:", localErr?.message);
 
-    return createUIMessageStreamResponse({
-      stream: createUIMessageStream({
-        originalMessages: messages,
-        async execute({ writer }) {
-          const textId = "karudi_error_" + Date.now();
-          writer.write({ type: "text-start", id: textId });
-          writer.write({
-            type: "text-delta",
-            id: textId,
-            delta: errorMessage,
-          });
-          writer.write({ type: "text-end", id: textId });
-        },
-      }),
-    });
+    try {
+      const fallbackResult = await executeLocalAgent(
+        { messages: messages as any, isThinking, tier },
+        toolContext
+      );
+
+      return createUIMessageStreamResponse({
+        stream: createUIMessageStream({
+          originalMessages: messages,
+          async execute({ writer }) {
+            const textId = "karudi_local_" + Date.now();
+            writer.write({ type: "text-start", id: textId });
+
+            const words = fallbackResult.reply.split(" ");
+            for (let i = 0; i < words.length; i++) {
+              writer.write({
+                type: "text-delta",
+                id: textId,
+                delta: words[i] + (i === words.length - 1 ? "" : " "),
+              });
+              await new Promise((r) => setTimeout(r, 10));
+            }
+
+            writer.write({ type: "text-end", id: textId });
+
+            if (fallbackResult.toolExecuted && fallbackResult.toolExecuted.result?.success !== false) {
+              writer.write({
+                type: "custom",
+                kind: "karudi.toolResult",
+                providerMetadata: {
+                  karudi: {
+                    toolInvocation: {
+                      state: "result",
+                      toolName: fallbackResult.toolExecuted.toolName,
+                      result: fallbackResult.toolExecuted.result,
+                    },
+                  },
+                },
+              });
+            }
+          },
+        }),
+      });
+    } catch (fallbackErr: any) {
+      console.error("[AgentLoop] Fallback engine error:", fallbackErr);
+      const errorMessage =
+        "Karudi AI is currently busy. Please try sending your request again.";
+
+      return createUIMessageStreamResponse({
+        stream: createUIMessageStream({
+          originalMessages: messages,
+          async execute({ writer }) {
+            const textId = "karudi_error_" + Date.now();
+            writer.write({ type: "text-start", id: textId });
+            writer.write({
+              type: "text-delta",
+              id: textId,
+              delta: errorMessage,
+            });
+            writer.write({ type: "text-end", id: textId });
+          },
+        }),
+      });
+    }
   }
 }
 

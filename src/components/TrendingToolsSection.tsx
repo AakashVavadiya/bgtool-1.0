@@ -38,10 +38,10 @@ export function TrendingToolsSection() {
     };
   }, []);
 
-  // Map slugs to actual tool objects
+  // Map slugs to actual tool objects (filtering out disabled tools)
   const trendingTools = TRENDING_SLUGS.map((slug) =>
     tools.find((t) => t.slug === slug)
-  ).filter((tool): tool is Tool => tool !== undefined);
+  ).filter((tool): tool is Tool => tool !== undefined && AdminStore.isToolEnabled(tool.slug));
 
   const filteredTrending = trendingTools.filter((tool) => {
     if (filter === "ai") return tool.category === "AI Tools";
@@ -161,17 +161,13 @@ export function TrendingToolsSection() {
               className="tool-card group relative flex flex-col justify-between rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-foreground/40 hover:shadow-xl hover:shadow-accent/5"
             >
               <div>
-                {/* Header inside card: Clean text only (no colored pill badges) */}
+                {/* Header inside card: Clean text only */}
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[0.68rem] font-medium uppercase tracking-wider text-muted-foreground/80">
                     {tool.category}
                   </span>
 
-                  {!isEnabled ? (
-                    <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[0.625rem] font-bold text-amber-600 dark:text-amber-400">
-                      Maintenance
-                    </span>
-                  ) : tool.tag ? (
+                  {tool.tag ? (
                     <span className="text-[0.68rem] font-medium text-muted-foreground">
                       {tool.tag}
                     </span>
@@ -201,24 +197,9 @@ export function TrendingToolsSection() {
 
               {/* Card Footer */}
               <div className="mt-5 border-t border-border/50 pt-4 flex items-center justify-end text-xs">
-                <span
-                  className={`inline-flex items-center gap-1 font-semibold transition-all group-hover:gap-2 ${
-                    !isEnabled
-                      ? "text-amber-600 dark:text-amber-400 text-[0.7rem]"
-                      : "text-foreground group-hover:text-accent"
-                  }`}
-                >
-                  {!isEnabled ? (
-                    <>
-                      <Wrench className="h-3 w-3" />
-                      <span>Soon</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Open</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </>
-                  )}
+                <span className="inline-flex items-center gap-1 font-semibold text-foreground group-hover:text-accent transition-all group-hover:gap-2">
+                  <span>Open</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </span>
               </div>
             </Link>

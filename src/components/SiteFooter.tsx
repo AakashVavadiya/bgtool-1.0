@@ -101,7 +101,7 @@ export function SiteFooter() {
               bg<span className="text-accent">.</span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed font-medium text-muted-foreground">
-              Ultra-fast online AI image toolkit. Sub-pixel alpha matting background removal, 4K upscaling, object cleaning & Karudi AI chat.
+              Ultra-fast online AI image toolkit. Sub-pixel alpha matting background removal, 4K upscaling, and object cleaning.
             </p>
 
             <div className="mt-6 flex items-center gap-3 text-muted-foreground">
@@ -150,44 +150,41 @@ export function SiteFooter() {
               AI Tools & Shortcuts
             </h4>
             <ul className="mt-4 space-y-2.5 text-sm font-semibold">
-              <li>
-                <Link to="/tools/$slug" params={{ slug: "remove-background" }} className="hover:text-accent transition-colors">
-                  Background Remover (4K)
-                </Link>
-              </li>
-              <li>
-                <Link to="/tools/$slug" params={{ slug: "rotate-crop" }} className="hover:text-accent transition-colors">
-                  Rotate & Flip Image
-                </Link>
-              </li>
-              <li>
-                <Link to="/tools/$slug" params={{ slug: "remove-watermark" }} className="hover:text-accent transition-colors">
-                  Watermark & Eraser
-                </Link>
-              </li>
-              <li>
-                <Link to="/tools/$slug" params={{ slug: "clean-upscale" }} className="hover:text-accent transition-colors">
-                  Clean & 4K Upscale
-                </Link>
-              </li>
-              <li>
-                <Link to="/tools/$slug" params={{ slug: "convert-compress" }} className="hover:text-accent transition-colors">
-                  Convert PNG, JPG, WebP
-                </Link>
-              </li>
-              {uiSettings.aiMasterEnabled &&
-                uiSettings.aiAssistantEnabled &&
-                uiSettings.aiFooterLinksEnabled &&
-                AdminStore.isPageEnabled("/chat") && (
-                  <li>
-                    <Link to="/chat" className="hover:text-accent transition-colors flex items-center gap-1.5">
-                      <span>Try Karudi 1.0 Prime</span>
-                      <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-extrabold text-accent-foreground uppercase">
-                        Prime
-                      </span>
-                    </Link>
-                  </li>
-                )}
+              {AdminStore.isToolEnabled("remove-background") && (
+                <li>
+                  <Link to="/tools/$slug" params={{ slug: "remove-background" }} className="hover:text-accent transition-colors">
+                    Background Remover (4K)
+                  </Link>
+                </li>
+              )}
+              {AdminStore.isToolEnabled("rotate-crop") && (
+                <li>
+                  <Link to="/tools/$slug" params={{ slug: "rotate-crop" }} className="hover:text-accent transition-colors">
+                    Rotate & Flip Image
+                  </Link>
+                </li>
+              )}
+              {AdminStore.isToolEnabled("remove-watermark") && (
+                <li>
+                  <Link to="/tools/$slug" params={{ slug: "remove-watermark" }} className="hover:text-accent transition-colors">
+                    Watermark & Eraser
+                  </Link>
+                </li>
+              )}
+              {AdminStore.isToolEnabled("clean-upscale") && (
+                <li>
+                  <Link to="/tools/$slug" params={{ slug: "clean-upscale" }} className="hover:text-accent transition-colors">
+                    Clean & 4K Upscale
+                  </Link>
+                </li>
+              )}
+              {AdminStore.isToolEnabled("convert-compress") && (
+                <li>
+                  <Link to="/tools/$slug" params={{ slug: "convert-compress" }} className="hover:text-accent transition-colors">
+                    Convert PNG, JPG, WebP
+                  </Link>
+                </li>
+              )}
               <li className="pt-1 border-t border-border/50">
                 <Link to="/tools" className="font-bold text-accent hover:underline flex items-center gap-1">
                   <span>Browse All 130+ Tools</span>

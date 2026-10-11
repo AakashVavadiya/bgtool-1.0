@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Eraser,
   Paintbrush,
@@ -11,8 +12,8 @@ import {
   Check,
   X,
   RotateCcw,
-  Sliders,
   Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,32 +36,78 @@ export function CutoutBrushEditorModal({
   onSave,
   onDownload,
 }: CutoutBrushEditorModalProps) {
+  const [mounted, setMounted] = useState<boolean>(false);
   const [activeTool, setActiveTool] = useState<ToolMode>("erase");
   const [brushSize, setBrushSize] = useState<number>(32);
-  const [magicTolerance, setMagicTolerance] = useState<number>(32);
+  const [brushHardness, setBrushHardness] = useState<number>(90); // 10% to 100%
+  const [brushOpacity, setBrushOpacity] = useState<number>(100);   // 10% to 100%
+  
+  // Ghost / older background opacity (OFF by default so user sees clean cutout with background removed!)
+  const [ghostOpacity, setGhostOpacity] = useState<number>(35);
+  const [isGhostVisible, setIsGhostVisible] = useState<boolean>(false);
+
+  // Magic brush settings (safe default tolerance 14 to prevent bleeding into subject)
+  const [magicTolerance, setMagicTolerance] = useState<number>(14);
   const [contiguousOnly, setContiguousOnly] = useState<boolean>(true);
-  const [bgPreview, setBgPreview] = useState<"checker" | "white" | "black" | "green">("checker");
+
+  // Canvas Viewport & History
   const [zoom, setZoom] = useState<number>(1);
   const [canUndo, setCanUndo] = useState<boolean>(false);
   const [canRedo, setCanRedo] = useState<boolean>(false);
 
-  // Mouse cursor indicator
-  const [cursorPos, setCursorPos] = useState<{ x: number; y: number; visible: boolean }>({
+  // Dynamic Cursor Indicator
+  const [cursorPos, setCursorPos] = useState<{
+    x: number;
+    y: number;
+    displayDiameter: number;
+    visible: boolean;
+  }>({
     x: 0,
     y: 0,
+    displayDiameter: 32,
     visible: false,
   });
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const originalImgRef = useRef<HTMLImageElement | null>(null);
+  const offscreenOriginalCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef<boolean>(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // History stack for undo/redo
   const historyRef = useRef<ImageData[]>([]);
   const historyIndexRef = useRef<number>(-1);
-  const maxHistory = 20;
+  const maxHistory = 25;
+
+  // Mount flag for SSR-safe portal rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when editor is active to prevent background page from scrolling
+  useEffect(() => {
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = origOverflow;
+    };
+  }, []);
+
+  // Sync offscreen original canvas matching current cutout dimensions
+  const syncOffscreenOriginalCanvas = useCallback((width: number, height: number) => {
+    if (!originalImgRef.current || width <= 0 || height <= 0) return;
+    const offCanvas = document.createElement("canvas");
+    offCanvas.width = width;
+    offCanvas.height = height;
+    const offCtx = offCanvas.getContext("2d");
+    if (offCtx) {
+      offCtx.imageSmoothingEnabled = true;
+      offCtx.imageSmoothingQuality = "high";
+      offCtx.drawImage(originalImgRef.current, 0, 0, width, height);
+      offscreenOriginalCanvasRef.current = offCanvas;
+    }
+  }, []);
 
   // Push state to history
   const pushHistory = useCallback(() => {
@@ -135,7 +182,7 @@ export function CutoutBrushEditorModal({
     }
   };
 
-  // Keyboard shortcuts (Ctrl+Z, Ctrl+Y)
+  // Keyboard shortcuts (Ctrl+Z, Ctrl+Y, [, ], +, -, 0, Escape)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -148,6 +195,21 @@ export function CutoutBrushEditorModal({
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
         e.preventDefault();
         handleRedo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        setZoom((z) => Math.min(5, Number((z + 0.2).toFixed(1))));
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "-" || e.key === "_")) {
+        e.preventDefault();
+        setZoom((z) => Math.max(0.25, Number((z - 0.2).toFixed(1))));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        setZoom(1);
+      } else if (e.key === "[") {
+        e.preventDefault();
+        setBrushSize((s) => Math.max(4, s - 6));
+      } else if (e.key === "]") {
+        e.preventDefault();
+        setBrushSize((s) => Math.min(150, s + 6));
       } else if (e.key === "Escape") {
         onClose();
       }
@@ -156,6 +218,40 @@ export function CutoutBrushEditorModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleUndo, handleRedo, onClose]);
 
+  // Mouse wheel zoom with Ctrl key (or trackpad pinch-to-zoom)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.15 : -0.15;
+        setZoom((prevZoom) => {
+          const next = Math.min(5, Math.max(0.25, Number((prevZoom + delta).toFixed(2))));
+          return next;
+        });
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  // When switching to Restore Brush, auto-enable ghost backdrop so user sees what to restore
+  // When switching tools: Restore brush can show faint backdrop guide; Remove and Magic keep background clearly removed
+  const handleSelectTool = (tool: ToolMode) => {
+    setActiveTool(tool);
+    if (tool === "restore") {
+      setIsGhostVisible(true);
+      if (ghostOpacity <= 5) {
+        setGhostOpacity(35);
+      }
+    } else {
+      setIsGhostVisible(false);
+    }
+  };
+
   // Initialize Canvas with Cutout and Preload Original
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -163,19 +259,31 @@ export function CutoutBrushEditorModal({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let canvasWidth = 0;
+    let canvasHeight = 0;
+
     // Load original image in background
     const origImg = new Image();
-    origImg.crossOrigin = "anonymous";
-    origImg.src = originalImageSrc;
+    if (!originalImageSrc.startsWith("data:") && !originalImageSrc.startsWith("blob:")) {
+      origImg.crossOrigin = "anonymous";
+    }
     origImg.onload = () => {
       originalImgRef.current = origImg;
+      if (canvasWidth > 0 && canvasHeight > 0) {
+        syncOffscreenOriginalCanvas(canvasWidth, canvasHeight);
+      }
     };
+    origImg.src = originalImageSrc;
 
     // Load cutout onto canvas
     const cutoutImg = new Image();
-    cutoutImg.crossOrigin = "anonymous";
-    cutoutImg.src = cutoutImageSrc;
-    cutoutImg.onload = () => {
+    if (!cutoutImageSrc.startsWith("data:") && !cutoutImageSrc.startsWith("blob:")) {
+      cutoutImg.crossOrigin = "anonymous";
+    }
+
+    const renderCutout = () => {
+      canvasWidth = cutoutImg.width;
+      canvasHeight = cutoutImg.height;
       canvas.width = cutoutImg.width;
       canvas.height = cutoutImg.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -186,14 +294,32 @@ export function CutoutBrushEditorModal({
       historyIndexRef.current = 0;
       setCanUndo(false);
       setCanRedo(false);
-    };
-  }, [cutoutImageSrc, originalImageSrc]);
 
-  // Coordinate conversion helper (Client -> Canvas Pixel)
-  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } | null => {
+      if (originalImgRef.current) {
+        syncOffscreenOriginalCanvas(canvas.width, canvas.height);
+      }
+    };
+
+    cutoutImg.onload = renderCutout;
+    cutoutImg.onerror = (e) => {
+      console.warn("Cutout image load error, retrying directly:", e);
+      const fallback = new Image();
+      fallback.onload = () => {
+        cutoutImg.width = fallback.width;
+        cutoutImg.height = fallback.height;
+        renderCutout();
+      };
+      fallback.src = cutoutImageSrc;
+    };
+    cutoutImg.src = cutoutImageSrc;
+  }, [cutoutImageSrc, originalImageSrc, syncOffscreenOriginalCanvas]);
+
+  // Coordinate conversion helper (Client screen -> Canvas native Pixel)
+  const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } | null => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     return {
@@ -202,55 +328,76 @@ export function CutoutBrushEditorModal({
     };
   };
 
-  // 1. DRAW BRUSH (Erase or Restore)
+  // 1. DRAW BRUSH (Erase or Restore) with anti-aliasing interpolation & NO black marks
   const drawBrushLine = (from: { x: number; y: number }, to: { x: number; y: number }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const radius = brushSize / 2;
+    const radius = Math.max(1, brushSize / 2);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const step = Math.max(1, radius / 3);
+    const steps = Math.ceil(distance / step);
 
     if (activeTool === "erase") {
       ctx.save();
       ctx.globalCompositeOperation = "destination-out";
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
+      ctx.globalAlpha = Math.min(1, Math.max(0.05, brushOpacity / 100));
 
-      ctx.beginPath();
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, to.y);
-      ctx.stroke();
+      for (let i = 0; i <= steps; i++) {
+        const t = steps === 0 ? 0 : i / steps;
+        const x = from.x + dx * t;
+        const y = from.y + dy * t;
 
-      // Circle at endpoint
-      ctx.beginPath();
-      ctx.arc(to.x, to.y, radius, 0, Math.PI * 2);
-      ctx.fill();
+        if (brushHardness < 95) {
+          const innerRadius = radius * (brushHardness / 100);
+          const grad = ctx.createRadialGradient(x, y, innerRadius, x, y, radius);
+          grad.addColorStop(0, "rgba(0,0,0,1)");
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = "#000000";
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
-    } else if (activeTool === "restore" && originalImgRef.current) {
-      const orig = originalImgRef.current;
+    } else if (activeTool === "restore") {
+      const offCanvas = offscreenOriginalCanvasRef.current;
+      if (!offCanvas) {
+        if (originalImgRef.current) {
+          syncOffscreenOriginalCanvas(canvas.width, canvas.height);
+        }
+        return;
+      }
+
+      const pattern = ctx.createPattern(offCanvas, "no-repeat");
+      if (!pattern) return;
+
       ctx.save();
-      ctx.beginPath();
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, to.y);
-      ctx.stroke();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = Math.min(1, Math.max(0.05, brushOpacity / 100));
+      ctx.fillStyle = pattern;
 
-      ctx.beginPath();
-      ctx.arc(to.x, to.y, radius, 0, Math.PI * 2);
-      ctx.fill();
+      for (let i = 0; i <= steps; i++) {
+        const t = steps === 0 ? 0 : i / steps;
+        const x = from.x + dx * t;
+        const y = from.y + dy * t;
 
-      // Clip to brush path and draw original image pixels back
-      ctx.clip();
-      ctx.drawImage(orig, 0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
   };
 
-  // 2. MAGIC BRUSH: ONE-CLICK REMOVE PART / COLOR
+  // 2. MAGIC BRUSH: EDGE-AWARE ONE-CLICK COLOR CLEANING
   const handleMagicClick = (startX: number, startY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -273,27 +420,65 @@ export function CutoutBrushEditorModal({
     const targetB = data[startIdx + 2] ?? 0;
     const targetA = data[startIdx + 3] ?? 0;
 
-    // Already transparent -> nothing to remove
     if (targetA === 0) {
       toast.info("This area is already transparent.");
       return;
     }
 
-    const tolerance = magicTolerance * 2.5; // Scale tolerance (0-250)
+    // Accurate perceptual color tolerance (ITU-R BT.601 luminance weights)
+    const tolerance = Math.max(2, magicTolerance);
+    // Strict edge-contrast threshold prevents crossing high-contrast outlines into faces or clothes
+    const edgeContrastThreshold = Math.max(7, tolerance * 0.7);
+
+    const totalPixels = width * height;
+    const visited = new Uint8Array(totalPixels);
 
     if (contiguousOnly) {
-      // Fast Flood-Fill (BFS) with typed array visited map
-      const visited = new Uint8Array(width * height);
-      const queue: number[] = [pxX, pxY];
-      visited[pxY * width + pxX] = 1;
+      // True Breadth-First-Search (BFS) expanding evenly from clicked point
+      const queueX = new Int32Array(totalPixels);
+      const queueY = new Int32Array(totalPixels);
+      let head = 0;
+      let tail = 0;
 
-      while (queue.length > 0) {
-        const curY = queue.pop()!;
-        const curX = queue.pop()!;
-        const idx = (curY * width + curX) * 4;
+      const startPos = pxY * width + pxX;
+      visited[startPos] = 1;
+      queueX[tail] = pxX;
+      queueY[tail] = pxY;
+      tail++;
 
-        // Erase pixel
-        data[idx + 3] = 0;
+      let erasedCount = 0;
+
+      while (head < tail) {
+        const curX = queueX[head]!;
+        const curY = queueY[head]!;
+        head++;
+
+        const curPos = curY * width + curX;
+        const curIdx = curPos * 4;
+        const curR = data[curIdx]!;
+        const curG = data[curIdx + 1]!;
+        const curB = data[curIdx + 2]!;
+        const curA = data[curIdx + 3]!;
+
+        if (curA === 0) continue;
+
+        // Perceptual distance to root clicked color
+        const dr = curR - targetR;
+        const dg = curG - targetG;
+        const db = curB - targetB;
+        const dist = Math.sqrt(0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db);
+
+        // Erase pixel with anti-aliasing feathering near boundary
+        if (dist <= tolerance) {
+          const featherStart = tolerance * 0.75;
+          if (dist > featherStart && featherStart < tolerance) {
+            const factor = (dist - featherStart) / (tolerance - featherStart);
+            data[curIdx + 3] = Math.round(curA * factor);
+          } else {
+            data[curIdx + 3] = 0;
+          }
+          erasedCount++;
+        }
 
         // Check 4-connected neighbors
         const neighbors = [
@@ -308,51 +493,72 @@ export function CutoutBrushEditorModal({
           const ny = neighbors[i]![1]!;
 
           if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-            const pos = ny * width + nx;
-            if (!visited[pos]) {
-              visited[pos] = 1;
-              const nIdx = pos * 4;
+            const nPos = ny * width + nx;
+            if (!visited[nPos]) {
+              visited[nPos] = 1;
+              const nIdx = nPos * 4;
               const nA = data[nIdx + 3]!;
+
               if (nA > 0) {
                 const nR = data[nIdx]!;
                 const nG = data[nIdx + 1]!;
                 const nB = data[nIdx + 2]!;
 
-                const dr = nR - targetR;
-                const dg = nG - targetG;
-                const db = nB - targetB;
-                const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+                // 1. Distance to root clicked target color
+                const ndr = nR - targetR;
+                const ndg = nG - targetG;
+                const ndb = nB - targetB;
+                const nDist = Math.sqrt(0.299 * ndr * ndr + 0.587 * ndg * ndg + 0.114 * ndb * ndb);
 
-                if (dist <= tolerance) {
-                  queue.push(nx, ny);
+                // 2. Local contrast gradient to neighbor (prevents crossing outlines into subject)
+                const sdr = nR - curR;
+                const sdg = nG - curG;
+                const sdb = nB - curB;
+                const stepDist = Math.sqrt(0.299 * sdr * sdr + 0.587 * sdg * sdg + 0.114 * sdb * sdb);
+
+                // Strict boundary check: both root distance and local step gradient must pass
+                if (nDist <= tolerance && stepDist <= edgeContrastThreshold) {
+                  queueX[tail] = nx;
+                  queueY[tail] = ny;
+                  tail++;
                 }
               }
             }
           }
         }
       }
+
+      ctx.putImageData(imgData, 0, 0);
+      pushHistory();
+      if (erasedCount > 0) {
+        toast.success(`Magic Brush erased ${erasedCount.toLocaleString()} pixels cleanly without bleeding!`);
+      } else {
+        toast.info("Area matches edge boundary. Try adjusting tolerance.");
+      }
     } else {
-      // Global Color Match Removal across the entire image
+      // Global color clean
+      let erasedCount = 0;
       for (let i = 0; i < data.length; i += 4) {
         if (data[i + 3]! > 0) {
           const dr = data[i]! - targetR;
           const dg = data[i + 1]! - targetG;
           const db = data[i + 2]! - targetB;
-          const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+          const dist = Math.sqrt(0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db);
           if (dist <= tolerance) {
             data[i + 3] = 0;
+            erasedCount++;
           }
         }
       }
+      ctx.putImageData(imgData, 0, 0);
+      pushHistory();
+      toast.success(`Magic Brush cleaned ${erasedCount.toLocaleString()} matching pixels!`);
     }
-
-    ctx.putImageData(imgData, 0, 0);
-    pushHistory();
-    toast.success("Magic Brush removed selected part!");
   };
 
-  // Pointer event handlers
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Pointer event handlers with pointer capture
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
     const coords = getCanvasCoords(e);
     if (!coords) return;
 
@@ -366,14 +572,29 @@ export function CutoutBrushEditorModal({
     drawBrushLine(coords, coords);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    // Update cursor indicator position
-    const rect = e.currentTarget.getBoundingClientRect();
-    setCursorPos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      visible: true,
-    });
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      const relX = e.clientX - rect.left;
+      const relY = e.clientY - rect.top;
+      const displayScaleX = canvas.clientWidth / rect.width;
+      const displayScaleY = canvas.clientHeight / rect.height;
+      const localX = relX * displayScaleX;
+      const localY = relY * displayScaleY;
+
+      const canvasPixelScale = canvas.clientWidth / canvas.width;
+      const displayDiameter = brushSize * canvasPixelScale;
+
+      setCursorPos({
+        x: localX,
+        y: localY,
+        displayDiameter: Math.max(4, displayDiameter),
+        visible: true,
+      });
+    }
 
     if (!isDrawingRef.current || !lastPosRef.current) return;
     const coords = getCanvasCoords(e);
@@ -383,7 +604,13 @@ export function CutoutBrushEditorModal({
     lastPosRef.current = coords;
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+
     if (isDrawingRef.current) {
       isDrawingRef.current = false;
       lastPosRef.current = null;
@@ -391,16 +618,11 @@ export function CutoutBrushEditorModal({
     }
   };
 
-  const handleMouseLeave = () => {
+  const handlePointerLeave = () => {
     setCursorPos((prev) => ({ ...prev, visible: false }));
-    if (isDrawingRef.current) {
-      isDrawingRef.current = false;
-      lastPosRef.current = null;
-      pushHistory();
-    }
   };
 
-  // Save changes
+  // Save changes and close modal
   const handleSaveAndApply = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -410,17 +632,18 @@ export function CutoutBrushEditorModal({
     onClose();
   };
 
-  // Download directly
+  // Download directly as PNG
   const handleDirectDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const newSrc = canvas.toDataURL("image/png");
+    const downloadName = filename.replace(/\.[^.]+$/, "") + "_edited.png";
     if (onDownload) {
-      onDownload(newSrc, filename.replace(/\.[^.]+$/, "") + "_edited.png");
+      onDownload(newSrc, downloadName);
     } else {
       const a = document.createElement("a");
       a.href = newSrc;
-      a.download = filename.replace(/\.[^.]+$/, "") + "_edited.png";
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -428,333 +651,533 @@ export function CutoutBrushEditorModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none">
-      <div className="flex flex-col h-full max-h-[96vh] w-full max-w-6xl rounded-3xl border border-border bg-card shadow-2xl overflow-hidden">
-        {/* ─── 1. TOP HEADER TOOLBAR ─────────────────────────────────── */}
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 bg-background/80 px-4 sm:px-6 py-3 shrink-0 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-foreground text-background font-bold shadow-md">
-              <Paintbrush className="h-4 w-4" />
-            </div>
-            <div>
-              <h2 className="font-display font-extrabold text-sm sm:text-base text-foreground leading-tight">
-                Refine Cutout Editor
-              </h2>
-              <p className="text-[11px] text-muted-foreground font-medium">
-                Erase brush · Restore original · Magic one-click clean
-              </p>
-            </div>
-          </div>
+  const effectiveGhostOpacity = isGhostVisible ? ghostOpacity : 0;
 
-          {/* Action buttons: Undo, Redo, Reset, Save, Close */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-xl border border-border bg-muted/30 p-1">
-              <button
-                type="button"
-                disabled={!canUndo}
-                onClick={handleUndo}
-                title="Undo (Ctrl+Z)"
-                className="p-1.5 rounded-lg text-foreground hover:bg-muted disabled:opacity-40 transition-all cursor-pointer"
-              >
-                <Undo2 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                disabled={!canRedo}
-                onClick={handleRedo}
-                title="Redo (Ctrl+Y)"
-                className="p-1.5 rounded-lg text-foreground hover:bg-muted disabled:opacity-40 transition-all cursor-pointer"
-              >
-                <Redo2 className="h-4 w-4" />
-              </button>
-            </div>
+  if (!mounted || typeof document === "undefined") {
+    return null;
+  }
 
+  /* Renders directly into document.body to break free of any parent stacking context or SiteHeader overlap */
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] w-screen h-screen bg-neutral-950 flex flex-col select-none overflow-hidden">
+      
+      {/* ─── MAIN WORKSPACE: PURE FULL SCREEN (NO HEADER BAR) ─────────── */}
+      <div className="flex flex-1 min-h-0 relative overflow-hidden bg-neutral-950">
+        
+        {/* LEFT FLOATING DOCK: TOOLS & BRUSH CONTROLS + ACTIONS */}
+        <div className="absolute top-4 left-4 z-20 w-64 max-h-[calc(100%-2rem)] flex flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/98 backdrop-blur-md p-3 shadow-2xl overflow-y-auto text-white">
+          {/* Tool Selector Tabs */}
+          <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-800/80 rounded-xl border border-neutral-700/60">
+            {/* Tool 1: Erase */}
             <button
               type="button"
-              onClick={handleResetToCutout}
-              title="Reset to initial cutout"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer"
-            >
-              <RotateCcw className="h-3.5 w-3.5" /> Reset
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDirectDownload}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-border bg-background hover:bg-muted text-xs font-bold text-foreground transition-all cursor-pointer shadow-xs"
-            >
-              <Download className="h-3.5 w-3.5" /> Download
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSaveAndApply}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-foreground text-background text-xs font-extrabold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md"
-            >
-              <Check className="h-4 w-4 text-emerald-400" /> Save & Apply
-            </button>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              title="Close editor"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* ─── 2. MAIN WORKSPACE: CANVAS + LEFT TOOLBAR ──────────────── */}
-        <div className="flex flex-1 min-h-0 relative overflow-hidden bg-neutral-950/20">
-          {/* LEFT FLOATING DOCK: TOOLS */}
-          <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 rounded-2xl border border-border/80 bg-background/95 backdrop-blur-md p-2 shadow-2xl">
-            {/* Tool 1: Erase Brush */}
-            <button
-              type="button"
-              onClick={() => setActiveTool("erase")}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => handleSelectTool("erase")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                 activeTool === "erase"
-                  ? "bg-foreground text-background shadow-md scale-102"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-white text-black shadow-md scale-102"
+                  : "text-neutral-400 hover:bg-neutral-700 hover:text-white"
               }`}
-              title="Remove Brush — Brush over areas to erase them transparent"
+              title="Remove Brush — Erase leftover background"
             >
-              <Eraser className="h-4 w-4" />
-              <span>Remove Brush</span>
+              <Eraser className="h-4 w-4 mb-1 text-red-500" />
+              <span>Remove</span>
             </button>
 
-            {/* Tool 2: Restore Brush */}
+            {/* Tool 2: Restore */}
             <button
               type="button"
-              onClick={() => setActiveTool("restore")}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => handleSelectTool("restore")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                 activeTool === "restore"
-                  ? "bg-foreground text-background shadow-md scale-102"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-white text-black shadow-md scale-102"
+                  : "text-neutral-400 hover:bg-neutral-700 hover:text-white"
               }`}
-              title="Restore Brush — Paint back parts from original photo"
+              title="Restore Brush — Paint back real photo parts"
             >
-              <Paintbrush className="h-4 w-4 text-amber-500" />
-              <span>Restore Brush</span>
+              <Paintbrush className="h-4 w-4 mb-1 text-amber-500" />
+              <span>Restore</span>
             </button>
 
-            {/* Tool 3: Magic Brush */}
+            {/* Tool 3: Magic */}
             <button
               type="button"
-              onClick={() => setActiveTool("magic")}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              onClick={() => handleSelectTool("magic")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                 activeTool === "magic"
-                  ? "bg-foreground text-background shadow-md scale-102"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-white text-black shadow-md scale-102"
+                  : "text-neutral-400 hover:bg-neutral-700 hover:text-white"
               }`}
-              title="Magic Brush — Click any color/part to remove it in one click"
+              title="Magic Brush — 1-click color erase"
             >
-              <Wand2 className="h-4 w-4 text-cyan-400" />
-              <span>Magic Brush</span>
+              <Wand2 className="h-4 w-4 mb-1 text-cyan-400" />
+              <span>Magic</span>
             </button>
+          </div>
 
-            <div className="h-px bg-border/60 my-1" />
-
-            {/* Tool Controls depending on Active Tool */}
-            {activeTool !== "magic" ? (
-              <div className="px-1 py-1 space-y-1.5">
+          {/* BRUSH SIZING & TUNING CONTROLS */}
+          {activeTool !== "magic" ? (
+            <div className="space-y-3 pt-1">
+              {/* 1. Brush Size */}
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-foreground">Brush Size</span>
-                  <span className="font-mono text-muted-foreground font-bold">{brushSize}px</span>
+                  <span className="font-bold text-neutral-200">Brush Size</span>
+                  <span className="font-mono text-amber-400 font-bold">{brushSize}px</span>
                 </div>
                 <input
                   type="range"
                   min="4"
-                  max="120"
+                  max="140"
                   value={brushSize}
                   onChange={(e) => setBrushSize(Number(e.target.value))}
-                  className="w-full h-1.5 accent-primary bg-muted rounded-lg cursor-pointer"
+                  className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
                 />
+
+                {/* Quick Size Presets */}
+                <div className="flex items-center justify-between gap-1 pt-0.5">
+                  {[
+                    { label: "12px", value: 12 },
+                    { label: "28px", value: 28 },
+                    { label: "54px", value: 54 },
+                    { label: "96px", value: 96 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => setBrushSize(preset.value)}
+                      className={`flex-1 h-7 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                        brushSize === preset.value
+                          ? "bg-white text-black border-white shadow-xs"
+                          : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <div className="px-1 py-1 space-y-2">
+
+              {/* 2. Brush Edge Hardness / Softness */}
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-foreground">Magic Tolerance</span>
-                  <span className="font-mono text-muted-foreground font-bold">{magicTolerance}%</span>
+                  <span className="font-bold text-neutral-200">Edge Hardness</span>
+                  <span className="font-mono text-neutral-400 font-bold">
+                    {brushHardness <= 40 ? "Soft" : brushHardness <= 80 ? "Medium" : "Crisp"} ({brushHardness}%)
+                  </span>
                 </div>
                 <input
                   type="range"
-                  min="5"
-                  max="80"
+                  min="15"
+                  max="100"
+                  value={brushHardness}
+                  onChange={(e) => setBrushHardness(Number(e.target.value))}
+                  className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
+                />
+                <div className="flex items-center justify-between gap-1">
+                  {[
+                    { label: "Soft", value: 35 },
+                    { label: "Natural", value: 75 },
+                    { label: "Crisp", value: 100 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => setBrushHardness(preset.value)}
+                      className={`flex-1 h-7 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                        brushHardness === preset.value
+                          ? "bg-white text-black border-white shadow-xs"
+                          : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Brush Opacity (Flow) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-bold text-neutral-200">Opacity (Flow)</span>
+                  <span className="font-mono text-amber-400 font-bold">{brushOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  value={brushOpacity}
+                  onChange={(e) => setBrushOpacity(Number(e.target.value))}
+                  className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+          ) : (
+            /* Magic Wand Controls */
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-bold text-neutral-200">Edge Tolerance</span>
+                  <span className="font-mono text-cyan-400 font-bold">{magicTolerance}</span>
+                </div>
+                <input
+                  type="range"
+                  min="3"
+                  max="50"
                   value={magicTolerance}
                   onChange={(e) => setMagicTolerance(Number(e.target.value))}
-                  className="w-full h-1.5 accent-cyan-400 bg-muted rounded-lg cursor-pointer"
+                  className="w-full h-1.5 accent-cyan-400 bg-neutral-800 rounded-lg cursor-pointer"
                 />
 
-                <label className="flex items-center gap-2 text-[11px] font-semibold text-foreground cursor-pointer pt-0.5">
-                  <input
-                    type="checkbox"
-                    checked={contiguousOnly}
-                    onChange={(e) => setContiguousOnly(e.target.checked)}
-                    className="rounded accent-cyan-400 cursor-pointer"
-                  />
-                  <span>Contiguous area</span>
-                </label>
+                {/* Quick Tolerance Presets */}
+                <div className="flex items-center justify-between gap-1 pt-0.5">
+                  {[
+                    { label: "Fine", value: 8, tip: "8" },
+                    { label: "Normal", value: 14, tip: "14" },
+                    { label: "Broad", value: 24, tip: "24" },
+                    { label: "High", value: 38, tip: "38" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      title={`Tolerance ${preset.tip}`}
+                      onClick={() => setMagicTolerance(preset.value)}
+                      className={`flex-1 h-7 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all cursor-pointer whitespace-nowrap px-1 ${
+                        magicTolerance === preset.value
+                          ? "bg-cyan-400 text-black border-cyan-400 shadow-xs"
+                          : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-[11px] font-semibold text-neutral-200 cursor-pointer pt-0.5">
+                <input
+                  type="checkbox"
+                  checked={contiguousOnly}
+                  onChange={(e) => setContiguousOnly(e.target.checked)}
+                  className="rounded accent-cyan-400 cursor-pointer"
+                />
+                <span>Contiguous only (protects person)</span>
+              </label>
+
+              <p className="text-[10px] text-neutral-400 leading-tight">
+                Edge-aware: automatically stops at face, hair, and clothing outlines. Use <strong>Fine</strong> for delicate details.
+              </p>
+            </div>
+          )}
+
+          <div className="h-px bg-neutral-800 my-1" />
+
+          {/* ── GHOST BACKDROP (OLDER BACKGROUND PREVIEW) ── */}
+          <div className="space-y-2 pt-0.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsGhostVisible(!isGhostVisible)}
+                  className="text-neutral-300 hover:text-amber-400 transition-colors cursor-pointer"
+                  title={isGhostVisible ? "Hide faint background" : "Show faint background"}
+                >
+                  {isGhostVisible ? <Eye className="h-3.5 w-3.5 text-amber-400" /> : <EyeOff className="h-3.5 w-3.5 text-neutral-500" />}
+                </button>
+                <span className="font-bold text-neutral-200">Ghost Background</span>
+              </div>
+              <span className="font-mono text-amber-400 font-bold">
+                {isGhostVisible ? `${ghostOpacity}%` : "Off"}
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="90"
+              value={isGhostVisible ? ghostOpacity : 0}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setGhostOpacity(val);
+                setIsGhostVisible(val > 0);
+              }}
+              className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
+            />
+
+            <div className="flex items-center justify-between gap-1">
+              {[
+                { label: "Off", value: 0 },
+                { label: "25%", value: 25 },
+                { label: "45%", value: 45 },
+                { label: "70%", value: 70 },
+              ].map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => {
+                    if (preset.value === 0) {
+                      setIsGhostVisible(false);
+                    } else {
+                      setIsGhostVisible(true);
+                      setGhostOpacity(preset.value);
+                    }
+                  }}
+                  className={`flex-1 h-7 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                    effectiveGhostOpacity === preset.value
+                      ? "bg-amber-500/25 text-amber-400 border-amber-500/50"
+                      : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-neutral-400 leading-tight">
+              Shows original background faintly underneath transparent parts to guide your Restore brush.
+            </p>
+          </div>
+
+          {/* ── 4. DIRECT ACTION BUTTONS (DOWNLOAD & DONE) IN DOCK ── */}
+          <div className="pt-2 border-t border-neutral-800 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={handleSaveAndApply}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white text-black font-extrabold text-xs shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer hover:bg-neutral-100"
+            >
+              <Check className="h-4 w-4 text-emerald-600" />
+              <span>Done & Apply Cutout</span>
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleDirectDownload}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 font-bold text-xs text-white transition-all cursor-pointer shadow-xs"
+              >
+                <Download className="h-3.5 w-3.5 text-amber-400" />
+                <span>Download</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetToCutout}
+                title="Reset back to initial cutout"
+                className="p-2 rounded-xl border border-neutral-700 bg-neutral-850 hover:bg-neutral-750 text-neutral-400 hover:text-white transition-all cursor-pointer"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT FLOATING DOCK: ACTIONS, ZOOM & PREVIEW MODES */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 rounded-2xl border border-neutral-800 bg-neutral-900/98 backdrop-blur-md p-1.5 shadow-2xl text-white">
+          
+          {/* Undo / Redo */}
+          <div className="flex items-center rounded-xl border border-neutral-800 bg-neutral-800/80 p-0.5">
+            <button
+              type="button"
+              disabled={!canUndo}
+              onClick={handleUndo}
+              title="Undo (Ctrl+Z)"
+              className="p-1.5 rounded-lg text-white hover:bg-neutral-700 disabled:opacity-30 transition-all cursor-pointer"
+            >
+              <Undo2 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              disabled={!canRedo}
+              onClick={handleRedo}
+              title="Redo (Ctrl+Y)"
+              className="p-1.5 rounded-lg text-white hover:bg-neutral-700 disabled:opacity-30 transition-all cursor-pointer"
+            >
+              <Redo2 className="h-4 w-4" />
+            </button>
+          </div>
+
+
+
+          {/* Zoom Controls */}
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
+            className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+            title="Zoom Out"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom(1)}
+            className="font-mono text-xs font-bold text-white px-1 hover:text-amber-400 transition-colors cursor-pointer"
+            title="Reset Zoom to 100%"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.min(3, Number((z + 0.2).toFixed(1))))}
+            className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+            title="Zoom In"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </button>
+
+          <div className="w-px h-4 bg-neutral-800 mx-0.5" />
+
+          {/* Quick Download button */}
+          <button
+            type="button"
+            onClick={handleDirectDownload}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Download edited PNG"
+          >
+            <Download className="h-3.5 w-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Download</span>
+          </button>
+
+          {/* Quick Done button */}
+          <button
+            type="button"
+            onClick={handleSaveAndApply}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-white text-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 hover:bg-neutral-100"
+            title="Save & Done"
+          >
+            <Check className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Done</span>
+          </button>
+
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer ml-0.5"
+            title="Close editor (Esc)"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* ─── CANVAS SCROLL CONTAINER (100% OPAQUE SOLID FOUNDATION) ──── */}
+        <div
+          ref={containerRef}
+          className="flex-1 w-full h-full overflow-auto flex items-center justify-center p-6 sm:p-12 relative cursor-crosshair"
+          style={{
+            backgroundColor: "#18181b", // Solid opaque dark foundation
+            backgroundImage:
+              "linear-gradient(45deg, #27272a 25%, transparent 25%), linear-gradient(-45deg, #27272a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #27272a 75%), linear-gradient(-45deg, transparent 75%, #27272a 75%)",
+            backgroundSize: "20px 20px",
+            backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
+          }}
+        >
+          {/* TRANSFORMED CANVAS WRAPPER */}
+          <div
+            className="relative inline-block shadow-2xl rounded-lg transition-transform duration-100 ease-out"
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: "center center",
+            }}
+          >
+            {/* Ghost Backdrop: faint original background showing through cutout transparent holes */}
+            {effectiveGhostOpacity > 0 && (
+              <img
+                src={originalImageSrc}
+                alt="Original Backdrop Guide"
+                className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0 rounded-lg block"
+                style={{
+                  opacity: effectiveGhostOpacity / 100,
+                }}
+              />
+            )}
+
+            {/* Working Cutout Canvas */}
+            <canvas
+              ref={canvasRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
+              className="relative z-10 max-h-[80vh] max-w-[88vw] object-contain rounded-lg block touch-none"
+            />
+
+            {/* Brush Size Ring Indicator */}
+            {cursorPos.visible && activeTool !== "magic" && (
+              <div
+                className="pointer-events-none absolute rounded-full border border-white shadow-[0_0_6px_rgba(0,0,0,0.9),inset_0_0_3px_rgba(0,0,0,0.8)] -translate-x-1/2 -translate-y-1/2 z-30 transition-none"
+                style={{
+                  left: `${cursorPos.x}px`,
+                  top: `${cursorPos.y}px`,
+                  width: `${cursorPos.displayDiameter}px`,
+                  height: `${cursorPos.displayDiameter}px`,
+                  backgroundColor:
+                    activeTool === "erase"
+                      ? "rgba(239, 68, 68, 0.28)"
+                      : "rgba(16, 185, 129, 0.32)",
+                }}
+              />
+            )}
+
+            {/* Magic Wand Cursor Indicator */}
+            {cursorPos.visible && activeTool === "magic" && (
+              <div
+                className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-full bg-cyan-500/30 border border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] z-30"
+                style={{
+                  left: `${cursorPos.x}px`,
+                  top: `${cursorPos.y}px`,
+                }}
+              >
+                <Wand2 className="h-3.5 w-3.5 text-cyan-300 animate-pulse" />
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* RIGHT FLOATING DOCK: BACKDROP PREVIEW & ZOOM */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 rounded-2xl border border-border/80 bg-background/95 backdrop-blur-md p-1.5 shadow-2xl">
-            {/* Background preview modes */}
-            <button
-              type="button"
-              onClick={() => setBgPreview("checker")}
-              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                bgPreview === "checker" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Checkerboard transparent preview"
-            >
-              Checker
-            </button>
-            <button
-              type="button"
-              onClick={() => setBgPreview("white")}
-              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                bgPreview === "white" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="White backdrop preview"
-            >
-              White
-            </button>
-            <button
-              type="button"
-              onClick={() => setBgPreview("black")}
-              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                bgPreview === "black" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Black backdrop preview"
-            >
-              Black
-            </button>
-            <button
-              type="button"
-              onClick={() => setBgPreview("green")}
-              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                bgPreview === "green" ? "bg-emerald-500 text-white" : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Chroma Green backdrop preview"
-            >
-              Green
-            </button>
-
-            <div className="w-px h-4 bg-border/60 mx-1" />
-
-            {/* Zoom Controls */}
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
-              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              title="Zoom Out"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </button>
-            <span className="font-mono text-xs font-bold text-foreground px-1">{Math.round(zoom * 100)}%</span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.min(3, Number((z + 0.2).toFixed(1))))}
-              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              title="Zoom In"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* ─── CANVAS SCROLL CONTAINER ──────────────────────────────── */}
-          <div
-            ref={containerRef}
-            className="flex-1 w-full h-full overflow-auto flex items-center justify-center p-6 sm:p-12 relative cursor-crosshair"
-            style={{
-              backgroundColor:
-                bgPreview === "white"
-                  ? "#ffffff"
-                  : bgPreview === "black"
-                  ? "#0a0a0c"
-                  : bgPreview === "green"
-                  ? "#00ff33"
-                  : undefined,
-              backgroundImage:
-                bgPreview === "checker"
-                  ? "linear-gradient(45deg, rgba(0,0,0,0.08) 25%, transparent 25%), linear-gradient(-45deg, rgba(0,0,0,0.08) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.08) 75%), linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.08) 75%)"
-                  : undefined,
-              backgroundSize: "20px 20px",
-              backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
-            }}
-          >
-            <div
-              className="relative shadow-2xl rounded-lg transition-transform duration-100 ease-out"
-              style={{
-                transform: `scale(${zoom})`,
-                transformOrigin: "center center",
-              }}
-            >
-              <canvas
-                ref={canvasRef}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseLeave}
-                className="max-h-[72vh] max-w-[85vw] object-contain rounded-lg block"
-              />
-
-              {/* Dynamic Brush Size Ring Cursor */}
-              {cursorPos.visible && activeTool !== "magic" && (
-                <div
-                  className="pointer-events-none absolute rounded-full border-2 border-white/80 shadow-[0_0_8px_rgba(0,0,0,0.8)] -translate-x-1/2 -translate-y-1/2"
-                  style={{
-                    left: `${cursorPos.x}px`,
-                    top: `${cursorPos.y}px`,
-                    width: `${brushSize}px`,
-                    height: `${brushSize}px`,
-                    backgroundColor:
-                      activeTool === "erase"
-                        ? "rgba(239, 68, 68, 0.2)"
-                        : "rgba(245, 158, 11, 0.2)",
-                  }}
-                />
-              )}
-
-              {/* Magic Wand cursor indicator */}
-              {cursorPos.visible && activeTool === "magic" && (
-                <div
-                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-full bg-cyan-500/30 border border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]"
-                  style={{
-                    left: `${cursorPos.x}px`,
-                    top: `${cursorPos.y}px`,
-                  }}
-                >
-                  <Wand2 className="h-3.5 w-3.5 text-cyan-300 animate-pulse" />
-                </div>
-              )}
-            </div>
-          </div>
+      {/* ─── BOTTOM FOOTER BAR (SOLID OPAQUE) ────────────────────────── */}
+      <footer className="border-t border-neutral-800 bg-neutral-900 px-4 sm:px-6 py-2.5 flex items-center justify-between text-xs text-neutral-400 shrink-0 z-30 shadow-md">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-medium text-neutral-200 text-[11px] sm:text-xs">
+            {activeTool === "erase"
+              ? "Remove Brush active: Drag over areas to erase leftover background."
+              : activeTool === "restore"
+              ? "Restore Brush active: Drag over faint background to paint original parts back cleanly."
+              : "Magic Brush active: Click on any background color or halo to remove it in one click."}
+          </span>
         </div>
 
-        {/* ─── 3. BOTTOM FOOTER BAR WITH HELPFUL TIP ────────────────── */}
-        <footer className="border-t border-border/70 bg-card px-6 py-2.5 flex items-center justify-between text-xs text-muted-foreground shrink-0">
-          <div className="flex items-center gap-2">
-            <Wand2 className="h-3.5 w-3.5 text-amber-500" />
-            <span>
-              {activeTool === "erase"
-                ? "Remove Brush active: Drag to erase unwanted leftover background."
-                : activeTool === "restore"
-                ? "Restore Brush active: Drag to restore details or edges from the original photo."
-                : "Magic Brush active: Click on any background artifact or halo color to remove it in one click."}
-            </span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden lg:flex items-center gap-3 text-[11px] font-medium mr-1 text-neutral-400">
+            <span>Zoom: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">Ctrl + Wheel</kbd></span>
+            <span>Brush Size: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">[</kbd> <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">]</kbd></span>
+            <span>Undo: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">Ctrl+Z</kbd></span>
+            <span>Redo: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">Ctrl+Y</kbd></span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-4 text-[11px] font-medium">
-            <span>Shortcuts: Ctrl+Z (Undo) · Ctrl+Y (Redo)</span>
-          </div>
-        </footer>
-      </div>
-    </div>
+          {/* Direct Download button in bottom footer */}
+          <button
+            type="button"
+            onClick={handleDirectDownload}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-white transition-all cursor-pointer shadow-xs"
+          >
+            <Download className="h-3.5 w-3.5 text-amber-400" />
+            <span>Download</span>
+          </button>
+
+          {/* Direct Done button in bottom footer */}
+          <button
+            type="button"
+            onClick={handleSaveAndApply}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-white text-black text-xs font-extrabold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md hover:bg-neutral-100"
+          >
+            <Check className="h-4 w-4 text-emerald-600" />
+            <span>Done</span>
+          </button>
+        </div>
+      </footer>
+
+    </div>,
+    document.body
   );
 }

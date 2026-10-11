@@ -464,9 +464,9 @@ export interface UiEditSettings {
 
 export const DEFAULT_UI_SETTINGS: UiEditSettings = {
   aiMasterEnabled: true,
-  aiAssistantEnabled: true,
+  aiAssistantEnabled: false,
   aiModelsPageEnabled: true,
-  aiFabWidgetEnabled: true,
+  aiFabWidgetEnabled: false,
   aiHeaderLinksEnabled: true,
   aiFooterLinksEnabled: true,
   aiHomeSectionsEnabled: true,
@@ -483,7 +483,7 @@ export const DEFAULT_UI_SETTINGS: UiEditSettings = {
   announcementLink: "/tools",
   pageRoutes: {
     "/": true,
-    "/chat": true,
+    "/chat": false,
     "/models": true,
     "/tools": true,
     "/pricing": true,

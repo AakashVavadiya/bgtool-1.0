@@ -19,13 +19,15 @@ export function ToolsGrid() {
     };
   }, []);
 
+  const activeTools = tools.filter((t) => AdminStore.isToolEnabled(t.slug));
+
   const filteredTools =
     selectedCategory === "All"
-      ? tools
-      : tools.filter((t) => t.category === selectedCategory);
+      ? activeTools
+      : activeTools.filter((t) => t.category === selectedCategory);
 
   const getCount = (cat: "All" | ToolCategory) =>
-    cat === "All" ? tools.length : tools.filter((t) => t.category === cat).length;
+    cat === "All" ? activeTools.length : activeTools.filter((t) => t.category === cat).length;
 
   return (
     <section id="tools" className="px-5 pb-28 pt-24 md:px-10 md:pb-40 md:pt-32">
@@ -44,7 +46,7 @@ export function ToolsGrid() {
         </div>
 
         <div className="text-xs font-semibold text-muted-foreground">
-          Showing <span className="text-foreground font-bold">{filteredTools.length}</span> of {tools.length} tools
+          Showing <span className="text-foreground font-bold">{filteredTools.length}</span> of {activeTools.length} tools
         </div>
       </div>
 
@@ -95,11 +97,7 @@ export function ToolsGrid() {
               </span>
 
               {/* Tag top right */}
-              {!AdminStore.isToolEnabled(t.slug) ? (
-                <span className="absolute right-4 top-4 rounded-full bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 text-[0.625rem] font-bold tracking-wide text-amber-600 dark:text-amber-400">
-                  Maintenance
-                </span>
-              ) : t.tag ? (
+              {t.tag ? (
                 <span className="absolute right-4 top-4 rounded-full bg-accent px-2.5 py-1 text-[0.625rem] font-semibold tracking-wide text-accent-foreground">
                   {t.tag}
                 </span>
@@ -115,14 +113,8 @@ export function ToolsGrid() {
               <p className="mt-2 line-clamp-2 text-xs text-muted-foreground leading-relaxed">
                 {t.blurb}
               </p>
-              <span
-                className={`mt-4 inline-flex items-center gap-1.5 text-xs font-medium transition-all duration-500 group-hover:gap-3 ${
-                  !AdminStore.isToolEnabled(t.slug)
-                    ? "text-amber-600 dark:text-amber-400 font-semibold"
-                    : "text-muted-foreground group-hover:text-foreground"
-                }`}
-              >
-                {!AdminStore.isToolEnabled(t.slug) ? "Under Maintenance" : "Open tool"} <span aria-hidden>→</span>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-all duration-500 group-hover:gap-3">
+                Open tool <span aria-hidden>→</span>
               </span>
             </Link>
           );
