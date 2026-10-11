@@ -68,7 +68,7 @@ export function loginAdmin(
 
   return {
     success: false,
-    message: "Invalid admin credentials. Default credentials: User: 'admin' | Password: 'admin123' (or PIN: '8899')",
+    message: "Invalid admin username or password. Please try again.",
   };
 }
 

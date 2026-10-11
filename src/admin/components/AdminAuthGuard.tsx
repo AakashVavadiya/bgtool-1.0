@@ -100,7 +100,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
                   setUsername(e.target.value);
                   setErrorMsg("");
                 }}
-                placeholder="admin or admin@bg.tools"
+                placeholder="Enter admin username or email"
                 className="w-full rounded-2xl border border-input bg-background/60 pl-11 pr-4 py-3.5 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-sm"
               />
             </div>
@@ -117,7 +117,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
                   setPassword(e.target.value);
                   setErrorMsg("");
                 }}
-                placeholder="Enter password (e.g. admin123 or 8899)"
+                placeholder="Enter password"
                 autoFocus
                 className="w-full rounded-2xl border border-input bg-background/60 pl-11 pr-4 py-3.5 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-sm"
               />
@@ -147,10 +147,11 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
           </button>
         </form>
 
-        {/* Credentials reminder */}
-        <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>Default: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">admin</code> / <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">admin123</code></span>
-          <Link to="/" className="hover:text-foreground hover:underline transition-colors">Return to Home</Link>
+        {/* Footer */}
+        <div className="mt-6 pt-5 border-t border-border flex items-center justify-center text-[12px] text-muted-foreground">
+          <Link to="/" className="hover:text-foreground hover:underline transition-colors font-medium">
+            ← Return to Home
+          </Link>
         </div>
       </div>
     </div>
