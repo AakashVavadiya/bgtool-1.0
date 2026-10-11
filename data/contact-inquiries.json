@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "TCK_240_mv3ur6vm",
+    "name": "Security Tester &lt;script&gt;alert(1)&lt;/script&gt;",
+    "email": "audit.test@example.com",
+    "subject": "Audit Inquiry",
+    "message": "Testing HTML escaping: &lt;b&gt;Hello&lt;/b&gt;",
+    "toolContext": "",
+    "createdAt": "2026-10-11 13:21",
+    "status": "open",
+    "priority": "medium",
+    "replies": []
+  },
+  {
+    "id": "TCK_352_mv3unghm",
+    "name": "Security Tester &lt;script&gt;alert(1)&lt;/script&gt;",
+    "email": "audit.test@example.com",
+    "subject": "Audit Inquiry",
+    "message": "Testing HTML escaping: &lt;b&gt;Hello&lt;/b&gt;",
+    "toolContext": "",
+    "createdAt": "2026-10-11 13:19",
+    "status": "open",
+    "priority": "medium",
+    "replies": []
+  }
+]

@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "bg removes image backgrounds online in one click — free, unlimited, and export-ready up to 4K. Crisp edges on hair, fur and glass.",
+          "bg removes image backgrounds online in one click — free daily credits and export-ready up to 4K. Crisp edges on hair, fur and glass.",
       },
       { property: "og:title", content: "bg — Free Online Background Remover" },
       {
@@ -79,8 +79,8 @@ function Reveal({
 const stats = [
   { n: "1s", t: "Average cutout.", d: "Edge-aware matting runs in about a second, even on large files." },
   { n: "4K", t: "Export quality.", d: "Download transparent PNGs at full resolution — no downscaling." },
-  { n: "12M+", t: "Images cleaned.", d: "Creators, sellers and studios trust bg with their daily output." },
-  { n: "25", t: "Tools, one tab.", d: "Compress, convert, upscale, watermark and clean — all in one place." },
+  { n: "30+", t: "Studio tools.", d: "Background removal, conversion, compression, and editing all in one place." },
+  { n: "10", t: "Free daily credits.", d: "Free daily allowance automatically replenished every day for creators." },
 ];
 
 
@@ -276,7 +276,7 @@ function Index() {
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pb-14 pt-10 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20 w-full max-w-full">
         <p className="rise-in text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-muted-foreground text-center">
-          free · online · unlimited
+          free · online · instant
         </p>
 
         <div className="relative mt-4 sm:mt-6 w-full max-w-[98%] mx-auto">

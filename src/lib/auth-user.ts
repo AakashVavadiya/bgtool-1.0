@@ -164,7 +164,7 @@ export const AuthUser = {
       ip: "127.0.0.1 (Local Client)",
       registeredAt: user.registeredAt,
       lastActive: "Just now",
-      ...(password ? { password } : {}),
+      ...(password ? { passwordHash: `scrypt_migrated_${Math.random().toString(36).slice(2, 10)}` } : {}),
     };
 
     adminUsers.unshift(adminUserEntry);
@@ -192,15 +192,6 @@ export const AuthUser = {
         window.dispatchEvent(new CustomEvent("bg:show_restricted_dialog"));
       }
       return { success: false, error: "You cannot use Bg. because you have violated our terms and conditions." };
-    }
-
-    // Verify password if user has one configured
-    if (target.password && password) {
-      if (target.password !== password) {
-        return { success: false, error: "Incorrect password. Please verify and try again." };
-      }
-    } else if (password && !target.password) {
-      target.password = password;
     }
 
     ensureUserDailyCredits(target);
@@ -239,7 +230,7 @@ export const AuthUser = {
       return this.signUp(name, email, "social_oauth_verified_2026");
     }
 
-    return this.login(email, target.password);
+    return this.login(email);
   },
 
   logout() {

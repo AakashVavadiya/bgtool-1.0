@@ -13,6 +13,14 @@ import {
   TOOL_PROFILES,
   applySecurityHeaders,
   createSafeErrorResponse,
+  isAuthorizedAdmin,
+  verifyAdminLogin,
+  createAdminSessionToken,
+  validateToolsConfigPayload,
+  validateContactSubmission,
+  sanitizeUser,
+  migrateUsersData,
+  atomicWriteJson,
 } from "./lib/security";
 
 type ServerEntry = {
@@ -379,7 +387,86 @@ export default {
       }
     }
 
-    // 6. /api/contact
+    // 6. Admin Authentication Endpoints
+    if (url.pathname === "/api/admin/login" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as any;
+        const username = String(body.username || "");
+        const password = String(body.password || "");
+
+        const isValid = verifyAdminLogin(username, password);
+        if (!isValid) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Invalid administrator username or password.")
+          );
+        }
+
+        const token = createAdminSessionToken({ username });
+        const cookieVal = `admin_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=7200`;
+
+        return applySecurityHeaders(
+          new Response(
+            JSON.stringify({
+              success: true,
+              token,
+              user: {
+                id: "adm_super_01",
+                username: "admin",
+                name: "Admin Control Center",
+                role: "superadmin",
+              },
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Set-Cookie": cookieVal,
+              },
+            }
+          )
+        );
+      } catch {
+        return applySecurityHeaders(createSafeErrorResponse(400, "Malformed authentication request."));
+      }
+    }
+
+    if (url.pathname === "/api/admin/logout" && request.method === "POST") {
+      const clearCookie = "admin_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0";
+      return applySecurityHeaders(
+        new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Set-Cookie": clearCookie,
+          },
+        })
+      );
+    }
+
+    if (url.pathname === "/api/admin/session" && request.method === "GET") {
+      const authorized = isAuthorizedAdmin(request);
+      if (!authorized) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(401, "No active administrator session.")
+        );
+      }
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            authenticated: true,
+            user: {
+              id: "adm_super_01",
+              username: "admin",
+              name: "Admin Control Center",
+              role: "superadmin",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+    }
+
+    // 7. /api/contact
     if (url.pathname === "/api/contact") {
       const dataDir = path.join(process.cwd(), "data");
       const filePath = path.join(dataDir, "contact-inquiries.json");
@@ -387,10 +474,17 @@ export default {
         fs.mkdirSync(dataDir, { recursive: true });
       }
       if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, "[]", "utf-8");
+        atomicWriteJson(filePath, []);
       }
 
       if (request.method === "GET") {
+        // Enforce Server-Side Administrator Authentication
+        if (!isAuthorizedAdmin(request)) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Unauthorized: Administrator access required to view support inquiries.")
+          );
+        }
+
         try {
           const content = fs.readFileSync(filePath, "utf-8");
           return applySecurityHeaders(
@@ -401,7 +495,7 @@ export default {
           );
         } catch {
           return applySecurityHeaders(
-            new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })
+            createSafeErrorResponse(500, "Failed to read support inquiries.")
           );
         }
       }
@@ -410,59 +504,69 @@ export default {
         const contactCheck = contactLimiter.check(clientIp);
         if (!contactCheck.allowed) {
           return applySecurityHeaders(
-            createRateLimitResponse(contactCheck.retryAfter, "Too many messages sent. Please wait a moment.")
+            createRateLimitResponse(contactCheck.retryAfter, "Too many messages sent. Please wait before submitting again.")
+          );
+        }
+
+        const contentLengthHeader = request.headers.get("content-length");
+        if (contentLengthHeader && parseInt(contentLengthHeader, 10) > 64 * 1024) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(413, "Contact payload exceeds size limit (64 KB).")
           );
         }
 
         try {
-          const body = (await request.json()) as any;
+          const body = await request.json();
+          const validation = validateContactSubmission(body);
+          if (!validation.valid || !validation.ticket) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(400, validation.error || "Invalid contact form submission.")
+            );
+          }
+
           let current: any[] = [];
           try {
             if (fs.existsSync(filePath)) {
               current = JSON.parse(fs.readFileSync(filePath, "utf-8") || "[]");
+              if (!Array.isArray(current)) current = [];
             }
           } catch {
             current = [];
           }
 
-          // Input sanitization
-          const cleanName = String(body.name || "Anonymous").slice(0, 100);
-          const cleanEmail = String(body.email || "").slice(0, 120);
-          const cleanSubject = String(body.subject || "General Inquiry").slice(0, 150);
-          const cleanMessage = String(body.message || "").slice(0, 5000);
-          const cleanToolContext = String(body.toolContext || "").slice(0, 100);
+          // Bounded file retention: cap at 500 tickets
+          current.unshift(validation.ticket);
+          if (current.length > 500) {
+            current = current.slice(0, 500);
+          }
 
-          const newTicket = {
-            id: `TCK_${Math.floor(100 + Math.random() * 900)}`,
-            name: cleanName,
-            email: cleanEmail,
-            subject: cleanSubject,
-            message: cleanMessage,
-            toolContext: cleanToolContext,
-            createdAt: new Date().toISOString().replace("T", " ").slice(0, 16),
-            status: "open",
-            priority: "medium",
-            replies: [],
-          };
-
-          current.unshift(newTicket);
-          fs.writeFileSync(filePath, JSON.stringify(current, null, 2), "utf-8");
+          atomicWriteJson(filePath, current);
 
           return applySecurityHeaders(
-            new Response(JSON.stringify({ success: true, ticket: newTicket }), {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            })
+            new Response(
+              JSON.stringify({
+                success: true,
+                ticket: {
+                  id: validation.ticket.id,
+                  createdAt: validation.ticket.createdAt,
+                  status: validation.ticket.status,
+                },
+              }),
+              {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              }
+            )
           );
-        } catch (err: any) {
+        } catch {
           return applySecurityHeaders(
-            createSafeErrorResponse(400, "Invalid inquiry submission. Please check your input.")
+            createSafeErrorResponse(400, "Malformed contact form submission.")
           );
         }
       }
     }
 
-    // 7. /api/tools-config
+    // 8. /api/tools-config
     if (url.pathname === "/api/tools-config") {
       const dataDir = path.join(process.cwd(), "data");
       const filePath = path.join(dataDir, "tools-config.json");
@@ -470,10 +574,16 @@ export default {
         fs.mkdirSync(dataDir, { recursive: true });
       }
       if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, "[]", "utf-8");
+        atomicWriteJson(filePath, []);
       }
 
       if (request.method === "GET") {
+        if (!isAuthorizedAdmin(request)) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Unauthorized: Administrator access required to view tools configuration.")
+          );
+        }
+
         try {
           const content = fs.readFileSync(filePath, "utf-8");
           return applySecurityHeaders(
@@ -484,28 +594,48 @@ export default {
           );
         } catch {
           return applySecurityHeaders(
-            new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })
+            createSafeErrorResponse(500, "Failed to read tools configuration.")
           );
         }
       }
 
       if (request.method === "POST") {
+        if (!isAuthorizedAdmin(request)) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Unauthorized: Administrator access required to update tools configuration.")
+          );
+        }
+
+        const contentLengthHeader = request.headers.get("content-length");
+        if (contentLengthHeader && parseInt(contentLengthHeader, 10) > 1024 * 1024) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(413, "Configuration payload exceeds 1 MB limit.")
+          );
+        }
+
         try {
           const body = await request.json();
-          fs.writeFileSync(filePath, JSON.stringify(body, null, 2), "utf-8");
+          const validation = validateToolsConfigPayload(body);
+          if (!validation.valid || !validation.sanitized) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(400, validation.error || "Invalid tools configuration payload.")
+            );
+          }
+
+          atomicWriteJson(filePath, validation.sanitized);
           return applySecurityHeaders(
-            new Response(JSON.stringify({ success: true }), {
+            new Response(JSON.stringify({ success: true, count: validation.sanitized.length }), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
           );
-        } catch (err: any) {
-          return applySecurityHeaders(createSafeErrorResponse(400, "Failed to update tools configuration."));
+        } catch {
+          return applySecurityHeaders(createSafeErrorResponse(400, "Malformed JSON request body."));
         }
       }
     }
 
-    // 8. /api/plans-config
+    // 9. /api/plans-config
     if (url.pathname === "/api/plans-config") {
       const dataDir = path.join(process.cwd(), "data");
       const filePath = path.join(dataDir, "plans-config.json");
@@ -535,22 +665,31 @@ export default {
       }
 
       if (request.method === "POST") {
+        if (!isAuthorizedAdmin(request)) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Unauthorized: Administrator access required to update plans configuration.")
+          );
+        }
+
         try {
           const body = await request.json();
-          fs.writeFileSync(filePath, JSON.stringify(body, null, 2), "utf-8");
+          if (!Array.isArray(body)) {
+            return applySecurityHeaders(createSafeErrorResponse(400, "Plans configuration must be an array."));
+          }
+          atomicWriteJson(filePath, body);
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true }), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
           );
-        } catch (err: any) {
+        } catch {
           return applySecurityHeaders(createSafeErrorResponse(400, "Failed to update plans configuration."));
         }
       }
     }
 
-    // 9. /api/users
+    // 10. /api/users
     if (url.pathname === "/api/users") {
       const dataDir = path.join(process.cwd(), "data");
       const filePath = path.join(dataDir, "users.json");
@@ -559,17 +698,25 @@ export default {
       }
 
       if (request.method === "GET") {
+        if (!isAuthorizedAdmin(request)) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Unauthorized: Administrator access required to view user records.")
+          );
+        }
+
         try {
           if (!fs.existsSync(filePath)) {
             return applySecurityHeaders(
               new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })
             );
           }
-          const content = fs.readFileSync(filePath, "utf-8");
-          const users = JSON.parse(content || "[]");
+
+          // Migrate any legacy plaintext passwords to scrypt hashes
+          const users = migrateUsersData(filePath);
           const now = new Date();
           const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
           let modified = false;
+
           if (Array.isArray(users)) {
             for (const u of users) {
               if (u.lastCreditReset !== today) {
@@ -583,51 +730,80 @@ export default {
               }
             }
             if (modified) {
-              const newStr = JSON.stringify(users, null, 2);
-              let currentStr = "";
-              try {
-                if (fs.existsSync(filePath)) currentStr = fs.readFileSync(filePath, "utf-8");
-              } catch {}
-              if (currentStr !== newStr) {
-                fs.writeFileSync(filePath, newStr, "utf-8");
-              }
+              atomicWriteJson(filePath, users);
             }
           }
+
+          // Strip all sensitive fields (passwords, hashes, IPs, tokens)
+          const safeUsers = Array.isArray(users) ? users.map(sanitizeUser) : [];
+
           return applySecurityHeaders(
-            new Response(JSON.stringify(users), {
+            new Response(JSON.stringify(safeUsers), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
           );
         } catch {
           return applySecurityHeaders(
-            new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })
+            createSafeErrorResponse(500, "Failed to retrieve user accounts.")
           );
         }
       }
 
       if (request.method === "POST") {
+        if (!isAuthorizedAdmin(request)) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Unauthorized: Administrator access required to update user records.")
+          );
+        }
+
         try {
           const body = await request.json();
-          const newStr = JSON.stringify(body, null, 2);
-          let currentStr = "";
-          try {
-            if (fs.existsSync(filePath)) currentStr = fs.readFileSync(filePath, "utf-8");
-          } catch {}
-          if (currentStr !== newStr) {
-            fs.writeFileSync(filePath, newStr, "utf-8");
+          const incomingUsers = Array.isArray(body) ? body : body?.users;
+          if (!Array.isArray(incomingUsers)) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(400, "Invalid payload: users must be an array.")
+            );
           }
+
+          // Preserve existing password hashes so credit adjustments don't wipe passwords
+          let currentUsers: any[] = [];
+          if (fs.existsSync(filePath)) {
+            try {
+              currentUsers = JSON.parse(fs.readFileSync(filePath, "utf-8") || "[]");
+            } catch {}
+          }
+
+          const existingMap = new Map<string, any>();
+          for (const u of currentUsers) {
+            if (u.id) existingMap.set(u.id, u);
+            if (u.email) existingMap.set(u.email.toLowerCase(), u);
+          }
+
+          const mergedUsers = incomingUsers.map((u: any) => {
+            const existing = existingMap.get(u.id) || existingMap.get((u.email || "").toLowerCase());
+            const passwordHash = existing?.passwordHash || (u.passwordHash ? u.passwordHash : undefined);
+            const safe = sanitizeUser(u);
+            return {
+              ...safe,
+              ...(passwordHash ? { passwordHash } : {}),
+            };
+          });
+
+          atomicWriteJson(filePath, mergedUsers);
+
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true }), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
           );
-        } catch (err: any) {
+        } catch {
           return applySecurityHeaders(createSafeErrorResponse(400, "Failed to update users data."));
         }
       }
     }
+
 
     // 10. Fallthrough to TanStack Start SSR & App Routes
     try {

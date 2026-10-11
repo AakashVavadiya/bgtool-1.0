@@ -18,7 +18,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     setIsMounted(true);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
       setErrorMsg("Please enter your admin password or security PIN.");
@@ -28,15 +28,18 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setErrorMsg("");
 
-    setTimeout(() => {
-      const res = loginAdmin(username, password);
+    try {
+      const res = await loginAdmin(username, password);
       if (res.success) {
         setSession(getAdminSession());
       } else {
         setErrorMsg(res.message || "Invalid credentials. Please verify and try again.");
       }
+    } catch {
+      setErrorMsg("Failed to connect to authentication server.");
+    } finally {
       setIsLoading(false);
-    }, 300);
+    }
   };
 
   // 1. SSR & Initial Hydration: render identical secure clearance shell (zero mismatch, zero data leak)

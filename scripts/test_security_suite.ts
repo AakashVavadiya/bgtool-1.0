@@ -27,6 +27,13 @@ import {
   applySecurityHeaders,
   createSafeErrorResponse,
 } from "../src/lib/security/headers";
+import {
+  createAdminSessionToken,
+  hashPassword,
+  verifyPassword,
+  migrateUsersData,
+  sanitizeUser,
+} from "../src/lib/security/auth-admin";
 import serverHandler from "../src/server";
 
 interface TestReport {
@@ -291,6 +298,254 @@ async function runTestSuite() {
     assert.ok(json.error?.includes("Executable"), "Must indicate executable rejection");
   })();
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // PHASE 1 REGRESSION TESTS: /api/users, /api/tools-config, /api/contact, AUTH
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // Generate a valid admin token for testing authorized flows
+  const adminTestToken = createAdminSessionToken({ username: "admin" });
+
+  // TEST 19: Anonymous GET /api/users is rejected with HTTP 401
+  await test("Test 19: Anonymous GET /api/users is rejected with HTTP 401", async () => {
+    const req = new Request("http://localhost:3000/api/users", {
+      method: "GET",
+    });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 401, "Anonymous request to /api/users must return 401");
+    const json = await res.json();
+    assert.strictEqual(json.success, false);
+    assert.ok(json.error?.includes("Unauthorized"), "Must indicate unauthorized access");
+  })();
+
+  // TEST 20: Authorized Admin GET /api/users succeeds & never returns sensitive fields
+  await test("Test 20: Authorized Admin GET /api/users succeeds and strips all sensitive fields", async () => {
+    const req = new Request("http://localhost:3000/api/users", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${adminTestToken}`,
+      },
+    });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 200, "Authorized admin must receive 200");
+    const users = await res.json();
+    assert.ok(Array.isArray(users), "Must return user array");
+
+    // Verify sensitive fields are excluded from every user record
+    for (const u of users) {
+      assert.strictEqual(u.password, undefined, "Plaintext password must NEVER be returned");
+      assert.strictEqual(u.passwordHash, undefined, "Password hash must NEVER be returned");
+      assert.strictEqual(u.token, undefined, "Session token must NEVER be returned");
+      assert.strictEqual(u.ip, undefined, "User IP address must NEVER be returned");
+    }
+  })();
+
+  // TEST 21: Plaintext passwords in data/users.json are safely migrated to scrypt hashes
+  await test("Test 21: Plaintext passwords in data/users.json are securely migrated to scrypt hashes", () => {
+    const testJsonPath = path.join(process.cwd(), "data", ".test-users-migration.json");
+    try {
+      const mockUsers = [
+        {
+          id: "usr_test_migration_01",
+          name: "Test User",
+          email: "test@bg.tools",
+          password: "MyPlaintextPassword123!",
+        },
+      ];
+      fs.writeFileSync(testJsonPath, JSON.stringify(mockUsers, null, 2), "utf-8");
+
+      // Run migration
+      const migrated = migrateUsersData(testJsonPath);
+      assert.strictEqual(migrated.length, 1);
+      assert.strictEqual(migrated[0].password, undefined, "Plaintext password must be removed");
+      assert.ok(migrated[0].passwordHash, "passwordHash must be generated");
+      assert.ok(migrated[0].passwordHash.startsWith("scrypt$"), "Must use scrypt format");
+
+      // Verify the hash matches the original password
+      const verifySuccess = verifyPassword("MyPlaintextPassword123!", migrated[0].passwordHash);
+      assert.strictEqual(verifySuccess, true, "Hash must verify with original password");
+
+      const verifyFail = verifyPassword("WrongPassword456!", migrated[0].passwordHash);
+      assert.strictEqual(verifyFail, false, "Hash must reject wrong password");
+    } finally {
+      if (fs.existsSync(testJsonPath)) {
+        try {
+          fs.unlinkSync(testJsonPath);
+        } catch {}
+      }
+    }
+  })();
+
+  // TEST 22: Anonymous POST /api/users is rejected with HTTP 401
+  await test("Test 22: Anonymous POST /api/users is rejected with HTTP 401", async () => {
+    const req = new Request("http://localhost:3000/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([{ id: "usr_evil", name: "Hacker" }]),
+    });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 401, "Anonymous update must be rejected with 401");
+  })();
+
+  // TEST 23: Anonymous GET & POST /api/tools-config is rejected with HTTP 401
+  await test("Test 23: Anonymous GET & POST /api/tools-config is rejected with HTTP 401", async () => {
+    // GET check
+    const getReq = new Request("http://localhost:3000/api/tools-config", { method: "GET" });
+    const getRes = await serverHandler.fetch(getReq, {}, {});
+    assert.strictEqual(getRes.status, 401, "Anonymous GET to /api/tools-config must return 401");
+
+    // POST check
+    const postReq = new Request("http://localhost:3000/api/tools-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([]),
+    });
+    const postRes = await serverHandler.fetch(postReq, {}, {});
+    assert.strictEqual(postRes.status, 401, "Anonymous POST to /api/tools-config must return 401");
+  })();
+
+  // TEST 24: Authorized Admin POST /api/tools-config succeeds with strict schema validation
+  await test("Test 24: Authorized Admin POST /api/tools-config succeeds with valid schema", async () => {
+    const validConfig = [
+      {
+        slug: "remove-bg",
+        name: "Remove Background",
+        category: "image-editing",
+        isEnabled: true,
+        creditCost: 1,
+        dailyLimitPerIp: 50,
+        maxResolution: "4K (4096px)",
+        isMaintenance: false,
+        totalUsageCount: 120,
+      },
+    ];
+
+    const req = new Request("http://localhost:3000/api/tools-config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminTestToken}`,
+      },
+      body: JSON.stringify(validConfig),
+    });
+
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.success, true);
+    assert.strictEqual(json.count, 1);
+  })();
+
+  // TEST 25: Malformed & Prototype Pollution in POST /api/tools-config is rejected or sanitized
+  await test("Test 25: Malformed & Prototype Pollution in POST /api/tools-config is safely rejected", async () => {
+    // 1. Invalid payload: not an array
+    const notArrayReq = new Request("http://localhost:3000/api/tools-config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminTestToken}`,
+      },
+      body: JSON.stringify({ slug: "invalid" }),
+    });
+    const notArrayRes = await serverHandler.fetch(notArrayReq, {}, {});
+    assert.strictEqual(notArrayRes.status, 400);
+
+    // 2. Invalid tool item: missing slug
+    const invalidSlugReq = new Request("http://localhost:3000/api/tools-config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminTestToken}`,
+      },
+      body: JSON.stringify([{ name: "Tool without slug" }]),
+    });
+    const invalidSlugRes = await serverHandler.fetch(invalidSlugReq, {}, {});
+    assert.strictEqual(invalidSlugRes.status, 400);
+  })();
+
+  // TEST 26: Anonymous GET /api/contact is rejected with HTTP 401
+  await test("Test 26: Anonymous GET /api/contact is rejected with HTTP 401", async () => {
+    const req = new Request("http://localhost:3000/api/contact", { method: "GET" });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 401, "Anonymous inquiry reading must be rejected with 401");
+  })();
+
+  // TEST 27: Public POST /api/contact accepts valid submission and sanitizes HTML
+  await test("Test 27: Public POST /api/contact accepts valid inquiry and sanitizes HTML", async () => {
+    const req = new Request("http://localhost:3000/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Security Tester <script>alert(1)</script>",
+        email: "audit.test@example.com",
+        subject: "Audit Inquiry",
+        message: "Testing HTML escaping: <b>Hello</b>",
+      }),
+    });
+
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.success, true);
+    assert.ok(json.ticket?.id, "Must return ticket identifier");
+    assert.strictEqual(json.ticket?.status, "open");
+  })();
+
+  // TEST 28: Malformed or oversized POST /api/contact is rejected
+  await test("Test 28: Malformed or oversized POST /api/contact is rejected with HTTP 400/413", async () => {
+    // Missing email
+    const req = new Request("http://localhost:3000/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Test",
+        email: "not-an-email",
+        message: "Hi",
+      }),
+    });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 400, "Invalid email must return 400");
+  })();
+
+  // TEST 29: Admin Login endpoint validates credentials and rejects invalid passwords
+  await test("Test 29: Admin Login /api/admin/login verifies credentials and returns session token", async () => {
+    // 1. Invalid password
+    const failReq = new Request("http://localhost:3000/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "wrong_password_999" }),
+    });
+    const failRes = await serverHandler.fetch(failReq, {}, {});
+    assert.strictEqual(failRes.status, 401);
+
+    // 2. Valid login
+    const passReq = new Request("http://localhost:3000/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "admin@2026" }),
+    });
+    const passRes = await serverHandler.fetch(passReq, {}, {});
+    assert.strictEqual(passRes.status, 200);
+    const json = await passRes.json();
+    assert.strictEqual(json.success, true);
+    assert.ok(json.token, "Must return signed token");
+    assert.ok(passRes.headers.get("set-cookie")?.includes("admin_session="), "Must set session cookie");
+  })();
+
+  // TEST 30: Tampered or expired admin session token is rejected
+  await test("Test 30: Tampered or malformed admin session token is rejected with HTTP 401", async () => {
+    const tamperedToken = adminTestToken.slice(0, -6) + "XXXXXX";
+    const req = new Request("http://localhost:3000/api/users", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${tamperedToken}`,
+      },
+    });
+    const res = await serverHandler.fetch(req, {}, {});
+    assert.strictEqual(res.status, 401, "Tampered token must be rejected with 401");
+  })();
+
   // Summary
   console.log("\n=================================================");
   console.log("TEST SUITE EXECUTION SUMMARY");
@@ -309,8 +564,9 @@ async function runTestSuite() {
       .forEach((r) => console.error(` - ${r.name}: ${r.error}`));
     process.exit(1);
   } else {
-    console.log("\nALL 18 SECURITY & PRIVACY CONTROLS VERIFIED SUCCESSFULLY!");
+    console.log(`\nALL ${results.length} SECURITY & PRIVACY CONTROLS VERIFIED SUCCESSFULLY!`);
   }
 }
 
 runTestSuite();
+

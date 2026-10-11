@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import fs from "fs";
 import path from "path";
+import {
+  isAuthorizedAdmin,
+  validateContactSubmission,
+  atomicWriteJson,
+} from "@/lib/security/auth-admin";
+import { createSafeErrorResponse, applySecurityHeaders } from "@/lib/security/headers";
+import { contactLimiter, extractClientIp, createRateLimitResponse } from "@/lib/security/rate-limiter";
+
+const MAX_STORED_INQUIRIES = 500;
 
 function getInquiriesFilePath() {
   const dataDir = path.join(process.cwd(), "data");
@@ -9,7 +18,7 @@ function getInquiriesFilePath() {
   }
   const filePath = path.join(dataDir, "contact-inquiries.json");
   if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, "[]", "utf-8");
+    atomicWriteJson(filePath, []);
   }
   return filePath;
 }
@@ -17,57 +26,105 @@ function getInquiriesFilePath() {
 export const Route = createFileRoute("/api/contact")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        // Enforce Server-Side Administrator Authentication
+        if (!isAuthorizedAdmin(request)) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(401, "Unauthorized: Administrator access required to view support inquiries.")
+          );
+        }
+
         try {
           const filePath = getInquiriesFilePath();
           const content = fs.readFileSync(filePath, "utf-8");
-          return new Response(content || "[]", {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          });
-        } catch (err: any) {
-          return new Response(JSON.stringify({ error: err.message }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          });
+          return applySecurityHeaders(
+            new Response(content || "[]", {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        } catch {
+          return applySecurityHeaders(
+            createSafeErrorResponse(500, "Failed to read inquiries.")
+          );
         }
       },
+
       POST: async ({ request }) => {
+        // 1. IP-based rate limiting for contact form
+        const clientIp = extractClientIp(request);
+        const rateCheck = contactLimiter.check(clientIp);
+        if (!rateCheck.allowed) {
+          return applySecurityHeaders(
+            createRateLimitResponse(rateCheck.retryAfter, "Too many messages sent. Please wait before submitting again.")
+          );
+        }
+
+        // 2. Content-type check
+        const contentType = request.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(415, "Unsupported media type. JSON body required.")
+          );
+        }
+
+        // 3. Body size limit (max 64 KB for contact form)
+        const contentLength = request.headers.get("content-length");
+        if (contentLength && parseInt(contentLength, 10) > 64 * 1024) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(413, "Contact inquiry payload exceeds size limit (64 KB).")
+          );
+        }
+
         try {
           const body = await request.json();
+
+          // 4. Strict server-side field validation & HTML sanitization
+          const validation = validateContactSubmission(body);
+          if (!validation.valid || !validation.ticket) {
+            return applySecurityHeaders(
+              createSafeErrorResponse(400, validation.error || "Invalid contact form submission.")
+            );
+          }
+
           const filePath = getInquiriesFilePath();
           let current: any[] = [];
           try {
             current = JSON.parse(fs.readFileSync(filePath, "utf-8") || "[]");
+            if (!Array.isArray(current)) current = [];
           } catch {
             current = [];
           }
 
-          const newTicket = {
-            id: `TCK_${Math.floor(100 + Math.random() * 900)}`,
-            name: body.name || "Anonymous",
-            email: body.email || "",
-            subject: body.subject || "General Inquiry",
-            message: body.message || "",
-            toolContext: body.toolContext || "",
-            createdAt: new Date().toISOString().replace("T", " ").slice(0, 16),
-            status: "open",
-            priority: "medium",
-            replies: [],
-          };
+          // 5. Bounded file growth: FIFO retention policy (max 500 tickets)
+          current.unshift(validation.ticket);
+          if (current.length > MAX_STORED_INQUIRIES) {
+            current = current.slice(0, MAX_STORED_INQUIRIES);
+          }
 
-          current.unshift(newTicket);
-          fs.writeFileSync(filePath, JSON.stringify(current, null, 2), "utf-8");
+          // Safe atomic write
+          atomicWriteJson(filePath, current);
 
-          return new Response(JSON.stringify({ success: true, ticket: newTicket }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          });
-        } catch (err: any) {
-          return new Response(JSON.stringify({ success: false, error: err.message }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
+          return applySecurityHeaders(
+            new Response(
+              JSON.stringify({
+                success: true,
+                ticket: {
+                  id: validation.ticket.id,
+                  createdAt: validation.ticket.createdAt,
+                  status: validation.ticket.status,
+                },
+              }),
+              {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              }
+            )
+          );
+        } catch {
+          return applySecurityHeaders(
+            createSafeErrorResponse(400, "Malformed contact form submission.")
+          );
         }
       },
     },

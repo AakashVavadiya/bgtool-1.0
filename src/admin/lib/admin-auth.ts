@@ -4,6 +4,7 @@ export interface AdminUser {
   name: string;
   role: "superadmin" | "moderator";
   lastLogin: number;
+  token?: string;
 }
 
 const ADMIN_SESSION_KEY = "bg.admin.session.v2";
@@ -39,44 +40,71 @@ export function getAdminSession(): AdminUser | null {
   }
 }
 
-export function loginAdmin(
-  identifierOrPass: string,
-  optionalPassword?: string
-): { success: boolean; message?: string } {
-  if (typeof window === "undefined") return { success: false };
-
-  const id = identifierOrPass.trim();
-  const pass = optionalPassword ? optionalPassword.trim() : id;
-
-  const validPasswords = ["admin123", "8899", "admin@2026"];
-  const validIdentifiers = ["admin", "admin@bg.tools", "superadmin", ""];
-
-  const isValidPass = validPasswords.includes(pass) || validPasswords.includes(id);
-  const isValidId = optionalPassword ? validIdentifiers.includes(id.toLowerCase()) : true;
-
-  if (isValidPass && isValidId) {
-    const sessionUser: AdminUser = {
-      id: "adm_super_01",
-      email: id.includes("@") ? id : "admin@bg.tools",
-      name: "Admin Control Center",
-      role: "superadmin",
-      lastLogin: Date.now(),
-    };
-    sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(sessionUser));
-    return { success: true };
-  }
-
-  return {
-    success: false,
-    message: "Invalid admin username or password. Please try again.",
+export function getAdminAuthHeaders(): Record<string, string> {
+  const session = getAdminSession();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
   };
+  if (session?.token) {
+    headers["Authorization"] = `Bearer ${session.token}`;
+    headers["x-admin-token"] = session.token;
+  }
+  return headers;
 }
 
-export function logoutAdmin(): void {
+export async function loginAdmin(
+  identifierOrPass: string,
+  optionalPassword?: string
+): Promise<{ success: boolean; message?: string }> {
+  if (typeof window === "undefined") return { success: false };
+
+  const username = identifierOrPass.trim();
+  const password = optionalPassword ? optionalPassword.trim() : username;
+
+  try {
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+      credentials: "same-origin",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const sessionUser: AdminUser = {
+        id: data.user?.id || "adm_super_01",
+        email: username.includes("@") ? username : "admin@bg.tools",
+        name: data.user?.name || "Admin Control Center",
+        role: "superadmin",
+        lastLogin: Date.now(),
+        token: data.token,
+      };
+      sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(sessionUser));
+      return { success: true };
+    } else {
+      const err = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        message: err.error || "Invalid admin username or password. Please try again.",
+      };
+    }
+  } catch {
+    return {
+      success: false,
+      message: "Connection failed. Please ensure the server is running.",
+    };
+  }
+}
+
+export async function logoutAdmin(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     localStorage.removeItem(LEGACY_STORAGE_KEY);
+    await fetch("/api/admin/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    }).catch(() => {});
   } catch {
     /* ignore */
   }

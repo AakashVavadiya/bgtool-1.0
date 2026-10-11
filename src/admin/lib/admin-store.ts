@@ -1,5 +1,6 @@
 import { tools, type ToolCategory } from "@/lib/tools";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
+import { getAdminAuthHeaders } from "./admin-auth";
 
 export interface LoggedUser {
   id: string;
@@ -17,7 +18,7 @@ export interface LoggedUser {
   ip: string;
   registeredAt: string;
   lastActive: string;
-  password?: string | undefined;
+  passwordHash?: string | undefined;
 }
 
 export interface PurchaseTransaction {
@@ -676,7 +677,8 @@ export const AdminStore = {
       this._lastSavedUsersJson = str;
       fetch("/api/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
         body: str,
       }).catch(() => {});
     }
@@ -684,7 +686,10 @@ export const AdminStore = {
   async fetchUsersFromServer(): Promise<LoggedUser[]> {
     if (typeof window === "undefined") return this.getUsers();
     try {
-      const res = await fetch("/api/users");
+      const res = await fetch("/api/users", {
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+      });
       if (res.ok) {
         const data = await res.json();
         const usersList = Array.isArray(data) ? data : data.users;
@@ -762,7 +767,8 @@ export const AdminStore = {
       window.dispatchEvent(new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "admin_plans_updated" } }));
       fetch("/api/plans-config", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
         body: JSON.stringify(plans),
       }).catch(() => {});
     }
@@ -839,7 +845,8 @@ export const AdminStore = {
       window.dispatchEvent(new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "admin_tools_updated" } }));
       fetch("/api/tools-config", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
         body: JSON.stringify(configs),
       }).catch(() => {});
     }
@@ -847,7 +854,10 @@ export const AdminStore = {
   async syncToolsConfigFromServer(): Promise<AdminToolConfig[]> {
     if (typeof window === "undefined") return this.getToolsConfig();
     try {
-      const res = await fetch("/api/tools-config");
+      const res = await fetch("/api/tools-config", {
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+      });
       if (res.ok) {
         const serverConfigs = (await res.json()) as AdminToolConfig[];
         if (Array.isArray(serverConfigs) && serverConfigs.length > 0) {
@@ -1255,7 +1265,10 @@ export const AdminStore = {
   async syncTicketsFromServer(): Promise<SupportTicket[]> {
     if (typeof window === "undefined") return this.getTickets();
     try {
-      const res = await fetch("/api/contact");
+      const res = await fetch("/api/contact", {
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+      });
       if (res.ok) {
         const serverTickets = (await res.json()) as SupportTicket[];
         if (Array.isArray(serverTickets)) {

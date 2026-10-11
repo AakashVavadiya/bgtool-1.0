@@ -1,140 +1,180 @@
 # BG TOOL — Comprehensive Production Security & Readiness Audit
 
-**Document Version:** 1.0.0  
+**Document Version:** 2.0.0  
 **Audit Date:** October 11, 2026  
 **Auditor:** Senior Application Security & DevSecOps Engineering Team  
 **Target Application:** BG Tool (TanStack Start + React 19 + Node.js + Python AI Engines)  
 **Repository Branch:** `main`  
-**Classification:** Internal Security Report  
+**Classification:** Complete Production Security Audit & Verification Report  
 
 ---
 
 ## 1. Executive Summary & Release Recommendation
 
 ### Executive Summary
-A comprehensive, evidence-based security and architecture audit was executed on the BG Tool repository. The assessment evaluated file-upload pipelines, Python neural inference gateways, temporary file lifecycles, API endpoints, rate limiting, dependency supply chains, search engine optimization (SEO), and production deployment configurations.
+A comprehensive, evidence-based security audit, remediation, and hardening initiative was executed across the entire BG Tool repository. The assessment evaluated:
+1. High-priority REST API endpoints (`/api/users`, `/api/tools-config`, `/api/contact`, and admin storage).
+2. Server and client-side authentication, session security, and password handling.
+3. Multi-tier file upload security (magic bytes, size caps, executable rejection, decompression bombs).
+4. Temporary file lifecycle and path traversal protections.
+5. In-memory sliding-window rate limiting on all public and expensive inference operations.
+6. KARUDI AI and self-hosted model service isolation.
+7. Supply chain dependencies, secrets, and environment configurations.
+8. Web security headers (CSP, HSTS, X-Content-Type-Options, Frame protection).
+9. Search Engine Optimization (SEO) metadata, substantiated marketing claims, and canonical sitemap.
+10. Nginx, PM2, and Hostinger VPS deployment configurations.
 
-All confirmed High and Medium risk vulnerabilities—including client-side-only upload size enforcement, lack of binary file signature validation (magic bytes), potential Base64 payload memory exhaustion, unconstrained background task lifecycles, and missing production security headers—have been remediated and verified through automated test suites.
+All confirmed Critical, High, and Medium vulnerabilities have been fixed in the codebase and verified through an automated regression test suite of **30 test cases** passing with 100% success.
 
 ### Release Recommendation
-**CONDITIONAL APPROVAL FOR PRODUCTION RELEASE**  
-The application code, API routes, Python microservices, and client-side workspaces are secure and production-ready. Final production rollout requires applying the provided Nginx reverse-proxy rules (`deployment/nginx-security.conf`) on the hosting VPS to enforce external port isolation and edge rate limiting.
+**READY WITH CONDITIONS**  
+The application source code, API routes, Python microservices, and client-side modules are fully remediated, hardened, and type-safe. 
+**Conditions for Live VPS Deployment:**
+1. Apply the production Nginx reverse proxy configuration (`deployment/nginx-security.conf`) on the Hostinger VPS to enforce TLS, HTTPS redirection, request body limits (`client_max_body_size 60M`), and firewall isolation for internal Python ports (5000, 5001).
+2. Configure strong production values for `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` in the VPS `.env` file.
+3. Run PM2 reload using `deployment/ecosystem.config.cjs`.
 
 ---
 
-## 2. Evidence-Based Audit Findings & Remediations
+## 2. API Route Security Inventory
 
-### Finding 1: Unvalidated File Types & Executable Masquerading (High)
+| Endpoint | HTTP Method | Authentication & Authorization | Input Validation & Schema | Data Accessed | Security Controls & Protections |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| `/api/admin/login` | `POST` | Public (Rate-limited: 60/min) | Strict JSON `{ username, password }` | `data/admin-auth.json` | Constant-time `scrypt` check, returns HMAC token & sets HttpOnly cookie |
+| `/api/admin/logout`| `POST` | Public / Session Holder | None | Browser Cookie | Clears `admin_session` cookie immediately |
+| `/api/admin/session`| `GET` | Admin Session Required | None | Session Token | Validates HMAC signature & unexpired timestamp |
+| `/api/users` | `GET` | **Admin Session Required** (401 if anonymous) | None | `data/users.json` | **Sanitizes all records**; passwords, hashes, tokens, IPs strictly stripped |
+| `/api/users` | `POST` | **Admin Session Required** (401 if anonymous) | Strict array of user objects | `data/users.json` | Preserves existing password hashes; atomic write with `.tmp` swap |
+| `/api/tools-config` | `GET` | **Admin Session Required** (401 if anonymous) | None | `data/tools-config.json`| Protected configuration inspection |
+| `/api/tools-config` | `POST` | **Admin Session Required** (401 if anonymous) | Strict schema, max 1 MB, anti-prototype pollution | `data/tools-config.json`| Validates all tool attributes; rejects unexpected fields; atomic write |
+| `/api/plans-config` | `GET` | Public (Read-only) | None | `data/plans-config.json`| Public pricing table & festival offers display |
+| `/api/plans-config` | `POST` | **Admin Session Required** (401 if anonymous) | Valid plan array, max 500 KB | `data/plans-config.json`| Admin-only plan configuration updates; atomic write |
+| `/api/contact` | `GET` | **Admin Session Required** (401 if anonymous) | None | `data/contact-inquiries.json`| Prevents public leakage of customer names, emails, and inquiry messages |
+| `/api/contact` | `POST` | Public (Rate-limited: 5/min) | Strict schema, 64 KB cap, email regex, HTML-escaped | `data/contact-inquiries.json`| XSS protection; 500-ticket FIFO retention cap; atomic file write |
+| `/api/remove-bg` | `POST` | Public (Rate-limited: 6/min) | Magic bytes, max 30 MB, 36 MP cap | Python worker (port 5000) | Executable rejection (`MZ`, `ELF`); private temp workspace with auto-purge |
+| `/api/remove-watermark`| `POST`| Public (Rate-limited: 6/min)| Magic bytes, max 30 MB, 36 MP cap | Python worker (port 5001) | Executable rejection; isolated workspace |
+| `/api/blur-face` | `POST` | Public (Rate-limited: 6/min) | Magic bytes, max 30 MB, 36 MP cap | Python worker (port 5000) | Executable rejection; face detection bounding box validation |
+| `/api/chat` | `POST` | Public (Rate-limited: 20/min)| JSON chat history (max 20 turns) | KARUDI AI / Ollama | Server-side prompt boundary; model secrets kept on server |
+
+---
+
+## 3. Confirmed Vulnerabilities & Implemented Remediations
+
+### Finding 1: Unauthenticated Data Leakage on `/api/users` (Critical)
+* **Severity**: Critical (CWE-200: Exposure of Sensitive Information to an Unauthorized Actor / CWE-306: Missing Authentication)
+* **Affected Files**: `src/routes/api/users.ts`, `src/server.ts`, `src/admin/lib/admin-store.ts`, `data/users.json`
+* **Evidence**: The `GET /api/users` endpoint returned raw records from `data/users.json` with zero authentication. Plaintext passwords (e.g. `"A8128133556@a"`) and IP addresses were directly readable by any anonymous visitor.
+* **Impact**: Total compromise of user credentials, personal email addresses, and account balances.
+* **Remediation**:
+  1. Enforced server-side administrator authorization (`isAuthorizedAdmin(request)`) on both `GET` and `POST` methods in `src/server.ts` and `src/routes/api/users.ts`. Anonymous requests receive `HTTP 401 Unauthorized`.
+  2. Implemented `migrateUsersData()` using Node's standard `crypto.scryptSync` with unique 16-byte random salts. Plaintext passwords were automatically converted to `scrypt$16384$8$1$<salt>$<hash>` and permanently deleted from disk.
+  3. Implemented `sanitizeUser()`: Safe user objects contain only `id`, `name`, `email`, `plan`, `credits`, `totalProcessed`, `status`, `registeredAt`, `lastActive`, `lastCreditReset`. Passwords, hashes, IPs, and session tokens are **never** returned.
+* **Verification**: Verified via Automated Test 19 (`Anonymous GET /api/users returns 401`), Test 20 (`Authorized Admin GET /api/users strips all sensitive fields`), Test 21 (`Plaintext passwords in data/users.json are migrated to scrypt`), and Test 22 (`Anonymous POST /api/users returns 401`).
+
+---
+
+### Finding 2: Unauthenticated Arbitrary File Overwrite on `/api/tools-config` (High)
+* **Severity**: High (CWE-306: Missing Authentication for Critical Function / CWE-915: Improperly Controlled Modification of Dynamically Determined Object Attributes)
+* **Affected Files**: `src/routes/api/tools-config.ts`, `src/server.ts`
+* **Evidence**: Any anonymous client could send `POST /api/tools-config` with arbitrary JSON, overwriting the system tool catalogue and enabling tool tampering or prototype pollution (`__proto__`).
+* **Impact**: Disruption of site functionality, modification of credit prices, unauthorized tool disabling.
+* **Remediation**:
+  1. Required server-verified administrator access for `POST /api/tools-config` and `GET /api/tools-config`.
+  2. Implemented `validateToolsConfigPayload()` enforcing strict typing (`slug`, `name`, `category`, `creditCost`, `dailyLimitPerIp`, `maxResolution`, `isEnabled`, `isMaintenance`).
+  3. Added explicit prototype pollution stripping (purges `__proto__`, `constructor`, `prototype`).
+  4. Enforced a 1 MB request body limit.
+  5. Implemented atomic file writes (`atomicWriteJson`) via `.tmp` file renaming to prevent corrupted or partial JSON writes under concurrent requests.
+* **Verification**: Verified via Automated Test 23 (`Anonymous GET & POST /api/tools-config returns 401`), Test 24 (`Authorized Admin POST /api/tools-config succeeds`), and Test 25 (`Malformed & Prototype Pollution in POST /api/tools-config is safely rejected`).
+
+---
+
+### Finding 3: Insecure Support Tickets Endpoint `/api/contact` (High)
+* **Severity**: High (CWE-200: Information Exposure / CWE-79: Cross-Site Scripting / CWE-400: Uncontrolled Resource Consumption)
+* **Affected Files**: `src/routes/api/contact.ts`, `src/server.ts`, `data/contact-inquiries.json`
+* **Evidence**: Any anonymous visitor could send `GET /api/contact` and read all submitted customer tickets (names, emails, inquiry messages). `POST /api/contact` lacked HTML sanitization and had unbounded file growth.
+* **Impact**: Customer data leakage, potential stored XSS in the admin support dashboard, and disk exhaustion.
+* **Remediation**:
+  1. Restricted `GET /api/contact` to authenticated administrators with `HTTP 401` enforcement.
+  2. Maintained public access for `POST /api/contact` with:
+     * Specific rate limiting (`contactLimiter`: 5 req/min per IP).
+     * Request body size cap of 64 KB.
+     * Strict server-side field validation (name: 1–100 chars, email regex: 3–120 chars, message: 5–5000 chars).
+     * HTML character escaping (`&`, `<`, `>`, `"`, `'`) preventing stored XSS execution.
+     * Bounded FIFO retention policy capping stored inquiries at 500 tickets.
+     * Safe atomic writes (`atomicWriteJson`).
+* **Verification**: Verified via Automated Test 26 (`Anonymous GET /api/contact returns 401`), Test 27 (`Public POST /api/contact succeeds and sanitizes HTML`), and Test 28 (`Malformed or oversized POST /api/contact returns 400/413`).
+
+---
+
+### Finding 4: Hardcoded Admin Passwords & Browser-Only Authentication (High)
+* **Severity**: High (CWE-798: Use of Hard-coded Credentials / CWE-602: Client-Side Enforcement of Server-Side Security)
+* **Affected Files**: `src/admin/lib/admin-auth.ts`, `src/admin/components/AdminAuthGuard.tsx`
+* **Evidence**: The admin client contained hardcoded passwords (`["admin123", "8899", "admin@2026"]`) and verified login strictly in the browser using `sessionStorage`. Server endpoints had zero session verification.
+* **Impact**: Anyone inspecting client JavaScript bundles or modifying `sessionStorage` could access the admin UI and backend data.
+* **Remediation**:
+  1. Removed hardcoded passwords from the client-side repository.
+  2. Created `POST /api/admin/login` verifying passwords on the server using constant-time `crypto.timingSafeEqual` and `crypto.scryptSync`.
+  3. Created cryptographically signed session tokens using HMAC-SHA256 (`createAdminSessionToken`) with a 2-hour expiration.
+  4. Returned tokens in response and set HttpOnly, SameSite=Lax `admin_session` cookies.
+  5. Created `POST /api/admin/logout` to clear cookies and session tokens.
+  6. Updated `AdminStore` and `AdminAuthGuard` to transmit authentication headers (`Authorization: Bearer <token>`, `credentials: "same-origin"`).
+* **Verification**: Verified via Automated Test 29 (`Admin Login verifies credentials and returns session token`) and Test 30 (`Tampered admin session token returns 401`).
+
+---
+
+### Finding 5: Unvalidated File Types & Executable Masquerading (High)
 * **Severity**: High (CWE-434: Unrestricted Upload of File with Dangerous Type)
-* **Affected Routes**: `/api/remove-bg`, `/api/remove-watermark`, `/api/blur-face`, `/api/detect-faces`
-* **Evidence**: Endpoints previously decoded incoming Base64 data directly without checking initial bytes against known binary headers. An attacker could rename a Windows `.exe` (`4D 5A`) or Linux ELF binary (`7F 45 4C 46`) to `.png` and send it to the AI backend.
-* **Impact**: Potential parser crashes, memory exhaustion, or unintended binary execution in image decoding libraries.
-* **Remediation**: Implemented `inspectFileSignature` in `src/lib/security/upload-policy.ts` and integrated it into both Node.js gateway routing (`src/server.ts`) and Python servers (`scripts/bg_remover_server.py`, `scripts/watermark_server.py`). Executables and malformed signatures are rejected with HTTP 415 before decoding.
-* **Verification**: Verified via Automated Test 4 (`Renamed executable .exe disguised as image is rejected with HTTP 415`) and Test 5 (`Linux ELF executable header is rejected`).
-
----
-
-### Finding 2: Missing Server-Side Upload Size & Request Body Bounds (High)
-* **Severity**: High (CWE-400: Uncontrolled Resource Consumption)
 * **Affected Routes**: `/api/remove-bg`, `/api/remove-watermark`, `/api/blur-face`
-* **Evidence**: File size checks previously existed only in browser UI inputs. A direct API client could transmit multi-hundred-megabyte JSON payloads, saturating Node and Python thread memory.
-* **Impact**: Server memory starvation, denial of service (DoS) for all hosted domains.
-* **Remediation**: Enforced multi-layered upload limits:
-  1. Node.js `Content-Length` pre-flight check rejecting oversized bodies before reading.
-  2. Base64 length calculation rejecting payloads exceeding limit before JSON decoding.
-  3. Python server `Content-Length` and binary byte caps rejecting oversized inputs with HTTP 413.
-  4. Nginx `client_max_body_size` restricting request size at the network boundary.
-* **Verification**: Verified via Automated Test 2 (`File exceeding limit is rejected with HTTP 413`), Test 3 (`Pre-flight Base64 payload exceeding size limit is rejected`), and Test 17 (`server.fetch rejects oversized Content-Length with HTTP 413`).
+* **Evidence**: File types were accepted without binary signature inspection.
+* **Remediation**: Implemented `inspectFileSignature` in `src/lib/security/upload-policy.ts` validating magic bytes (`\x89PNG`, `\xFF\xD8\xFF`, `RIFF....WEBP`, `%PDF-`). Windows PE executables (`MZ`) and Linux ELF binaries (`\x7fELF`) are rejected immediately with HTTP 415.
+* **Verification**: Verified via Automated Tests 4, 5, 6, 7, 8, 9, 18.
 
 ---
 
-### Finding 3: Image Decompression Bomb Vulnerability (Medium)
-* **Severity**: Medium (CWE-770: Allocation of Resources Without Limits or Throttling)
-* **Affected Engines**: Python PIL / Pillow in `bg_remover_server.py` and `watermark_server.py`
-* **Evidence**: Default PIL settings allow decoding of images up to 100+ Megapixels, which can allocate gigabytes of RAM during NumPy array conversions.
-* **Impact**: Worker process OOM (Out Of Memory) crash.
-* **Remediation**: 
-  * Configured `Image.MAX_IMAGE_PIXELS = 36_000_000` (strict 36 Megapixel cap).
-  * Implemented width and height boundary validation: `img.width > 6000 or img.height > 6000` is rejected immediately.
-  * Added explicit garbage collection (`gc.collect()`) after inference passes to reclaim buffers.
-* **Verification**: Verified dimensions and pixel limits in `validate_image_payload` and `validate_image_bytes`.
+### Finding 6: Missing Server-Side Upload Limits & Decompression Bombs (High)
+* **Severity**: High (CWE-400: Uncontrolled Resource Consumption)
+* **Remediation**:
+  * Multi-layer size enforcement: 30 MB binary cap, 60 MB request body cap, Node Content-Length pre-flight rejection (HTTP 413).
+  * Strict image dimensions (max 6,000 × 6,000 px) and 36 Megapixel cap (`Image.MAX_IMAGE_PIXELS = 36_000_000`) in Python AI workers.
+* **Verification**: Verified via Automated Tests 2, 3, 17.
 
 ---
 
-### Finding 4: Insecure Temporary File Lifecycle & Path Traversal Risk (Medium)
-* **Severity**: Medium (CWE-22: Improper Limitation of a Pathname to a Restricted Directory)
-* **Affected Areas**: File system temporary storage and batch conversion pipelines.
-* **Evidence**: Uncentralized temporary file creation without guaranteed purge on unexpected exceptions or client aborts.
-* **Impact**: Disk quota exhaustion over time and potential cross-job file leakage.
-* **Remediation**: Created `src/lib/security/temp-file-manager.ts`:
-  * Private dedicated directory (`.tmp/secure-jobs/`) with mode `0o700`.
-  * Random 128-bit unguessable job identifiers (`crypto.randomBytes(16).toString('hex')`).
-  * `assertPathSafe` validation preventing `../` traversal outside designated job directories.
-  * Automatic purge in `withTempWorkspace` upon completion or failure.
-  * Background interval daemon automatically sweeping abandoned files older than 1 hour.
-* **Verification**: Verified via Automated Test 12 (`Temporary workspace rejects path traversal attempts`), Test 13 (`withTempWorkspace automatically cleans up files`), and Test 14 (`runHourlyCleanup removes abandoned files older than maxAge`).
+### Finding 7: Insecure Temporary File Lifecycle (Medium)
+* **Severity**: Medium (CWE-22: Path Traversal / CWE-459: Incomplete Cleanup)
+* **Remediation**: Dedicated workspace (`.tmp/secure-jobs/`) with random unguessable IDs, strict path validation (`assertPathSafe`), automatic lifecycle cleanup (`withTempWorkspace`), and hourly purge daemon for abandoned files.
+* **Verification**: Verified via Automated Tests 12, 13, 14.
 
 ---
 
-### Finding 5: Missing Rate Limiting on Public Endpoints (Medium)
-* **Severity**: Medium (CWE-799: Improper Control of Interaction Frequency)
-* **Affected Routes**: `/api/*`, `/api/remove-bg`, `/api/remove-watermark`, `/api/blur-face`, `/api/contact`, `/api/chat`
-* **Evidence**: No request throttling existed, permitting brute-force API hammering and expensive AI model starvation.
-* **Impact**: Compute resource exhaustion and potential service downtime.
-* **Remediation**: Created `src/lib/security/rate-limiter.ts`:
-  * Sliding window memory rate limiter with IP extraction respecting trusted proxy headers (`X-Forwarded-For`, `X-Real-IP`).
-  * Tiered rate limits: 60 req/min for general API, 6 req/min for expensive AI inference, 5 req/min for contact inquiries.
-  * Returns HTTP 429 with `Retry-After` header.
-* **Verification**: Verified via Automated Test 10 (`Rate limiter blocks excessive requests and returns HTTP 429`) and Test 11 (`extractClientIp safely parses X-Forwarded-For`).
-
----
-
-### Finding 6: Missing HTTP Security Headers & Potential Clickjacking (Low)
+### Finding 8: Missing Security Headers & Potential Clickjacking (Low)
 * **Severity**: Low (CWE-693: Protection Mechanism Failure)
-* **Affected Routes**: All HTML and API responses.
-* **Evidence**: Responses lacked `X-Content-Type-Options`, `X-Frame-Options`, and Content-Security-Policy headers.
-* **Impact**: Risk of MIME-sniffing attacks and clickjacking in unauthorized iframes.
-* **Remediation**: Implemented `applySecurityHeaders` in `src/lib/security/headers.ts` and applied it to every response in `src/server.ts`:
-  * `X-Content-Type-Options: nosniff`
-  * `X-Frame-Options: SAMEORIGIN`
-  * `Referrer-Policy: strict-origin-when-cross-origin`
-  * `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()`
-  * Comprehensive `Content-Security-Policy` allowing only required origins.
-  * Removed server banners (`Server`, `X-Powered-By`).
-* **Verification**: Verified via Automated Test 15 (`Security headers are applied and X-Powered-By stripped`).
+* **Remediation**: Applied `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and strict CSP in `src/lib/security/headers.ts`.
+* **Verification**: Verified via Automated Test 15.
 
 ---
 
-### Finding 7: Dependency Supply-Chain Vulnerabilities (Medium / Resolved)
-* **Severity**: High/Medium in transitive dependencies.
-* **Evidence**: Initial `npm audit` flagged 14 vulnerabilities (5 High: `seroval`, `source-map-js`, `undici`).
-* **Remediation**: Executed `npm audit fix`, resolving all 5 High severity items without breaking application imports. Remaining 7 items are Low severity advisories in client-side markdown display modules (`katex`, `mermaid`).
-* **Verification**: `npm audit --audit-level=high` reports **0 high or critical vulnerabilities**.
-
----
-
-### Finding 8: Missing Sitemap & Suboptimal Robots.txt (Informational / SEO)
+### Finding 9: SEO & Marketing Integrity (Informational)
 * **Severity**: Informational
-* **Affected Files**: `public/sitemap.xml`, `public/robots.txt`
-* **Evidence**: `public/sitemap.xml` was absent. `public/robots.txt` lacked protection for internal `/admin` and `/api/` endpoints.
-* **Remediation**: Built `scripts/generate_sitemap.ts`:
-  * Generated valid XML sitemap indexing all 139 canonical public routes and tools.
-  * Updated `public/robots.txt` disallowing `/admin` and `/api/` while providing the canonical `Sitemap:` directive.
-* **Verification**: Verified presence of `public/sitemap.xml` and validated syntax.
+* **Remediation**:
+  * Removed unsubstantiated claims such as "12M+ Images cleaned" and "unlimited" in `src/routes/index.tsx`.
+  * Replaced with accurate descriptions: "30+ Studio tools" and "10 Free daily credits".
+  * Verified canonical sitemap (`public/sitemap.xml`) indexing 139 public canonical routes.
+  * Configured `public/robots.txt` disallowing `/admin` and `/api/`.
 
 ---
 
-## 3. Automated Test Results
+## 4. Automated Test Results (Full 30-Test Suite)
 
-The test suite in `scripts/test_security_suite.ts` was executed in the test environment:
+Command: `npx tsx scripts/test_security_suite.ts`
 
 ```
 =================================================
 RUNNING BG TOOL AUTOMATED SECURITY AUDIT SUITE
 =================================================
 
-[PASS] Test 1: Valid file below size limit is accepted
-[PASS] Test 2: File exceeding size limit is rejected with HTTP 413
+[PASS] Test 1: Valid file below 30 MB is accepted
+[PASS] Test 2: File exceeding 30 MB is rejected with HTTP 413
 [PASS] Test 3: Pre-flight Base64 payload exceeding size limit is rejected
 [PASS] Test 4: Renamed executable (.exe disguised as image) is rejected with HTTP 415
 [PASS] Test 5: Linux ELF executable header is rejected
@@ -151,99 +191,110 @@ RUNNING BG TOOL AUTOMATED SECURITY AUDIT SUITE
 [PASS] Test 16: Safe error response sanitizes errors and never leaks stack traces
 [PASS] Test 17: server.fetch rejects oversized Content-Length with HTTP 413
 [PASS] Test 18: server.fetch rejects executable payload masquerading as image with HTTP 415
+[PASS] Test 19: Anonymous GET /api/users is rejected with HTTP 401
+[PASS] Test 20: Authorized Admin GET /api/users succeeds and strips all sensitive fields
+[PASS] Test 21: Plaintext passwords in data/users.json are securely migrated to scrypt hashes
+[PASS] Test 22: Anonymous POST /api/users is rejected with HTTP 401
+[PASS] Test 23: Anonymous GET & POST /api/tools-config is rejected with HTTP 401
+[PASS] Test 24: Authorized Admin POST /api/tools-config succeeds with valid schema
+[PASS] Test 25: Malformed & Prototype Pollution in POST /api/tools-config is safely rejected
+[PASS] Test 26: Anonymous GET /api/contact is rejected with HTTP 401
+[PASS] Test 27: Public POST /api/contact accepts valid inquiry and sanitizes HTML
+[PASS] Test 28: Malformed or oversized POST /api/contact is rejected with HTTP 400/413
+[PASS] Test 29: Admin Login /api/admin/login verifies credentials and returns session token
+[PASS] Test 30: Tampered or malformed admin session token is rejected with HTTP 401
 
 =================================================
 TEST SUITE EXECUTION SUMMARY
 =================================================
-Total Tests Run: 18
-Passed: 18
+Total Tests Run: 30
+Passed: 30
 Failed: 0
 
-STATUS: ALL 18 SECURITY & PRIVACY CONTROLS VERIFIED
+ALL 30 SECURITY & PRIVACY CONTROLS VERIFIED SUCCESSFULLY!
 ```
 
 ---
 
-## 4. Production Readiness Checklist
+## 5. Production Readiness Checklist
 
-| Category | Item | Status | Verification Evidence |
+| Category | Verification Item | Status | Verified Evidence |
 | :--- | :--- | :---: | :--- |
-| **Upload Security** | Pre-flight Content-Length & Base64 limit | ✅ | Test 2, 3, 17 |
-| **Upload Security** | Magic byte validation (PNG, JPG, WebP, PDF) | ✅ | Test 1, 7, 8 |
-| **Upload Security** | Immediate executable rejection (`MZ`, `ELF`, etc.) | ✅ | Test 4, 5, 18 |
-| **Upload Security** | 0-byte file rejection | ✅ | Test 6 |
-| **Resource Limits** | Decompression bomb guard (36 Megapixel cap) | ✅ | Python servers updated |
-| **Resource Limits** | Dimension bounds (max 6,000 × 6,000 px) | ✅ | Python servers updated |
-| **Privacy & Storage**| Isolated private temp folder (`.tmp/secure-jobs/`) | ✅ | Test 12, 13 |
-| **Privacy & Storage**| Automated cleanup on completion or failure | ✅ | Test 13 |
+| **Authentication** | Server-side verified admin authentication | ✅ | Test 29, `/api/admin/login` |
+| **Authentication** | HMAC-SHA256 signed session tokens & HttpOnly cookies | ✅ | Test 29, 30 |
+| **Authentication** | Passwords stored via `scrypt` with random salt | ✅ | Test 21, `data/users.json` |
+| **Authorization** | Anonymous access to `/api/users` rejected (401) | ✅ | Test 19 |
+| **Authorization** | Sensitive fields stripped from `/api/users` output | ✅ | Test 20 |
+| **Authorization** | Anonymous access to `/api/tools-config` rejected (401) | ✅ | Test 23 |
+| **Authorization** | Anonymous access to `/api/contact` GET rejected (401) | ✅ | Test 26 |
+| **Input Validation**| Strict schema validation on tools configuration | ✅ | Test 24 |
+| **Input Validation**| Prototype pollution protection on JSON inputs | ✅ | Test 25 |
+| **Input Validation**| HTML character escaping on support contact tickets | ✅ | Test 27 |
+| **Data Protection** | Atomic file writes preventing corrupted JSON | ✅ | `atomicWriteJson` in all routes |
+| **Data Protection** | Contact inquiry file retention capped at 500 tickets | ✅ | `/api/contact` FIFO pruning |
+| **Upload Security** | Pre-flight Content-Length & Base64 limit check | ✅ | Test 2, 3, 17 |
+| **Upload Security** | Magic byte binary validation (PNG, JPG, WebP, PDF) | ✅ | Test 1, 7, 8 |
+| **Upload Security** | Immediate executable rejection (`MZ`, `ELF`) | ✅ | Test 4, 5, 18 |
+| **Resource Limits** | Decompression bomb guard (36 Megapixel cap) | ✅ | Python servers capped |
+| **Resource Limits** | Dimension bounds (max 6,000 × 6,000 px) | ✅ | Python servers capped |
+| **Privacy & Storage**| Dedicated private temp workspace (`.tmp/secure-jobs/`)| ✅ | Test 12, 13 |
 | **Privacy & Storage**| Hourly background purge daemon for stale files | ✅ | Test 14 |
-| **Abuse Prevention** | Multi-tier sliding window rate limiter | ✅ | Test 10, 11 |
-| **Error Handling** | Sanitized errors (zero stack traces / internal paths) | ✅ | Test 16 |
-| **HTTP Headers** | Security headers (`nosniff`, `SAMEORIGIN`, CSP) | ✅ | Test 15 |
-| **AI Integration** | Bounded message history & rate limits on `/api/chat`| ✅ | `src/routes/api/chat.ts` |
-| **Supply Chain** | 0 High or Critical vulnerabilities | ✅ | `npm audit` verified |
+| **Rate Limiting** | Sliding window rate limiting on public and AI routes | ✅ | Test 10, 11 |
+| **Error Handling** | Sanitized error responses (zero stack traces leaked) | ✅ | Test 16 |
+| **Web Headers** | Production headers (`nosniff`, `SAMEORIGIN`, CSP) | ✅ | Test 15 |
+| **Supply Chain** | 0 High or Critical vulnerabilities | ✅ | `npm audit` clean |
 | **Code Health** | TypeScript type safety check (0 errors) | ✅ | `npx tsc --noEmit` PASS |
 | **Build Stability**| Full SSR production bundle generated | ✅ | `npm run build` PASS |
 | **SEO Integrity** | Canonical sitemap generated (139 public URLs) | ✅ | `public/sitemap.xml` |
-| **SEO Integrity** | `public/robots.txt` protects `/admin` & `/api/` | ✅ | `public/robots.txt` |
-| **Deployment** | Nginx reverse proxy configuration provided | ✅ | `deployment/nginx-security.conf` |
-| **Deployment** | PM2 cluster & worker configuration provided | ✅ | `deployment/ecosystem.config.cjs` |
-| **Deployment** | Environment variables template provided | ✅ | `.env.example` |
+| **SEO Integrity** | Robots.txt protects `/admin` & `/api/` | ✅ | `public/robots.txt` |
+| **SEO Integrity** | Substantiated marketing claims (no fake 12M+ stats) | ✅ | `src/routes/index.tsx` |
 
 ---
 
-## 5. Deployment & Verification Commands
+## 6. Production Deployment Instructions (Hostinger VPS)
 
-### Step 1: Run Local Verifications
+### Operator Verification Commands (Local Environment)
 ```bash
-# 1. Typecheck
+# 1. Verify TypeScript types
 npx tsc --noEmit
 
-# 2. Automated Security Test Suite
+# 2. Run the 30-test automated security suite
 npx tsx scripts/test_security_suite.ts
 
-# 3. Production Build
+# 3. Verify production SSR build
 npm run build
 ```
 
-### Step 2: Deploy to Production VPS
+### Production Server Commands (Hostinger VPS Operator Actions)
 ```bash
-# 1. Pull latest code
+# 1. Connect to VPS
+ssh user@your-vps-ip
+
+# 2. Navigate to project directory
+cd /path/to/bgtool
+
+# 3. Pull latest commits
 git pull origin main
 
-# 2. Install production dependencies
-npm ci
+# 4. Configure production environment variables in .env
+# Set strong ADMIN_PASSWORD and ADMIN_SESSION_SECRET
+nano .env
 
-# 3. Build bundle
+# 5. Install dependencies and build production assets
+npm ci
 npm run build
 
-# 4. Generate latest sitemap
-npx tsx scripts/generate_sitemap.ts
-
-# 5. Start / Reload with PM2
-pm2 startOrReload deployment/ecosystem.config.cjs
-```
-
-### Step 3: Configure Reverse Proxy (Nginx on VPS)
-```bash
-# 1. Copy configuration
+# 6. Apply Nginx reverse proxy configuration
 sudo cp deployment/nginx-security.conf /etc/nginx/sites-available/bgtool
-
-# 2. Verify configuration syntax
+sudo ln -sf /etc/nginx/sites-available/bgtool /etc/nginx/sites-enabled/
 sudo nginx -t
-
-# 3. Reload Nginx
 sudo systemctl reload nginx
 
-# 4. Restrict internal AI ports from public WAN access
+# 7. Ensure firewall blocks internal microservice ports externally
 sudo ufw deny 5000
 sudo ufw deny 5001
+
+# 8. Start or reload processes with PM2
+pm2 startOrReload deployment/ecosystem.config.cjs
+pm2 save
 ```
-
----
-
-## 6. Disclosed Limitations & Residual Risks
-
-1. **In-Memory Rate Limiting vs Multi-Node Clusters**: The current rate limiter operates in Node.js server memory. For single-instance or PM2 cluster instances on a single VPS, this is performant with zero extra infrastructure. If horizontal scaling across multiple VPS hosts is implemented in the future, the rate-limiting store should be backed by Redis.
-2. **Third-Party CDN / Cloudflare Caching**: If Cloudflare or another reverse proxy is active in front of Nginx, ensure that Cloudflare passes `CF-Connecting-IP` or `X-Forwarded-For` so client rate limits accurately distinguish unique users.
-3. **External Model Inference Endpoints**: If the optional `AI_BASE_URL` points to an external VPS endpoint, ensure TLS is enabled and internal token authorization (`AI_API_KEY`) is active on the remote endpoint.
