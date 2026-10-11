@@ -14,5 +14,7 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
+Disallow: /auth
+Disallow: /chat
 
-Sitemap: https://bgtool.ai/sitemap.xml
+Sitemap: https://bg.tools/sitemap.xml

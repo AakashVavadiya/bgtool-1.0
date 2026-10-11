@@ -3,19 +3,21 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { FileText, CheckCircle, Scale, ShieldAlert } from "lucide-react";
 
+import { buildPageMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/terms")({
-  head: () => ({
-    meta: [
-      { title: "Terms & Conditions — bg Image Processing Service" },
-      {
-        name: "description",
-        content:
-          "Terms of Service for bg. Details on credit usage, non-refundable credit packs, commercial use license, and acceptable usage policy.",
-      },
-      { property: "og:title", content: "Terms & Conditions — bg" },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+  head: () => {
+    const seo = buildPageMeta({
+      title: "Terms of Service & Usage | bg.tools",
+      description: "Terms of Service for bg.tools. Details on credit usage, commercial licensing, acceptable use policy, and zero data archiving.",
+      path: "/terms",
+    });
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: TermsPage,
 });
 
@@ -37,7 +39,7 @@ function TermsPage() {
           </h1>
 
           <p className="mt-4 text-base md:text-lg font-medium text-muted-foreground leading-relaxed">
-            Effective Date: August 10, 2026. By accessing or using the <strong>bg</strong> platform, you agree to these binding terms.
+            Effective Date: October 2026. By accessing or using the <strong>bg.tools</strong> platform, you agree to these binding terms.
           </p>
 
           <div className="mt-12 space-y-8 text-base leading-relaxed text-foreground/90 font-medium">
@@ -55,7 +57,7 @@ function TermsPage() {
                 <Scale className="h-6 w-6 text-amber-500" /> 2. Commercial License & Ownership
               </h2>
               <p className="text-muted-foreground text-sm md:text-base">
-                You retain full copyright and ownership of all uploaded photographs and generated transparent PNG outputs. Outputs produced by <strong>bg</strong> are licensed for unlimited commercial, e-commerce, advertising, and personal use.
+                You retain full copyright and ownership of all uploaded photographs and generated transparent PNG outputs. Outputs produced by <strong>bg.tools</strong> are licensed for unlimited commercial, e-commerce, advertising, and personal use.
               </p>
             </section>
 
@@ -64,7 +66,7 @@ function TermsPage() {
                 <ShieldAlert className="h-6 w-6 text-destructive" /> 3. Acceptable Use Policy
               </h2>
               <p className="text-muted-foreground text-sm md:text-base">
-                Users are prohibited from using <strong>bg</strong> to process illegal, non-consensual explicit content, or copyrighted material without authorization. We reserve the right to suspend accounts violating these guidelines.
+                Users are prohibited from using <strong>bg.tools</strong> to process illegal, non-consensual explicit content, or copyrighted material without authorization. We reserve the right to suspend accounts violating these guidelines.
               </p>
             </section>
 

@@ -3,19 +3,21 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ShieldCheck, Lock, EyeOff, Server, FileCheck } from "lucide-react";
 
+import { buildPageMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/privacy")({
-  head: () => ({
-    meta: [
-      { title: "Privacy Policy & Zero Storage Guarantee | bg" },
-      {
-        name: "description",
-        content:
-          "Read bg's privacy policy. We process your images in temporary memory and discard them immediately — zero tracking, zero archive, zero AI training on user uploads.",
-      },
-      { property: "og:title", content: "Privacy Policy — bg Image Toolkit" },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+  head: () => {
+    const seo = buildPageMeta({
+      title: "Privacy Policy & Zero Retention Guarantee | bg.tools",
+      description: "Read the bg.tools privacy policy. Zero image retention, ephemeral in-memory processing, no AI model training, and automatic hourly cleanup.",
+      path: "/privacy",
+    });
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: PrivacyPage,
 });
 
@@ -37,7 +39,7 @@ function PrivacyPage() {
           </h1>
 
           <p className="mt-4 text-base md:text-lg font-medium text-muted-foreground leading-relaxed">
-            Last updated: August 10, 2026. Your privacy and image ownership are absolute when using <strong>bg</strong>.
+            Last updated: October 2026. Your privacy and image ownership are absolute when using <strong>bg.tools</strong>.
           </p>
 
           {/* Highlights Grid */}
@@ -82,7 +84,7 @@ function PrivacyPage() {
                 <ShieldCheck className="h-6 w-6 text-emerald-500" /> 2. Image File Lifecycle
               </h2>
               <p className="text-muted-foreground text-sm md:text-base">
-                When you drag & drop an image or document into <strong>bg</strong>, it is transmitted securely to our GPU inference clusters. Once alpha matting, rotation, watermark cleaning or format conversion completes, the raw file and result are returned to your browser and immediately purged from server memory.
+                When you drag & drop an image or document into <strong>bg.tools</strong>, it is transmitted securely to our GPU inference clusters. Once alpha matting, rotation, watermark cleaning or format conversion completes, the raw file and result are returned to your browser and immediately purged from server memory.
               </p>
             </section>
 
@@ -103,7 +105,7 @@ function PrivacyPage() {
             <section className="rounded-3xl border border-border bg-card p-8 space-y-4">
               <h2 className="font-display text-2xl font-bold">5. Your Data Rights</h2>
               <p className="text-muted-foreground text-sm md:text-base">
-                You can request full account deletion and data wipe at any time by contacting our support team at <strong className="text-foreground">privacy@bgtool.ai</strong>.
+                You can request full account deletion and data wipe at any time by contacting our support team at <strong className="text-foreground">privacy@bg.tools</strong>.
               </p>
             </section>
           </div>

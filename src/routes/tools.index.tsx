@@ -19,31 +19,21 @@ import {
   Cpu,
 } from "lucide-react";
 
+import { buildPageMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/tools/")({
-  head: () => ({
-    meta: [
-      {
-        title: "All 130+ AI Image & PDF Tools — Free Online Processing | bg",
-      },
-      {
-        name: "description",
-        content:
-          "Discover our complete library of 130+ AI image processing tools, PDF utilities, background erasers, and format converters. Fast, secure, and powered by 10 free daily credits.",
-      },
-      {
-        name: "keywords",
-        content:
-          "all tools, 130 tools, ai tools, image editor, remove background, pdf editor, compress image, convert format, ocr text extractor",
-      },
-      { property: "og:title", content: "All 130+ AI Image & PDF Tools Directory | bg" },
-      {
-        property: "og:description",
-        content:
-          "Explore 130+ online AI tools for image manipulation, background removal, PDF conversions, and utilities.",
-      },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+  head: () => {
+    const seo = buildPageMeta({
+      title: "All 130+ Free Online AI Tools | bg.tools",
+      description: "Explore 130+ free online image, document, and PDF tools on bg.tools. Background removal, conversion, upscaling, OCR, compression, and zero tracking.",
+      path: "/tools",
+    });
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: ToolsDirectoryPage,
 });
 

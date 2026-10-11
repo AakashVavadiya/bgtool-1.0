@@ -6,19 +6,21 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { Mail, MessageSquare, Send, CheckCircle2, Clock, MapPin } from "lucide-react";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 
+import { buildPageMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact Us & Enterprise Support | bg" },
-      {
-        name: "description",
-        content:
-          "Get in touch with the bg team. Support for high-volume API integration, custom background removal models, billing inquiries, and feedback.",
-      },
-      { property: "og:title", content: "Contact Us — bg" },
-      { property: "og:type", content: "website" },
-    ],
-  }),
+  head: () => {
+    const seo = buildPageMeta({
+      title: "Contact Us & Support | bg.tools",
+      description: "Contact the bg.tools team for API integration, enterprise high-volume processing, billing inquiries, and technical support.",
+      path: "/contact",
+    });
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: ContactPage,
 });
 
@@ -79,7 +81,7 @@ function ContactPage() {
             {/* Left Contact Info */}
             <div>
               <h1 className="font-display text-4xl font-extrabold sm:text-5xl md:text-6xl tracking-tight">
-                Get in Touch with Team bg<span className="text-accent">.</span>
+                Get in Touch with Team bg.tools<span className="text-accent">.</span>
               </h1>
               <p className="mt-4 text-base md:text-lg font-medium text-muted-foreground leading-relaxed">
                 Have questions about our AI models, custom enterprise API rates, or need assistance with your credits? We’re here to help.
@@ -92,7 +94,7 @@ function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-display text-lg font-bold">Direct Email Support</h3>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">support@bgtool.ai</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">support@bg.tools</p>
                     <p className="text-xs text-muted-foreground mt-1">For general help, billing & account inquiries.</p>
                   </div>
                 </div>
@@ -103,7 +105,7 @@ function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-display text-lg font-bold">Enterprise & High Volume API</h3>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">enterprise@bgtool.ai</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">enterprise@bg.tools</p>
                     <p className="text-xs text-muted-foreground mt-1">Dedicated GPU nodes, custom SLAs & batch webhooks.</p>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
-# BG Remover Magic
+# bg.tools
 
-Free online background removal, upscaling, compression, and image editing toolkit.
+Production-ready, privacy-first background removal and AI media toolkit (https://bg.tools).
 
 ## Development
 

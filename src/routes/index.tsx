@@ -13,26 +13,38 @@ import { AdminStore, type UiEditSettings } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { tools } from "@/lib/tools";
 import { getCurrentWebsiteLanguage, getLocalizedHeroPhrases } from "@/lib/translator";
+import { buildPageMeta, SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "bg — Free Online Background Remover, Instant & 4K" },
-      {
-        name: "description",
-        content:
-          "bg removes image backgrounds online in one click — free daily credits and export-ready up to 4K. Crisp edges on hair, fur and glass.",
+  head: () => {
+    const webAppSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: "bg.tools",
+      url: SITE_URL,
+      applicationCategory: "MultimediaApplication",
+      operatingSystem: "All",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "INR",
       },
-      { property: "og:title", content: "bg — Free Online Background Remover" },
-      {
-        property: "og:description",
-        content:
-          "Free online background remover with razor-sharp cutouts and 4K exports. No signup, no watermark.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+      description: "Free online AI background remover with sub-pixel hair matting and 4K exports. No watermark, zero tracking.",
+    };
+
+    const seo = buildPageMeta({
+      title: "bg.tools — Free Online AI Background Remover & 4K Export",
+      description: "Remove image backgrounds online in 1-click with bg.tools. Sub-pixel edge matting, 4K exports, free daily credits, and zero data tracking.",
+      path: "/",
+      jsonLd: webAppSchema,
+    });
+
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: Index,
 });
 

@@ -77,6 +77,8 @@ function getStepMeta(step: string, i: number, total: number) {
   return { title, Icon };
 }
 
+import { buildPageMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/tools/$slug")({
   loader: ({ params }) => {
     const tool = getTool(params.slug);
@@ -86,21 +88,42 @@ export const Route = createFileRoute("/tools/$slug")({
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
-        meta: [{ title: "Tool not found — bg" }, { name: "robots", content: "noindex" }],
+        meta: [{ title: "Tool Not Found | bg.tools" }, { name: "robots", content: "noindex, nofollow" }],
       };
     }
     const tool = getTool(loaderData.slug);
     const seo = tool?.seo;
+    const title = seo?.title ? `${seo.title.slice(0, 48)} | bg.tools` : `${loaderData.name} | bg.tools`;
+    const description = seo?.description || loaderData.blurb || `Free online ${loaderData.name} tool on bg.tools with zero tracking.`;
+
+    const toolSchema = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: loaderData.name,
+      operatingSystem: "All",
+      applicationCategory: "DesignApplication",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "INR",
+      },
+      description,
+    };
+
+    const pageMeta = buildPageMeta({
+      title,
+      description,
+      path: `/tools/${loaderData.slug}`,
+      jsonLd: toolSchema,
+    });
+
     return {
       meta: [
-        { title: seo?.title ?? `${loaderData.name} — bg Image Processing` },
-        { name: "description", content: seo?.description ?? loaderData.blurb },
-        { name: "keywords", content: seo?.keywords?.join(", ") ?? "" },
-        { property: "og:title", content: seo?.title ?? loaderData.name },
-        { property: "og:description", content: seo?.description ?? loaderData.blurb },
-        { property: "og:type", content: "website" },
-        { name: "robots", content: "index, follow" },
+        ...pageMeta.meta,
+        ...(seo?.keywords ? [{ name: "keywords", content: seo.keywords.join(", ") }] : []),
       ],
+      links: pageMeta.links,
+      scripts: pageMeta.scripts,
     };
   },
   component: ToolPage,

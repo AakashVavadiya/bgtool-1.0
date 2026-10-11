@@ -54,6 +54,7 @@ import {
 } from "../src/lib/db";
 import { runMigration } from "./migrate_json_to_sqlite";
 import serverHandler from "../src/server";
+import { SITE_URL, BRAND_NAME } from "../src/lib/seo";
 
 interface TestReport {
   name: string;
@@ -1078,6 +1079,72 @@ async function runTestSuite() {
       !workspaceCode.includes("container.innerHTML = html;"),
       "Must never assign raw unsanitized html directly to container.innerHTML"
     );
+  })();
+
+  // TEST 50: Zero occurrences of deprecated brands "bgtool.ai" and "BG Remover Magic"
+  await test("Test 50: Zero legacy brand occurrences ('bgtool.ai', 'BG Remover Magic') and canonical SITE_URL", () => {
+    assert.strictEqual(SITE_URL, "https://bg.tools");
+    assert.strictEqual(BRAND_NAME, "bg.tools");
+
+    const directoriesToCheck = ["src", "public", "scripts", "deployment"];
+    for (const dir of directoriesToCheck) {
+      const fullDir = path.join(process.cwd(), dir);
+      if (!fs.existsSync(fullDir)) continue;
+
+      const scanDir = (currentPath: string) => {
+        const files = fs.readdirSync(currentPath);
+        for (const file of files) {
+          const filePath = path.join(currentPath, file);
+          const stat = fs.statSync(filePath);
+          if (stat.isDirectory()) {
+            scanDir(filePath);
+          } else if (/\.(tsx|ts|html|json|md|conf|txt|xml)$/i.test(file)) {
+            if (file === "test_security_suite.ts") continue;
+            const content = fs.readFileSync(filePath, "utf8");
+            const legacyBrand1 = ["bgtool", "ai"].join(".");
+            const legacyBrand2 = ["bg", "remover", "magic"].join(" ");
+            assert.ok(
+              !content.toLowerCase().includes(legacyBrand1),
+              `File ${filePath} must NOT contain '${legacyBrand1}'`
+            );
+            assert.ok(
+              !content.toLowerCase().includes(legacyBrand2),
+              `File ${filePath} must NOT contain '${legacyBrand2}'`
+            );
+          }
+        }
+      };
+      scanDir(fullDir);
+    }
+  })();
+
+  // TEST 51: Dedicated /faq route with JSON-LD FAQPage structured data
+  await test("Test 51: Dedicated /faq route exists with valid JSON-LD FAQPage schema", () => {
+    const faqPath = path.join(process.cwd(), "src", "routes", "faq.tsx");
+    assert.ok(fs.existsSync(faqPath), "/faq route file must exist");
+    const faqContent = fs.readFileSync(faqPath, "utf8");
+    assert.ok(faqContent.includes("FAQPage"), "Must declare schema.org FAQPage");
+    assert.ok(faqContent.includes("buildPageMeta"), "Must use shared buildPageMeta");
+  })();
+
+  // TEST 52: Sitemap and robots.txt generation
+  await test("Test 52: public/sitemap.xml and robots.txt adhere to https://bg.tools and disallow sensitive routes", () => {
+    const sitemapPath = path.join(process.cwd(), "public", "sitemap.xml");
+    const robotsPath = path.join(process.cwd(), "public", "robots.txt");
+
+    assert.ok(fs.existsSync(sitemapPath), "sitemap.xml must exist in public/");
+    assert.ok(fs.existsSync(robotsPath), "robots.txt must exist in public/");
+
+    const sitemapContent = fs.readFileSync(sitemapPath, "utf8");
+    assert.ok(sitemapContent.includes("https://bg.tools"), "Sitemap must reference https://bg.tools");
+    assert.ok(!sitemapContent.includes("bgtool.ai"), "Sitemap must never reference bgtool.ai");
+
+    const robotsContent = fs.readFileSync(robotsPath, "utf8");
+    assert.ok(robotsContent.includes("Disallow: /admin"), "robots.txt must disallow /admin");
+    assert.ok(robotsContent.includes("Disallow: /api/"), "robots.txt must disallow /api/");
+    assert.ok(robotsContent.includes("Disallow: /auth"), "robots.txt must disallow /auth");
+    assert.ok(robotsContent.includes("Disallow: /chat"), "robots.txt must disallow /chat");
+    assert.ok(robotsContent.includes("Sitemap: https://bg.tools/sitemap.xml"), "robots.txt must declare sitemap URL");
   })();
 
   // Summary

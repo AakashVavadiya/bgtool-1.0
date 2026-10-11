@@ -16,25 +16,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { buildPageMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/pricing")({
-  head: () => ({
-    meta: [
-      { title: "Pricing — Free 10 Credits a Day, Packs & Plans | bg" },
-      {
-        name: "description",
-        content:
-          "bg pricing in INR: a Free plan with 10 credits every day, pay-as-you-go packs from ₹199, Lite at ₹499/mo and Pro at ₹1,999/mo.",
-      },
-      { property: "og:title", content: "bg Pricing — Free Daily Credits, Packs & Plans" },
-      {
-        property: "og:description",
-        content:
-          "Credit packs, monthly plans and enterprise volume tiers for background removal, upscaling and image conversion.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: () => {
+    const seo = buildPageMeta({
+      title: "Pricing Plans & Credit Packs | bg.tools",
+      description: "Transparent credit pricing for bg.tools. Free 10 daily credits, pay-as-you-go credit packs from ₹199, and flexible monthly plans for high volume.",
+      path: "/pricing",
+    });
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: Pricing,
 });
 

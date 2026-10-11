@@ -41,19 +41,21 @@ const modelFaqs = [
   },
 ];
 
+import { buildPageMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/models")({
-  head: () => ({
-    meta: [
-      { title: "AI Model Suite & Specifications | Karudi, Ganga, Brahmaputra, Narmada & Saraswati" },
-      {
-        name: "description",
-        content:
-          "Explore bg's specialized AI model ecosystem: Karudi (Universal Master), Ganga (Background Removal), Brahmaputra (Format Conversion), Narmada (OCR, Summary & Memes), and Saraswati (Research Suite).",
-      },
-      { property: "og:title", content: "AI Model Suite & Specifications | bg" },
-      { property: "og:description", content: "Explore Karudi, Ganga, Brahmaputra, Narmada, and Saraswati AI engines." },
-    ],
-  }),
+  head: () => {
+    const seo = buildPageMeta({
+      title: "AI Models Suite & Specs | bg.tools",
+      description: "Explore the bg.tools specialized neural models: Karudi Universal, Ganga Matting, Brahmaputra Converter, Narmada OCR, and Saraswati Research Engine.",
+      path: "/models",
+    });
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: ModelsPage,
 });
 

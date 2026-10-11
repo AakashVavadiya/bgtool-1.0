@@ -21,19 +21,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Log in or Sign up — bg Image Toolkit" },
+      { title: "Log In or Sign Up | bg.tools" },
       {
         name: "description",
         content:
-          "Access your bg account to remove backgrounds, upscale images and manage credits across 30+ free online image tools.",
+          "Access your bg.tools account to remove backgrounds, upscale images and manage credits with zero tracking.",
       },
-      { property: "og:title", content: "Log in to bg" },
-      {
-        property: "og:description",
-        content: "Sign in to bg to manage credits and run the full image toolkit.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: Auth,
