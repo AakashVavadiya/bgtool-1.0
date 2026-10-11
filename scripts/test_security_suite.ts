@@ -1,6 +1,7 @@
 process.env["ADMIN_USERNAME"] = "admin@bg.tools";
 process.env["ADMIN_PASSWORD"] = "TestSuperAdminPassword2026!";
 process.env["ADMIN_SESSION_SECRET"] = "TestSessionSecretAtLeast32CharactersLong!";
+process.env["TRUST_PROXY"] = "true";
 
 import assert from "assert";
 import fs from "fs";
@@ -202,17 +203,29 @@ async function runTestSuite() {
 
   // TEST 11: Rate limiter extracts real client IP safely without spoofing
   await test("Test 11: extractClientIp safely parses X-Forwarded-For", () => {
+    // 1. With TRUST_PROXY=true
+    process.env["TRUST_PROXY"] = "true";
     const req1 = new Request("http://localhost/api/test", {
       headers: { "x-forwarded-for": "203.0.113.195, 70.41.3.18, 150.172.238.178" },
     });
     const ip1 = extractClientIp(req1);
-    assert.strictEqual(ip1, "203.0.113.195", "Must extract outermost client IP");
+    assert.strictEqual(ip1, "203.0.113.195", "Must extract outermost client IP when trusted");
 
     const req2 = new Request("http://localhost/api/test", {
       headers: { "x-real-ip": "198.51.100.42" },
     });
     const ip2 = extractClientIp(req2);
     assert.strictEqual(ip2, "198.51.100.42");
+
+    // 2. With TRUST_PROXY disabled / missing, header spoofing is ignored
+    delete process.env["TRUST_PROXY"];
+    const spoofReq = new Request("http://localhost/api/test", {
+      headers: { "x-forwarded-for": "1.2.3.4" },
+    });
+    assert.strictEqual(extractClientIp(spoofReq), "127.0.0.1", "Must ignore spoofed header when TRUST_PROXY is disabled");
+
+    // Restore for subsequent tests
+    process.env["TRUST_PROXY"] = "true";
   })();
 
   // TEST 12: Temporary file manager enforces path traversal protection
@@ -990,6 +1003,59 @@ async function runTestSuite() {
     assert.strictEqual(history.length, 2);
     assert.strictEqual(history[0]?.type, "refund");
     assert.strictEqual(history[1]?.type, "tool_usage");
+  })();
+
+  // TEST 46: Strict Content Security Policy (removes unsafe-eval, restricts https, allows wasm and blob worker)
+  await test("Test 46: Strict CSP removes unsafe-eval, includes wasm-unsafe-eval, and allows worker blob", () => {
+    const rawRes = new Response("ok", { status: 200 });
+    const secured = applySecurityHeaders(rawRes);
+    const csp = secured.headers.get("content-security-policy") || "";
+
+    assert.ok(!csp.includes("'unsafe-eval'"), "CSP must NOT contain unsafe-eval");
+    assert.ok(csp.includes("'wasm-unsafe-eval'"), "CSP must allow wasm-unsafe-eval for PDF/Tesseract");
+    assert.ok(csp.includes("worker-src 'self' blob:"), "CSP must allow worker-src blob:");
+    assert.ok(!csp.includes("script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"), "CSP must not have blanket https in script-src");
+  })();
+
+  // TEST 47: HSTS header is strictly enforced in production mode
+  await test("Test 47: Strict-Transport-Security header is applied in production mode", () => {
+    const originalEnv = process.env["NODE_ENV"];
+    try {
+      process.env["NODE_ENV"] = "production";
+      const rawRes = new Response("ok", { status: 200 });
+      const secured = applySecurityHeaders(rawRes);
+      assert.strictEqual(
+        secured.headers.get("strict-transport-security"),
+        "max-age=31536000; includeSubDomains; preload",
+        "HSTS must be active in production"
+      );
+    } finally {
+      process.env["NODE_ENV"] = originalEnv;
+    }
+  })();
+
+  // TEST 48: Cluster rate limiter shares limits via SQLite rate_limits table
+  await test("Test 48: SQLite cluster rate limiter coordinates limits across multiple instances", () => {
+    const testIp = "198.51.100.99";
+    const limiter1 = new MemoryRateLimiter({ name: "cluster_test", maxRequests: 2, windowMs: 60_000 });
+    const limiter2 = new MemoryRateLimiter({ name: "cluster_test", maxRequests: 2, windowMs: 60_000 });
+
+    limiter1.reset(testIp);
+
+    // First request from worker 1
+    const r1 = limiter1.check(testIp);
+    assert.strictEqual(r1.allowed, true);
+
+    // Second request from worker 2 (different instance, same SQLite backing)
+    const r2 = limiter2.check(testIp);
+    assert.strictEqual(r2.allowed, true);
+
+    // Third request from worker 1 -> should be rejected because cluster limit (2) is reached
+    const r3 = limiter1.check(testIp);
+    assert.strictEqual(r3.allowed, false, "Cluster rate limit must coordinate across worker instances");
+    assert.strictEqual(r3.retryAfter > 0, true);
+
+    limiter1.reset(testIp);
   })();
 
   // Summary

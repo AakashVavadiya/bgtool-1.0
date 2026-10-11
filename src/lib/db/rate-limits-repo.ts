@@ -64,4 +64,16 @@ export const rateLimitsRepo = {
     });
     runTx();
   },
+
+  reset(key?: string): void {
+    const db = getDb();
+    const runTx = db.transaction(() => {
+      if (key) {
+        db.prepare("DELETE FROM rate_limits WHERE key = ? OR key LIKE ?").run(key, `${key}:%`);
+      } else {
+        db.prepare("DELETE FROM rate_limits").run();
+      }
+    });
+    runTx();
+  },
 };

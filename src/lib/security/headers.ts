@@ -1,19 +1,20 @@
+export const BASE_CSP =
+  "default-src 'self'; " +
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://unpkg.com; " +
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+  "img-src 'self' data: blob: https://images.unsplash.com; " +
+  "font-src 'self' data: https://fonts.gstatic.com; " +
+  "connect-src 'self' blob: data: http://127.0.0.1:* http://localhost:* https://unpkg.com https://cdn.jsdelivr.net; " +
+  "worker-src 'self' blob:; " +
+  "frame-ancestors 'self';";
+
 export const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "SAMEORIGIN",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
   "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
-  // Standard CSP supporting existing scripts, styles, fonts, images, and local web workers
-  "Content-Security-Policy":
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; " +
-    "style-src 'self' 'unsafe-inline' https:; " +
-    "img-src 'self' data: blob: https:; " +
-    "font-src 'self' data: https:; " +
-    "connect-src 'self' https: http://127.0.0.1:* http://localhost:* blob: data:; " +
-    "worker-src 'self' blob:; " +
-    "frame-ancestors 'self';",
+  "Content-Security-Policy": BASE_CSP,
 };
 
 /**
@@ -27,6 +28,12 @@ export function applySecurityHeaders(response: Response): Response {
       newHeaders.set(key, value);
     }
   }
+
+  // Enforce HSTS in production
+  if (process.env["NODE_ENV"] === "production") {
+    newHeaders.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  }
+
   // Strip any server banners
   newHeaders.delete("X-Powered-By");
   newHeaders.delete("Server");

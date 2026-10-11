@@ -1,3 +1,5 @@
+import { rateLimitsRepo } from "../db";
+
 export interface RateLimitOptions {
   windowMs: number; // e.g. 60_000 for 1 minute
   maxRequests: number; // e.g. 60
@@ -18,6 +20,33 @@ export class MemoryRateLimiter {
   }
 
   public check(ip: string): {
+    allowed: boolean;
+    remaining: number;
+    resetSeconds: number;
+    retryAfter: number;
+    total: number;
+  } {
+    // Attempt SQLite cluster-wide rate limiting first so PM2 workers share limits
+    try {
+      const windowSeconds = Math.max(1, Math.ceil(this.options.windowMs / 1000));
+      const key = `${this.options.name}:${ip}`;
+      const res = rateLimitsRepo.increment(key, this.options.maxRequests, windowSeconds);
+      const now = Math.floor(Date.now() / 1000);
+      const retryAfter = Math.max(1, res.resetAt - now);
+
+      return {
+        allowed: res.allowed,
+        remaining: res.remaining,
+        resetSeconds: retryAfter,
+        retryAfter: res.allowed ? 0 : retryAfter,
+        total: this.options.maxRequests,
+      };
+    } catch {
+      return this.checkMemoryFallback(ip);
+    }
+  }
+
+  private checkMemoryFallback(ip: string): {
     allowed: boolean;
     remaining: number;
     resetSeconds: number;
@@ -77,6 +106,14 @@ export class MemoryRateLimiter {
   }
 
   public reset(ip?: string) {
+    try {
+      if (ip) {
+        rateLimitsRepo.reset(`${this.options.name}:${ip}`);
+      } else {
+        rateLimitsRepo.reset(this.options.name);
+      }
+    } catch {}
+
     if (ip) {
       this.records.delete(ip);
     } else {
@@ -111,26 +148,30 @@ export const contactLimiter = new MemoryRateLimiter({
 });
 
 /**
- * Safely extracts client IP address from standard headers without trusting spoofed values.
+ * Safely extracts client IP address from standard headers only when TRUST_PROXY is enabled.
  */
 export function extractClientIp(request: Request): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    // Leftmost address is the client IP added by the outermost proxy
-    const ips = forwardedFor.split(",").map((s) => s.trim());
-    if (ips[0] && ips[0].length > 0) {
-      return ips[0];
+  const trustProxy = process.env["TRUST_PROXY"] === "true" || process.env["TRUST_PROXY"] === "1";
+
+  if (trustProxy) {
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    if (forwardedFor) {
+      // Leftmost address is the client IP added by the outermost proxy
+      const ips = forwardedFor.split(",").map((s) => s.trim());
+      if (ips[0] && ips[0].length > 0) {
+        return ips[0];
+      }
     }
-  }
 
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp && realIp.trim().length > 0) {
-    return realIp.trim();
-  }
+    const realIp = request.headers.get("x-real-ip");
+    if (realIp && realIp.trim().length > 0) {
+      return realIp.trim();
+    }
 
-  const cfConnectingIp = request.headers.get("cf-connecting-ip");
-  if (cfConnectingIp && cfConnectingIp.trim().length > 0) {
-    return cfConnectingIp.trim();
+    const cfConnectingIp = request.headers.get("cf-connecting-ip");
+    if (cfConnectingIp && cfConnectingIp.trim().length > 0) {
+      return cfConnectingIp.trim();
+    }
   }
 
   return "127.0.0.1";
