@@ -23,6 +23,14 @@ import {
   migrateUsersData,
   atomicWriteJson,
 } from "./lib/security";
+import {
+  usersRepo,
+  inquiriesRepo,
+  configRepo,
+  creditLedgerRepo,
+  toolUsageRepo,
+  rateLimitsRepo,
+} from "./lib/db";
 
 validateAdminEnvironment();
 
@@ -479,15 +487,6 @@ export default {
 
     // 7. /api/contact
     if (url.pathname === "/api/contact") {
-      const dataDir = path.join(process.cwd(), "data");
-      const filePath = path.join(dataDir, "contact-inquiries.json");
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      if (!fs.existsSync(filePath)) {
-        atomicWriteJson(filePath, []);
-      }
-
       if (request.method === "GET") {
         // Enforce Server-Side Administrator Authentication
         if (!isAuthorizedAdmin(request)) {
@@ -497,9 +496,9 @@ export default {
         }
 
         try {
-          const content = fs.readFileSync(filePath, "utf-8");
+          const inquiries = inquiriesRepo.getAll();
           return applySecurityHeaders(
-            new Response(content || "[]", {
+            new Response(JSON.stringify(inquiries), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
@@ -535,32 +534,24 @@ export default {
             );
           }
 
-          let current: any[] = [];
-          try {
-            if (fs.existsSync(filePath)) {
-              current = JSON.parse(fs.readFileSync(filePath, "utf-8") || "[]");
-              if (!Array.isArray(current)) current = [];
-            }
-          } catch {
-            current = [];
-          }
-
-          // Bounded file retention: cap at 500 tickets
-          current.unshift(validation.ticket);
-          if (current.length > 500) {
-            current = current.slice(0, 500);
-          }
-
-          atomicWriteJson(filePath, current);
+          const savedInquiry = inquiriesRepo.create({
+            id: validation.ticket.id,
+            name: validation.ticket.name,
+            email: validation.ticket.email,
+            subject: validation.ticket.subject,
+            message: validation.ticket.message,
+            status: validation.ticket.status,
+            ip: clientIp,
+          });
 
           return applySecurityHeaders(
             new Response(
               JSON.stringify({
                 success: true,
                 ticket: {
-                  id: validation.ticket.id,
-                  createdAt: validation.ticket.createdAt,
-                  status: validation.ticket.status,
+                  id: savedInquiry.id,
+                  createdAt: savedInquiry.submitted_at,
+                  status: savedInquiry.status,
                 },
               }),
               {
@@ -579,15 +570,6 @@ export default {
 
     // 8. /api/tools-config
     if (url.pathname === "/api/tools-config") {
-      const dataDir = path.join(process.cwd(), "data");
-      const filePath = path.join(dataDir, "tools-config.json");
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      if (!fs.existsSync(filePath)) {
-        atomicWriteJson(filePath, []);
-      }
-
       if (request.method === "GET") {
         if (!isAuthorizedAdmin(request)) {
           return applySecurityHeaders(
@@ -596,9 +578,9 @@ export default {
         }
 
         try {
-          const content = fs.readFileSync(filePath, "utf-8");
+          const configs = configRepo.getToolsConfig();
           return applySecurityHeaders(
-            new Response(content || "[]", {
+            new Response(JSON.stringify(configs), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
@@ -633,7 +615,7 @@ export default {
             );
           }
 
-          atomicWriteJson(filePath, validation.sanitized);
+          configRepo.setToolsConfig(validation.sanitized as any);
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true, count: validation.sanitized.length }), {
               status: 200,
@@ -648,22 +630,11 @@ export default {
 
     // 9. /api/plans-config
     if (url.pathname === "/api/plans-config") {
-      const dataDir = path.join(process.cwd(), "data");
-      const filePath = path.join(dataDir, "plans-config.json");
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-
       if (request.method === "GET") {
         try {
-          if (!fs.existsSync(filePath)) {
-            return applySecurityHeaders(
-              new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })
-            );
-          }
-          const content = fs.readFileSync(filePath, "utf-8");
+          const plans = configRepo.getPlansConfig();
           return applySecurityHeaders(
-            new Response(content || "[]", {
+            new Response(JSON.stringify(plans), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
@@ -687,7 +658,7 @@ export default {
           if (!Array.isArray(body)) {
             return applySecurityHeaders(createSafeErrorResponse(400, "Plans configuration must be an array."));
           }
-          atomicWriteJson(filePath, body);
+          configRepo.setPlansConfig(body);
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true }), {
               status: 200,
@@ -702,12 +673,6 @@ export default {
 
     // 10. /api/users
     if (url.pathname === "/api/users") {
-      const dataDir = path.join(process.cwd(), "data");
-      const filePath = path.join(dataDir, "users.json");
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-
       if (request.method === "GET") {
         if (!isAuthorizedAdmin(request)) {
           return applySecurityHeaders(
@@ -716,38 +681,7 @@ export default {
         }
 
         try {
-          if (!fs.existsSync(filePath)) {
-            return applySecurityHeaders(
-              new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })
-            );
-          }
-
-          // Migrate any legacy plaintext passwords to scrypt hashes
-          const users = migrateUsersData(filePath);
-          const now = new Date();
-          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-          let modified = false;
-
-          if (Array.isArray(users)) {
-            for (const u of users) {
-              if (u.lastCreditReset !== today) {
-                u.freeCredits = 10;
-                if (typeof u.paidCredits !== "number") {
-                  u.paidCredits = Math.max(0, (u.credits || 0) > 10 ? Math.round(((u.credits || 0) - 10) * 100) / 100 : 0);
-                }
-                u.credits = Math.round((u.freeCredits + u.paidCredits) * 100) / 100;
-                u.lastCreditReset = today;
-                modified = true;
-              }
-            }
-            if (modified) {
-              atomicWriteJson(filePath, users);
-            }
-          }
-
-          // Strip all sensitive fields (passwords, hashes, IPs, tokens)
-          const safeUsers = Array.isArray(users) ? users.map(sanitizeUser) : [];
-
+          const safeUsers = usersRepo.getAllSafe();
           return applySecurityHeaders(
             new Response(JSON.stringify(safeUsers), {
               status: 200,
@@ -777,34 +711,10 @@ export default {
             );
           }
 
-          // Preserve existing password hashes so credit adjustments don't wipe passwords
-          let currentUsers: any[] = [];
-          if (fs.existsSync(filePath)) {
-            try {
-              currentUsers = JSON.parse(fs.readFileSync(filePath, "utf-8") || "[]");
-            } catch {}
-          }
-
-          const existingMap = new Map<string, any>();
-          for (const u of currentUsers) {
-            if (u.id) existingMap.set(u.id, u);
-            if (u.email) existingMap.set(u.email.toLowerCase(), u);
-          }
-
-          const mergedUsers = incomingUsers.map((u: any) => {
-            const existing = existingMap.get(u.id) || existingMap.get((u.email || "").toLowerCase());
-            const passwordHash = existing?.passwordHash || (u.passwordHash ? u.passwordHash : undefined);
-            const safe = sanitizeUser(u);
-            return {
-              ...safe,
-              ...(passwordHash ? { passwordHash } : {}),
-            };
-          });
-
-          atomicWriteJson(filePath, mergedUsers);
+          usersRepo.batchSave(incomingUsers.map(sanitizeUser));
 
           return applySecurityHeaders(
-            new Response(JSON.stringify({ success: true }), {
+            new Response(JSON.stringify({ success: true, count: incomingUsers.length }), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })

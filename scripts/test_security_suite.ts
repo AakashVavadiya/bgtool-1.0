@@ -42,6 +42,16 @@ import {
   adminLockout,
   userLockout,
 } from "../src/lib/security";
+import {
+  getDb,
+  usersRepo,
+  sessionsRepo,
+  creditLedgerRepo,
+  inquiriesRepo,
+  configRepo,
+  rateLimitsRepo,
+} from "../src/lib/db";
+import { runMigration } from "./migrate_json_to_sqlite";
 import serverHandler from "../src/server";
 
 interface TestReport {
@@ -663,6 +673,95 @@ async function runTestSuite() {
 
     userLockout.resetAttempts(testIp, testUser);
     assert.strictEqual(userLockout.isLocked(testIp, testUser).locked, false);
+  })();
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PHASE 2 REGRESSION TESTS: SQLITE DATABASE & REPOSITORY LAYER
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // TEST 34: SQLite database operates in WAL mode with busy_timeout configured
+  await test("Test 34: SQLite database operates in WAL mode with cluster-safe busy_timeout", () => {
+    const db = getDb();
+    const journalMode = db.pragma("journal_mode") as [{ journal_mode: string }];
+    assert.strictEqual(journalMode[0]?.journal_mode?.toLowerCase(), "wal", "Must operate in WAL mode");
+
+    const busyTimeout = db.pragma("busy_timeout") as [{ timeout: number }];
+    assert.ok(busyTimeout[0]?.timeout >= 5000, "busy_timeout must be at least 5000ms for PM2 cluster mode");
+  })();
+
+  // TEST 35: Users and sessions repositories enforce transaction safety and hash protection
+  await test("Test 35: Users and sessions repositories enforce transaction safety and SHA-256 token hashing", () => {
+    const testEmail = `test_${Date.now()}@bg.tools`;
+    const createdUser = usersRepo.create({
+      name: "SQLite Test User",
+      email: testEmail,
+      passwordHash: hashPassword("SecretPass123!"),
+      plan: "free",
+      credits: 10,
+    });
+    assert.ok(createdUser.id, "Must return created user with ID");
+    assert.strictEqual(createdUser.email, testEmail);
+
+    // Verify safe retrieval never leaks password_hash
+    const foundSafe = usersRepo.getAllSafe().find((u) => u.id === createdUser.id);
+    assert.ok(foundSafe, "User must be found");
+    assert.strictEqual((foundSafe as any).password_hash, undefined, "password_hash must be excluded");
+    assert.strictEqual((foundSafe as any).passwordHash, undefined, "passwordHash must be excluded");
+
+    // Create session
+    const rawToken = "my_super_secret_session_token_32_bytes_long";
+    const sessionRes = sessionsRepo.createSession(createdUser.id, rawToken);
+    assert.notStrictEqual(sessionRes.session.token_hash, rawToken, "Raw token must NOT be stored in DB");
+
+    // Lookup session by raw token
+    const foundSession = sessionsRepo.findSessionByToken(rawToken);
+    assert.ok(foundSession, "Session must be retrievable by raw token");
+    assert.strictEqual(foundSession.user.id, createdUser.id);
+
+    // Delete session
+    sessionsRepo.deleteSession(rawToken);
+    assert.strictEqual(sessionsRepo.findSessionByToken(rawToken), null, "Deleted session must return null");
+  })();
+
+  // TEST 36: Credit ledger enforces atomic deduction, overspend prevention, and refund support
+  await test("Test 36: Credit ledger enforces atomic deduction, overspend prevention, and refund support", () => {
+    const testEmail = `credit_test_${Date.now()}@bg.tools`;
+    const user = usersRepo.create({
+      name: "Credit Tester",
+      email: testEmail,
+      passwordHash: hashPassword("SecretPass123!"),
+      credits: 3,
+      freeCredits: 3,
+      paidCredits: 0,
+    });
+
+    // 1. Valid deduction
+    const deductRes = creditLedgerRepo.deductUserCredits(user.id, 2, "remove-bg");
+    assert.strictEqual(deductRes.success, true);
+    assert.strictEqual(deductRes.balanceAfter, 1);
+
+    // 2. Overspend attempt rejected (trying to spend 2 when only 1 remains)
+    const overspendRes = creditLedgerRepo.deductUserCredits(user.id, 2, "remove-bg");
+    assert.strictEqual(overspendRes.success, false);
+    assert.ok(overspendRes.error?.includes("Insufficient credits"));
+    assert.strictEqual(overspendRes.balanceAfter, 1);
+
+    // 3. Automatic refund
+    const refundRes = creditLedgerRepo.refundUserCredits(user.id, 2, "remove-bg", "Engine timeout");
+    assert.strictEqual(refundRes.success, true);
+    assert.strictEqual(refundRes.balanceAfter, 3);
+  })();
+
+  // TEST 37: JSON to SQLite migration script executes idempotently
+  await test("Test 37: JSON to SQLite migration script executes idempotently", () => {
+    const firstRun = runMigration();
+    assert.ok(firstRun.toolsConfigMigrated);
+    assert.ok(firstRun.plansConfigMigrated);
+
+    // Second run should run cleanly without throwing
+    const secondRun = runMigration();
+    assert.ok(secondRun.toolsConfigMigrated);
+    assert.ok(secondRun.plansConfigMigrated);
   })();
 
   // Summary

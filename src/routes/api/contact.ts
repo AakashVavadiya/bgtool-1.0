@@ -1,27 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import fs from "fs";
-import path from "path";
 import {
   isAuthorizedAdmin,
   validateContactSubmission,
-  atomicWriteJson,
 } from "@/lib/security/auth-admin";
 import { createSafeErrorResponse, applySecurityHeaders } from "@/lib/security/headers";
 import { contactLimiter, extractClientIp, createRateLimitResponse } from "@/lib/security/rate-limiter";
-
-const MAX_STORED_INQUIRIES = 500;
-
-function getInquiriesFilePath() {
-  const dataDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  const filePath = path.join(dataDir, "contact-inquiries.json");
-  if (!fs.existsSync(filePath)) {
-    atomicWriteJson(filePath, []);
-  }
-  return filePath;
-}
+import { inquiriesRepo } from "@/lib/db";
 
 export const Route = createFileRoute("/api/contact")({
   server: {
@@ -35,10 +19,9 @@ export const Route = createFileRoute("/api/contact")({
         }
 
         try {
-          const filePath = getInquiriesFilePath();
-          const content = fs.readFileSync(filePath, "utf-8");
+          const inquiries = inquiriesRepo.getAll();
           return applySecurityHeaders(
-            new Response(content || "[]", {
+            new Response(JSON.stringify(inquiries), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             })
@@ -60,26 +43,18 @@ export const Route = createFileRoute("/api/contact")({
           );
         }
 
-        // 2. Content-type check
-        const contentType = request.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) {
-          return applySecurityHeaders(
-            createSafeErrorResponse(415, "Unsupported media type. JSON body required.")
-          );
-        }
-
-        // 3. Body size limit (max 64 KB for contact form)
+        // 2. Strict Payload Size Limit check (max 64 KB for contact message)
         const contentLength = request.headers.get("content-length");
         if (contentLength && parseInt(contentLength, 10) > 64 * 1024) {
           return applySecurityHeaders(
-            createSafeErrorResponse(413, "Contact inquiry payload exceeds size limit (64 KB).")
+            createSafeErrorResponse(413, "Contact payload exceeds size limit (64 KB).")
           );
         }
 
         try {
           const body = await request.json();
 
-          // 4. Strict server-side field validation & HTML sanitization
+          // 3. Schema validation & anti-XSS HTML sanitization
           const validation = validateContactSubmission(body);
           if (!validation.valid || !validation.ticket) {
             return applySecurityHeaders(
@@ -87,32 +62,25 @@ export const Route = createFileRoute("/api/contact")({
             );
           }
 
-          const filePath = getInquiriesFilePath();
-          let current: any[] = [];
-          try {
-            current = JSON.parse(fs.readFileSync(filePath, "utf-8") || "[]");
-            if (!Array.isArray(current)) current = [];
-          } catch {
-            current = [];
-          }
-
-          // 5. Bounded file growth: FIFO retention policy (max 500 tickets)
-          current.unshift(validation.ticket);
-          if (current.length > MAX_STORED_INQUIRIES) {
-            current = current.slice(0, MAX_STORED_INQUIRIES);
-          }
-
-          // Safe atomic write
-          atomicWriteJson(filePath, current);
+          // 4. Save to SQLite repository
+          const saved = inquiriesRepo.create({
+            id: validation.ticket.id,
+            name: validation.ticket.name,
+            email: validation.ticket.email,
+            subject: validation.ticket.subject,
+            message: validation.ticket.message,
+            status: validation.ticket.status,
+            ip: clientIp,
+          });
 
           return applySecurityHeaders(
             new Response(
               JSON.stringify({
                 success: true,
                 ticket: {
-                  id: validation.ticket.id,
-                  createdAt: validation.ticket.createdAt,
-                  status: validation.ticket.status,
+                  id: saved.id,
+                  createdAt: saved.submitted_at,
+                  status: saved.status,
                 },
               }),
               {
