@@ -224,7 +224,7 @@ export const AuthUser = {
     const name = isGoogle ? "Google Creator" : "Apple Creator";
 
     const adminUsers = AdminStore.getUsers();
-    let target = adminUsers.find((u) => u.email.toLowerCase() === email);
+    const target = adminUsers.find((u) => u.email.toLowerCase() === email);
 
     if (!target) {
       return this.signUp(name, email, "social_oauth_verified_2026");

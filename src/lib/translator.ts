@@ -829,7 +829,7 @@ export function getCurrentWebsiteLanguage(): string {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) return saved;
 
-  const match = document.cookie.match(/googtrans=\/en\/([a-zA-Z\-]+)/);
+  const match = document.cookie.match(/googtrans=\/en\/([a-zA-Z-]+)/);
   if (match && match[1]) {
     return match[1];
   }

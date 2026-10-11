@@ -48,3 +48,14 @@ data/.session-secret
 data/admin-auth.json
 .tmp/
 
+# Runtime data and SQLite databases
+data/*.json
+!data/plans-config.json
+!data/tools-config.json
+!data/*.example.json
+data/**/*.jsonl
+data/**/*.db
+data/**/*.db-*
+data/**/*.sqlite
+data/**/*.sqlite-*
+

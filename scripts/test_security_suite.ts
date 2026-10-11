@@ -1,3 +1,7 @@
+process.env["ADMIN_USERNAME"] = "admin@bg.tools";
+process.env["ADMIN_PASSWORD"] = "TestSuperAdminPassword2026!";
+process.env["ADMIN_SESSION_SECRET"] = "TestSessionSecretAtLeast32CharactersLong!";
+
 import assert from "assert";
 import fs from "fs";
 import path from "path";
@@ -33,7 +37,11 @@ import {
   verifyPassword,
   migrateUsersData,
   sanitizeUser,
-} from "../src/lib/security/auth-admin";
+  validateAdminEnvironment,
+  verifyAdminLogin,
+  adminLockout,
+  userLockout,
+} from "../src/lib/security";
 import serverHandler from "../src/server";
 
 interface TestReport {
@@ -508,13 +516,13 @@ async function runTestSuite() {
     assert.strictEqual(res.status, 400, "Invalid email must return 400");
   })();
 
-  // TEST 29: Admin Login endpoint validates credentials and rejects invalid passwords
+  // TEST 29: Admin Login endpoint validates credentials and returns session token
   await test("Test 29: Admin Login /api/admin/login verifies credentials and returns session token", async () => {
     // 1. Invalid password
     const failReq = new Request("http://localhost:3000/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin", password: "wrong_password_999" }),
+      body: JSON.stringify({ username: "admin@bg.tools", password: "wrong_password_999" }),
     });
     const failRes = await serverHandler.fetch(failReq, {}, {});
     assert.strictEqual(failRes.status, 401);
@@ -523,7 +531,10 @@ async function runTestSuite() {
     const passReq = new Request("http://localhost:3000/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin", password: "admin@2026" }),
+      body: JSON.stringify({
+        username: "admin@bg.tools",
+        password: process.env["ADMIN_PASSWORD"],
+      }),
     });
     const passRes = await serverHandler.fetch(passReq, {}, {});
     assert.strictEqual(passRes.status, 200);
@@ -544,6 +555,114 @@ async function runTestSuite() {
     });
     const res = await serverHandler.fetch(req, {}, {});
     assert.strictEqual(res.status, 401, "Tampered token must be rejected with 401");
+  })();
+
+  // TEST 31: 5 failed attempts per IP+username triggers 15-minute lockout (HTTP 429)
+  await test("Test 31: 5 failed admin login attempts triggers 15-minute lockout (HTTP 429)", async () => {
+    const testIp = "192.0.2.42";
+    const testUser = "lockout-test@bg.tools";
+
+    // First 4 failed attempts -> 401
+    for (let i = 1; i <= 4; i++) {
+      const req = new Request("http://localhost:3000/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-forwarded-for": testIp },
+        body: JSON.stringify({ username: testUser, password: "bad-password" }),
+      });
+      const res = await serverHandler.fetch(req, {}, {});
+      assert.strictEqual(res.status, 401, `Attempt ${i} should return 401`);
+    }
+
+    // 5th failed attempt -> locks account and returns 429
+    const fifthReq = new Request("http://localhost:3000/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": testIp },
+      body: JSON.stringify({ username: testUser, password: "bad-password" }),
+    });
+    const fifthRes = await serverHandler.fetch(fifthReq, {}, {});
+    assert.strictEqual(fifthRes.status, 429, "5th failed attempt should trigger lockout (429)");
+
+    // 6th attempt (even with valid credentials) -> blocked immediately with 429
+    const sixthReq = new Request("http://localhost:3000/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": testIp },
+      body: JSON.stringify({ username: testUser, password: process.env["ADMIN_PASSWORD"] }),
+    });
+    const sixthRes = await serverHandler.fetch(sixthReq, {}, {});
+    assert.strictEqual(sixthRes.status, 429, "Subsequent attempt while locked must return 429");
+  })();
+
+  // TEST 32: Production mode refuses to start if ADMIN_PASSWORD or ADMIN_SESSION_SECRET is missing or short
+  await test("Test 32: Production mode refuses to start without strong admin env vars", () => {
+    const originalEnv = process.env.NODE_ENV;
+    const originalPass = process.env["ADMIN_PASSWORD"];
+    const originalSecret = process.env["ADMIN_SESSION_SECRET"];
+
+    try {
+      process.env.NODE_ENV = "production";
+
+      // Missing password
+      delete process.env["ADMIN_PASSWORD"];
+      assert.throws(
+        () => validateAdminEnvironment(),
+        /ADMIN_PASSWORD must be defined with at least 12 characters/,
+        "Should throw if ADMIN_PASSWORD is missing in production"
+      );
+
+      // Password too short (< 12 chars)
+      process.env["ADMIN_PASSWORD"] = "short123";
+      assert.throws(
+        () => validateAdminEnvironment(),
+        /ADMIN_PASSWORD must be defined with at least 12 characters/,
+        "Should throw if ADMIN_PASSWORD is too short in production"
+      );
+
+      // Password valid, missing session secret
+      process.env["ADMIN_PASSWORD"] = "ValidLongAdminPassword123!";
+      delete process.env["ADMIN_SESSION_SECRET"];
+      assert.throws(
+        () => validateAdminEnvironment(),
+        /ADMIN_SESSION_SECRET must be defined with at least 32 characters/,
+        "Should throw if ADMIN_SESSION_SECRET is missing in production"
+      );
+
+      // Secret too short (< 32 chars)
+      process.env["ADMIN_SESSION_SECRET"] = "short-secret";
+      assert.throws(
+        () => validateAdminEnvironment(),
+        /ADMIN_SESSION_SECRET must be defined with at least 32 characters/,
+        "Should throw if ADMIN_SESSION_SECRET is too short in production"
+      );
+
+      // Both valid
+      process.env["ADMIN_SESSION_SECRET"] = "ValidLongSessionSecretOver32CharactersLong!";
+      assert.doesNotThrow(() => validateAdminEnvironment(), "Should pass when both are valid");
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+      process.env["ADMIN_PASSWORD"] = originalPass;
+      process.env["ADMIN_SESSION_SECRET"] = originalSecret;
+    }
+  })();
+
+  // TEST 33: User lockout tracker enforces 5 failed attempts -> 15 min block
+  await test("Test 33: User lockout tracker enforces 5 failed attempts -> 15 min block", () => {
+    const testIp = "10.0.0.99";
+    const testUser = "user@example.com";
+
+    assert.strictEqual(userLockout.isLocked(testIp, testUser).locked, false);
+
+    for (let i = 1; i <= 4; i++) {
+      const rec = userLockout.recordFailedAttempt(testIp, testUser);
+      assert.strictEqual(rec.locked, false);
+      assert.strictEqual(rec.remainingAttempts, 5 - i);
+    }
+
+    const fifth = userLockout.recordFailedAttempt(testIp, testUser);
+    assert.strictEqual(fifth.locked, true);
+    assert.strictEqual(userLockout.isLocked(testIp, testUser).locked, true);
+
+    userLockout.resetAttempts(testIp, testUser);
+    assert.strictEqual(userLockout.isLocked(testIp, testUser).locked, false);
   })();
 
   // Summary

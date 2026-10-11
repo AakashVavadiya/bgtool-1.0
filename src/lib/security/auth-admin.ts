@@ -108,65 +108,106 @@ export function verifyPassword(plainText: string, storedHash: string): boolean {
   }
 }
 
-// ─── ADMIN CREDENTIALS STORE ───────────────────────────────────────────────
-function getAdminCredentialsPath(): string {
-  const dataDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+import { adminLockout } from "./login-lockout";
+
+// ─── ADMIN ENVIRONMENT VALIDATION ───────────────────────────────────────────
+export function validateAdminEnvironment(): void {
+  const isProduction = process.env["NODE_ENV"] === "production";
+  const adminPassword = process.env["ADMIN_PASSWORD"];
+  const sessionSecret = process.env["ADMIN_SESSION_SECRET"];
+
+  if (isProduction) {
+    if (!adminPassword || adminPassword.length < 12) {
+      throw new Error(
+        "FATAL: In production, ADMIN_PASSWORD must be defined with at least 12 characters."
+      );
+    }
+    if (!sessionSecret || sessionSecret.length < 32) {
+      throw new Error(
+        "FATAL: In production, ADMIN_SESSION_SECRET must be defined with at least 32 characters."
+      );
+    }
   }
-  return path.join(dataDir, "admin-auth.json");
 }
 
-export function getOrInitAdminCredentials(): { username: string; passwordHash: string } {
-  const credPath = getAdminCredentialsPath();
-  if (fs.existsSync(credPath)) {
-    try {
-      const raw = fs.readFileSync(credPath, "utf-8");
-      const parsed = JSON.parse(raw);
-      if (parsed.username && parsed.passwordHash) {
-        return parsed;
-      }
-    } catch {}
-  }
-
-  // Initial seed: default administrator account hashed securely with scrypt
-  const initialPassword = process.env["ADMIN_PASSWORD"] || "admin@2026";
-  const initialUser = {
-    username: "admin",
-    passwordHash: hashPassword(initialPassword),
-    createdAt: new Date().toISOString(),
-  };
-
-  atomicWriteJson(credPath, initialUser);
-  return initialUser;
+export interface AdminAuthResult {
+  success: boolean;
+  locked?: boolean;
+  message?: string;
 }
 
-export function verifyAdminLogin(usernameInput: string, passwordInput: string): boolean {
+export function verifyAdminLogin(
+  usernameInput: string,
+  passwordInput: string,
+  clientIp: string = "127.0.0.1"
+): AdminAuthResult {
   const cleanUser = (usernameInput || "").trim().toLowerCase();
   const cleanPass = (passwordInput || "").trim();
-  if (!cleanUser || !cleanPass) return false;
 
-  const validUsernames = ["admin", "admin@bg.tools", "superadmin"];
-  if (!validUsernames.includes(cleanUser)) {
-    return false;
+  // 1. Check lockout status first
+  const lockoutStatus = adminLockout.isLocked(clientIp, cleanUser);
+  if (lockoutStatus.locked) {
+    return {
+      success: false,
+      locked: true,
+      message: `Too many failed login attempts. Locked out for ${Math.ceil(lockoutStatus.remainingSeconds / 60)} more minutes.`,
+    };
   }
 
-  // 1. Check against server environment variable override if provided
-  const envAdminPass = process.env["ADMIN_PASSWORD"];
-  if (envAdminPass && cleanPass === envAdminPass) {
-    return true;
+  if (!cleanUser || !cleanPass) {
+    adminLockout.recordFailedAttempt(clientIp, cleanUser);
+    return { success: false, message: "Invalid administrator credentials." };
   }
 
-  // 2. Check against persistent server hashed credentials
-  const creds = getOrInitAdminCredentials();
-  return verifyPassword(cleanPass, creds.passwordHash);
+  // 2. Read ADMIN_USERNAME (default "admin@bg.tools") and ADMIN_PASSWORD from env
+  const expectedUser = (process.env["ADMIN_USERNAME"] || "admin@bg.tools").trim().toLowerCase();
+  const expectedPass = process.env["ADMIN_PASSWORD"] || "";
+
+  if (!expectedPass) {
+    adminLockout.recordFailedAttempt(clientIp, cleanUser);
+    return {
+      success: false,
+      message: "Server administrator credentials not configured in environment.",
+    };
+  }
+
+  // 3. Timing-safe comparison by hashing both sides to fixed-length SHA-256 buffers
+  const inputUserHash = crypto.createHash("sha256").update(cleanUser).digest();
+  const expectedUserHash = crypto.createHash("sha256").update(expectedUser).digest();
+  const isUserMatch = crypto.timingSafeEqual(inputUserHash, expectedUserHash);
+
+  const inputPassHash = crypto.createHash("sha256").update(cleanPass).digest();
+  const expectedPassHash = crypto.createHash("sha256").update(expectedPass).digest();
+  const isPassMatch = crypto.timingSafeEqual(inputPassHash, expectedPassHash);
+
+  if (isUserMatch && isPassMatch) {
+    adminLockout.resetAttempts(clientIp, cleanUser);
+    return { success: true };
+  }
+
+  const failRecord = adminLockout.recordFailedAttempt(clientIp, cleanUser);
+  if (failRecord.locked) {
+    return {
+      success: false,
+      locked: true,
+      message: "Too many failed login attempts. Account locked for 15 minutes.",
+    };
+  }
+
+  return {
+    success: false,
+    message: `Invalid administrator credentials. (${failRecord.remainingAttempts} attempts remaining)`,
+  };
 }
 
 // ─── ADMIN SESSION SIGNING & VERIFICATION ────────────────────────────────────
 function getSessionSecret(): string {
   const envSecret = process.env["ADMIN_SESSION_SECRET"];
-  if (envSecret && envSecret.length >= 16) {
+  if (envSecret && envSecret.length >= 32) {
     return envSecret;
+  }
+  if (process.env["NODE_ENV"] === "production") {
+    throw new Error("FATAL: In production, ADMIN_SESSION_SECRET must be at least 32 characters.");
   }
 
   const secretPath = path.join(process.cwd(), "data", ".session-secret");

@@ -104,7 +104,8 @@ const rgbToHsl = (r: number, g: number, b: number) => {
   g /= 255;
   b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0, l = (max + min) / 2;
+  const l = (max + min) / 2;
+  let h = 0, s = 0;
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -2431,7 +2432,7 @@ const removeWatermarkAdvanced = (
 
       let rSum = 0, gSum = 0, bSum = 0, totalWeight = 0;
       let cleanPixelCount = 0;
-      let lumVariance = 0;
+      const lumVariance = 0;
       let meanLum = 0;
 
       for (let dy = -inpaintRadius; dy <= inpaintRadius; dy++) {
@@ -2821,7 +2822,7 @@ const renderAsciiToImage = (text: string): string => {
   const usableW = TARGET_CANVAS_WIDTH - PADDING_X * 2; // 1104px
   // In monospace ('Courier New', 'Cascadia Code', monospace), character width ≈ 0.60 * fontSize
   const idealCharW = usableW / maxCols;
-  let idealFontSize = Math.floor(idealCharW / 0.6);
+  const idealFontSize = Math.floor(idealCharW / 0.6);
 
   // Clamp font size to a readable, crisp range (11px to 24px)
   let fontSize = Math.max(11, Math.min(24, idealFontSize));
@@ -3999,7 +4000,7 @@ export const performAdvancedOcr = async (
   };
 
   const postProcessed = recognizedLines.map((line) => {
-    let clean = line.replace(/\s*:\s*/g, ": ");
+    const clean = line.replace(/\s*:\s*/g, ": ");
     // Replace dictionary words if Levenshtein or case-insensitive match
     const words = clean.split(" ");
     const fixedWords = words.map((wrd) => {
@@ -4110,7 +4111,8 @@ const renderHtmlToImage = async (
   bgColor: string = "auto",
   format: "PNG" | "JPG" = "PNG"
 ): Promise<string> => {
-  return new Promise<string>(async (resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
+    (async () => {
     // 1. Create a scoped container attached to document.body
     const containerId = "html-render-sandbox-" + Math.random().toString(36).substring(2, 9);
     const container = document.createElement("div");
@@ -4282,6 +4284,7 @@ const renderHtmlToImage = async (
       cleanup();
       tryRawSvgFallback(html, width, height, bgColor, format, resolve, reject);
     }
+    })().catch(reject);
   });
 };
 
@@ -7613,7 +7616,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         let curH = img.height;
         if (curW > drawW * 2 && curH > drawH * 2) {
           let stepCanvas = document.createElement("canvas");
-          let stepCtx = stepCanvas.getContext("2d")!;
+          const stepCtx = stepCanvas.getContext("2d")!;
           stepCanvas.width = curW;
           stepCanvas.height = curH;
           stepCtx.imageSmoothingEnabled = true;

@@ -67,7 +67,7 @@ export function SingleImageBgRemovalWidget({
     if (!src) return "0 KB";
     if (src.startsWith("data:")) {
       const stringLength = src.length - src.indexOf(",") - 1;
-      const sizeInBytes = 4 * Math.ceil(stringLength / 3) * 0.5624896334383615;
+      const sizeInBytes = 4 * Math.ceil(stringLength / 3) * 0.5625;
       const sizeInKb = sizeInBytes / 1024;
       if (sizeInKb > 1024) {
         return `${(sizeInKb / 1024).toFixed(2)} MB`;

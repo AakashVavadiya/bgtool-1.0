@@ -110,8 +110,6 @@ function ToolPage() {
   const { slug } = Route.useParams();
   const tool = getTool(slug);
 
-  if (!tool) return null;
-
   const [isEnabled, setIsEnabled] = useState(() => AdminStore.isToolEnabled(slug));
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(() => !AdminStore.isToolEnabled(slug));
   const [dailyStatus, setDailyStatus] = useState(() => AdminStore.checkDailyToolLimit(slug));
@@ -167,6 +165,8 @@ function ToolPage() {
       window.removeEventListener("bg:show_add_credits_dialog", handleAddCreditsEvent);
     };
   }, [slug]);
+
+  if (!tool) return null;
 
   const Icon = tool.icon;
   const isBgRemover = tool.slug === "remove-background";

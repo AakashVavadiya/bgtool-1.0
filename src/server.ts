@@ -18,10 +18,13 @@ import {
   createAdminSessionToken,
   validateToolsConfigPayload,
   validateContactSubmission,
+  validateAdminEnvironment,
   sanitizeUser,
   migrateUsersData,
   atomicWriteJson,
 } from "./lib/security";
+
+validateAdminEnvironment();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -390,19 +393,27 @@ export default {
     // 6. Admin Authentication Endpoints
     if (url.pathname === "/api/admin/login" && request.method === "POST") {
       try {
+        const clientIp = extractClientIp(request);
         const body = (await request.json()) as any;
         const username = String(body.username || "");
         const password = String(body.password || "");
 
-        const isValid = verifyAdminLogin(username, password);
-        if (!isValid) {
+        const authResult = verifyAdminLogin(username, password, clientIp);
+        if (!authResult.success) {
+          const status = authResult.locked ? 429 : 401;
           return applySecurityHeaders(
-            createSafeErrorResponse(401, "Invalid administrator username or password.")
+            createSafeErrorResponse(
+              status,
+              authResult.message || "Invalid administrator username or password."
+            )
           );
         }
 
-        const token = createAdminSessionToken({ username });
-        const cookieVal = `admin_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=7200`;
+        const adminUsername = process.env["ADMIN_USERNAME"] || "admin@bg.tools";
+        const token = createAdminSessionToken({ username: adminUsername });
+        const isProd = process.env["NODE_ENV"] === "production";
+        const secureFlag = isProd ? "; Secure" : "";
+        const cookieVal = `admin_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=7200${secureFlag}`;
 
         return applySecurityHeaders(
           new Response(
@@ -411,7 +422,7 @@ export default {
               token,
               user: {
                 id: "adm_super_01",
-                username: "admin",
+                username: adminUsername,
                 name: "Admin Control Center",
                 role: "superadmin",
               },
