@@ -1,0 +1,37 @@
+name: CI & Security Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Typecheck, Security Tests & Production Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run TypeScript Type Check
+        run: npx tsc --noEmit
+
+      - name: Run Automated Security & Upload Protection Test Suite
+        run: npx tsx scripts/test_security_suite.ts
+
+      - name: Run Production Build
+        run: npm run build
+
+      - name: Run High/Critical Vulnerability Audit
+        run: npm audit --audit-level=high
