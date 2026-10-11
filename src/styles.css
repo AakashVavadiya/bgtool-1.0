@@ -181,11 +181,18 @@
   margin-bottom: -0.18em;
 
   @media (max-width: 768px) {
-    background-image: none !important;
-    -webkit-background-clip: border-box !important;
-    background-clip: border-box !important;
-    color: currentColor !important;
-    -webkit-text-fill-color: currentColor !important;
+    background-image: radial-gradient(
+      currentColor 1.1px,
+      transparent 1.15px
+    ), linear-gradient(
+      color-mix(in srgb, currentColor 60%, transparent),
+      color-mix(in srgb, currentColor 60%, transparent)
+    ) !important;
+    background-size: 2.8px 2.8px, 100% 100% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
   }
 
   & font,
@@ -201,11 +208,18 @@
     box-shadow: none !important;
 
     @media (max-width: 768px) {
-      background-image: none !important;
-      -webkit-background-clip: border-box !important;
-      background-clip: border-box !important;
-      color: currentColor !important;
-      -webkit-text-fill-color: currentColor !important;
+      background-image: radial-gradient(
+        currentColor 1.1px,
+        transparent 1.15px
+      ), linear-gradient(
+        color-mix(in srgb, currentColor 60%, transparent),
+        color-mix(in srgb, currentColor 60%, transparent)
+      ) !important;
+      background-size: 2.8px 2.8px, 100% 100% !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      color: transparent !important;
+      -webkit-text-fill-color: transparent !important;
     }
   }
 }
