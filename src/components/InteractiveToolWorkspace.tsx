@@ -418,6 +418,94 @@ const detectMagicSignature = (
   return { format: "Binary Data", description: "Raw Byte Sequence / Custom Stream", magicHex: hex };
 };
 
+function sanitizeHtmlForImageExport(html: string): Document {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  // 1. Remove dangerous executable and framing elements
+  const DANGEROUS_TAGS = [
+    "script",
+    "iframe",
+    "object",
+    "embed",
+    "applet",
+    "base",
+    "meta",
+    "form",
+    "noscript",
+    "portal",
+  ];
+  DANGEROUS_TAGS.forEach((tag) => {
+    doc.querySelectorAll(tag).forEach((el) => el.remove());
+  });
+
+  // 2. Strip inline event handlers and dangerous protocol attributes
+  const allElements = doc.querySelectorAll("*");
+  allElements.forEach((el) => {
+    const attrsToRemove: string[] = [];
+    for (let i = 0; i < el.attributes.length; i++) {
+      const attr = el.attributes[i];
+      if (!attr) continue;
+      const attrName = attr.name.toLowerCase();
+      if (attrName.startsWith("on")) {
+        attrsToRemove.push(attr.name);
+      } else if (
+        attrName === "href" ||
+        attrName === "src" ||
+        attrName === "action" ||
+        attrName === "formaction" ||
+        attrName === "data"
+      ) {
+        const val = attr.value.trim().toLowerCase();
+        if (
+          val.startsWith("javascript:") ||
+          val.startsWith("vbscript:") ||
+          val.startsWith("data:text/html")
+        ) {
+          attrsToRemove.push(attr.name);
+        }
+      }
+    }
+    attrsToRemove.forEach((name) => el.removeAttribute(name));
+
+    const inlineStyle = el.getAttribute("style");
+    if (inlineStyle) {
+      if (/expression\s*\(|javascript\s*:/i.test(inlineStyle)) {
+        el.removeAttribute("style");
+      }
+    }
+  });
+
+  // 3. Sanitize style tags
+  doc.querySelectorAll("style").forEach((styleEl) => {
+    const css = styleEl.textContent || "";
+    if (/expression\s*\(|javascript\s*:/i.test(css)) {
+      styleEl.remove();
+    }
+  });
+
+  // 4. Sanitize link tags
+  doc.querySelectorAll("link").forEach((linkEl) => {
+    const rel = (linkEl.getAttribute("rel") || "").toLowerCase();
+    if (rel !== "stylesheet") {
+      linkEl.remove();
+      return;
+    }
+    const href = (linkEl.getAttribute("href") || "").trim().toLowerCase();
+    if (
+      !href.startsWith("http://") &&
+      !href.startsWith("https://") &&
+      !href.startsWith("/") &&
+      !href.startsWith("./") &&
+      !href.startsWith("data:text/css")
+    ) {
+      linkEl.remove();
+    }
+  });
+
+  return doc;
+}
+
 const tryRawSvgFallback = (
   rawHtml: string,
   width: number,
@@ -428,8 +516,7 @@ const tryRawSvgFallback = (
   reject: (err: any) => void
 ) => {
   try {
-    const parser = new DOMParser();
-    const parsedDoc = parser.parseFromString(rawHtml, "text/html");
+    const parsedDoc = sanitizeHtmlForImageExport(rawHtml);
     const serializer = new XMLSerializer();
 
     // Extract styles and link tags
@@ -443,12 +530,7 @@ const tryRawSvgFallback = (
         .map((n) => serializer.serializeToString(n))
         .join("");
     } else {
-      bodyInner = rawHtml
-        .replace(/<!DOCTYPE[^>]*>/gi, "")
-        .replace(/<html[^>]*>/gi, "")
-        .replace(/<\/html>/gi, "")
-        .replace(/<body[^>]*>/gi, "")
-        .replace(/<\/body>/gi, "");
+      bodyInner = "";
     }
 
     const bgStyle = bgColor === "transparent" ? "" : `background-color: ${bgColor};`;
@@ -4139,9 +4221,8 @@ const renderHtmlToImage = async (
     container.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
     container.style.color = "#0f172a";
 
-    // Parse the input HTML
-    const parser = new DOMParser();
-    const parsedDoc = parser.parseFromString(html, "text/html");
+    // Parse and sanitize the input HTML
+    const parsedDoc = sanitizeHtmlForImageExport(html);
 
     // Extract all <style> elements and transform `body` / `html` selectors to target our container
     const styleTags = Array.from(parsedDoc.querySelectorAll("style"));
@@ -4192,7 +4273,7 @@ const renderHtmlToImage = async (
       }
       container.innerHTML = parsedDoc.body.innerHTML;
     } else {
-      container.innerHTML = html;
+      container.innerHTML = "";
     }
 
     // Apply explicit background color if specified

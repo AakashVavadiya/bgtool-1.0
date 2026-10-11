@@ -81,6 +81,9 @@ async function runTestSuite() {
   console.log("RUNNING BG TOOL AUTOMATED SECURITY AUDIT SUITE");
   console.log("=================================================\n");
 
+  // Clean rate limit tables so test runs are completely isolated and repeatable
+  rateLimitsRepo.reset();
+
   // TEST 1: Valid PNG image below 30 MB is accepted
   await test("Test 1: Valid file below 30 MB is accepted", () => {
     // 1x1 valid PNG buffer
@@ -319,6 +322,7 @@ async function runTestSuite() {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        "x-forwarded-for": "198.51.100.18",
       },
       body: JSON.stringify({ base64Image: "data:image/png;base64,TVqQAAMAAAAEAAAA" }),
     });
@@ -1056,6 +1060,24 @@ async function runTestSuite() {
     assert.strictEqual(r3.retryAfter > 0, true);
 
     limiter1.reset(testIp);
+  })();
+
+  // TEST 49: InteractiveToolWorkspace DOM-based XSS protections
+  await test("Test 49: InteractiveToolWorkspace sanitizes HTML, strips script tags and event handlers before rendering", () => {
+    const workspaceCode = fs.readFileSync(
+      path.join(process.cwd(), "src", "components", "InteractiveToolWorkspace.tsx"),
+      "utf8"
+    );
+
+    assert.ok(workspaceCode.includes("sanitizeHtmlForImageExport"), "Must contain sanitizeHtmlForImageExport");
+    assert.ok(workspaceCode.includes("script"), "Must sanitize script tags");
+    assert.ok(workspaceCode.includes("iframe"), "Must sanitize iframe tags");
+    assert.ok(workspaceCode.includes("startsWith(\"on\")"), "Must strip inline on* event handler attributes");
+    assert.ok(workspaceCode.includes("javascript:"), "Must strip javascript: pseudo-protocols");
+    assert.ok(
+      !workspaceCode.includes("container.innerHTML = html;"),
+      "Must never assign raw unsanitized html directly to container.innerHTML"
+    );
   })();
 
   // Summary
