@@ -4,7 +4,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminStore, type PurchasePlanConfig, type UiEditSettings } from "@/admin/lib/admin-store";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight } from "lucide-react";
+import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
 const links = [
@@ -194,35 +194,45 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-68 rounded-2xl border border-border bg-card p-2.5 shadow-2xl z-50 animate-scale-up space-y-2">
-                  <div className="px-3 py-2 border-b border-border">
-                    <p className="font-bold text-xs text-foreground truncate">{currentUser.name}</p>
-                    <p className="font-mono text-[11px] text-muted-foreground truncate">{currentUser.email}</p>
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <span className="inline-block rounded-md bg-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">
-                        {currentUser.plan} plan
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-900/10 text-amber-700 dark:text-amber-300 border border-amber-600/20 px-1.5 py-0.5 text-[9px] font-bold">
-                        <TokenCoin type="bronze" size="xs" />
-                        <span>10 Bronze / Day</span>
-                      </span>
+                <div
+                  role="dialog"
+                  aria-label="User Account Menu"
+                  className="absolute right-0 top-full mt-2 w-80 sm:w-[324px] rounded-3xl border border-border/80 bg-card/95 dark:bg-card/98 backdrop-blur-2xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200 ease-out space-y-2.5"
+                >
+                  {/* User Profile Header */}
+                  <div className="flex items-center gap-3 p-2 border-b border-border/60">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background font-display text-lg font-bold shadow-xs">
+                      {currentUser.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-sm text-foreground truncate">{currentUser.name}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground truncate">{currentUser.email}</p>
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-block rounded-md bg-secondary/80 border border-border/60 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {currentUser.plan} plan
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 px-2 py-0.5 text-[9px] font-bold">
+                          <TokenCoin type="bronze" size="xs" />
+                          <span>10 Bronze / Day</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Token Details Card */}
-                  <div className="rounded-xl bg-muted/40 p-2.5 space-y-2 text-xs">
-                    <div className="flex items-center justify-between pb-1 border-b border-border/50">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="rounded-2xl bg-muted/40 dark:bg-muted/20 border border-border/60 p-3 space-y-2 text-xs">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-border/50">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
                         Token Balance
                       </span>
-                      <span className="font-mono font-bold text-foreground">
+                      <span className="font-mono font-black text-foreground">
                         {currentUser.credits} Total
                       </span>
                     </div>
 
                     {/* Bronze Free Tokens */}
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <span className="flex items-center gap-1.5 text-muted-foreground font-medium">
                         <TokenCoin type="bronze" size="xs" />
                         <span>Bronze Tokens (Daily)</span>
                       </span>
@@ -233,7 +243,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
 
                     {/* Gold Paid Tokens */}
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <span className="flex items-center gap-1.5 text-muted-foreground font-medium">
                         <TokenCoin type="gold" size="xs" showGlow={(currentUser.paidCredits ?? 0) > 0} />
                         <span>Gold Tokens (Purchased)</span>
                       </span>
@@ -243,67 +253,67 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                     </div>
                   </div>
 
-                  {/* Special Offer Link in Profile */}
+                  {/* Special Offer Animated Banner */}
                   <Link
                     to="/pricing"
                     onClick={() => setProfileOpen(false)}
-                    className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20 transition-all cursor-pointer group"
+                    className="w-full flex items-center justify-between rounded-2xl px-3.5 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500/50 hover:shadow-sm transition-all duration-200 cursor-pointer group"
                   >
                     <span className="flex items-center gap-2">
-                      <Wand2 className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20 group-hover:rotate-12 transition-transform" />
-                      <span>Special Offer</span>
+                      <Wand2 className="h-4 w-4 text-amber-500 fill-amber-500/20 group-hover:rotate-12 transition-transform duration-300" />
+                      <span className="font-bold">Special Offer</span>
                     </span>
                     {activeOffer?.badge ? (
-                      <span className="rounded-md bg-amber-500 text-slate-950 font-black text-[10px] px-1.5 py-0.5 shadow-2xs max-w-[110px] truncate">
+                      <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 shadow-xs uppercase tracking-wider">
                         {activeOffer.badge}
                       </span>
-                    ) : activeOffer?.originalPriceINR && activeOffer?.priceINR && activeOffer.originalPriceINR > activeOffer.priceINR ? (
-                      <span className="rounded-md bg-amber-500 text-slate-950 font-black text-[10px] px-1.5 py-0.5 shadow-2xs">
-                        {Math.round(((activeOffer.originalPriceINR - activeOffer.priceINR) / activeOffer.originalPriceINR) * 100)}% OFF
-                      </span>
                     ) : (
-                      <span className="rounded-md bg-amber-500 text-slate-950 font-black text-[10px] px-1.5 py-0.5 shadow-2xs">
-                        Special
+                      <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 shadow-xs uppercase tracking-wider">
+                        60% OFF SPECIAL
                       </span>
                     )}
                   </Link>
 
-                  <Link
-                    to="/pricing"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <TokenCoin type="gold" size="xs" />
-                      <span>Get Gold Tokens</span>
-                    </span>
-                    <span className="font-mono font-bold text-amber-500">Top up →</span>
-                  </Link>
+                  {/* Navigation Links (Studio & Tools removed as requested) */}
+                  <div className="space-y-1 pt-0.5">
+                    <Link
+                      to="/pricing"
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/70 transition-colors group cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <TokenCoin type="gold" size="xs" />
+                        <span>Get Gold Tokens</span>
+                      </span>
+                      <span className="font-mono font-bold text-amber-500 group-hover:translate-x-0.5 transition-transform">
+                        Top up →
+                      </span>
+                    </Link>
 
-                  <Link
-                    to="/account"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                  >
-                    <span>Account & Settings</span>
-                  </Link>
+                    <Link
+                      to="/account"
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/70 transition-colors group cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Settings className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <span>Account & Settings</span>
+                      </span>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                    </Link>
+                  </div>
 
-                  <Link
-                    to="/"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                  >
-                    <span>Studio & Tools</span>
-                  </Link>
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    <span>Log out</span>
-                  </button>
+                  {/* Divider and Logout */}
+                  <div className="pt-1 border-t border-border/60">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition-colors cursor-pointer text-left group"
+                    >
+                      <LogOut className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+                      <span>Log out</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
