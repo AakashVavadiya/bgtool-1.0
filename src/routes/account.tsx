@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { TokenCoin } from "@/components/TokenCoins";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,6 +22,12 @@ import {
   Eye,
   EyeOff,
   Coins,
+  Check,
+  Zap,
+  KeyRound,
+  Calendar,
+  Clock,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -146,345 +154,569 @@ function AccountPage() {
 
   if (!currentUser) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-background px-4 py-16 text-foreground">
-        <div className="w-full max-w-md text-center space-y-4 rounded-3xl border border-border bg-card p-8 shadow-xl">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
-            <Lock className="h-7 w-7" />
-          </div>
-          <h2 className="font-display text-2xl font-bold">Authentication Required</h2>
-          <p className="text-sm text-muted-foreground">
-            Please log in to view and manage your account details.
-          </p>
-          <div className="pt-2">
-            <Link
-              to="/login"
-              search={{ redirect: "/account" } as any}
-              className="inline-flex items-center gap-2 rounded-2xl bg-foreground px-6 py-3 text-sm font-bold text-background hover:opacity-90 transition-opacity"
-            >
-              <span>Sign In</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+      <div className="min-h-screen bg-background text-foreground flex flex-col justify-between">
+        <SiteHeader />
+        <div className="flex-1 flex items-center justify-center px-4 py-16">
+          <div className="w-full max-w-md text-center space-y-5 rounded-3xl border border-border/80 bg-card/90 backdrop-blur-xl p-8 sm:p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-inner">
+              <Lock className="h-8 w-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="font-display text-2xl font-bold tracking-tight">Authentication Required</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Please log in to your account to view your token balances, update settings, and manage subscriptions.
+              </p>
+            </div>
+            <div className="pt-2">
+              <Link
+                to="/login"
+                search={{ redirect: "/account" } as any}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-sm font-bold text-background hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md cursor-pointer"
+              >
+                <span>Sign In to Continue</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
+        <SiteFooter />
       </div>
     );
   }
 
   const freeCredits = currentUser.freeCredits ?? 10;
   const paidCredits = currentUser.paidCredits ?? 0;
+  const planName = currentUser.plan.toUpperCase();
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20 pt-8 px-4 sm:px-6 max-w-5xl mx-auto space-y-8 animate-fade-in">
-      {/* Top Banner / User Hero */}
-      <div className="rounded-3xl border border-border bg-card/60 p-6 sm:p-8 backdrop-blur-sm shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4 sm:gap-5">
-          <div className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background font-display text-2xl sm:text-3xl font-bold shadow-md">
-            {currentUser.name.charAt(0).toUpperCase()}
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between selection:bg-amber-500/20">
+      <SiteHeader />
+
+      <main className="flex-1 relative overflow-hidden pb-20 pt-8 sm:pt-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full space-y-8 sm:space-y-10">
+        {/* Ambient Warm Gradient Backdrop */}
+        <div className="pointer-events-none absolute -top-40 right-10 h-96 w-96 rounded-full bg-amber-500/8 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/3 -left-20 h-80 w-80 rounded-full bg-orange-500/6 blur-3xl" />
+
+        {/* 1. Top Profile Hero Card */}
+        <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-card/85 backdrop-blur-2xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all duration-300">
+          {/* Decorative Top Accent Border */}
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400" />
+
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8">
+            {/* User Identity Info */}
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="relative shrink-0">
+                <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-foreground via-foreground/90 to-foreground/80 text-background font-display text-2xl sm:text-3xl font-black shadow-lg ring-4 ring-background">
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </div>
+                <span
+                  title="Account Active"
+                  className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-background ring-offset-0 animate-pulse"
+                />
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight truncate">
+                    {currentUser.name}
+                  </h1>
+                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                    {planName} PLAN
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5 text-xs text-muted-foreground flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{currentUser.email}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold">
+                    <ShieldCheck className="h-3 w-3" />
+                    <span>Verified</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-3 self-start lg:self-center">
+              <Link
+                to="/pricing"
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm px-5 py-3 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
+              >
+                <Wand2 className="h-4 w-4 group-hover:rotate-12 transition-transform duration-300" />
+                <span>Top Up Tokens</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-xs sm:text-sm px-4 py-3 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
+              >
+                <LogOut className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-                {currentUser.name}
-              </h1>
-              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-500 uppercase">
-                {currentUser.plan} plan
+        </section>
+
+        {/* 2. Interactive Token Balances Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          {/* Card 1: Total Available */}
+          <div className="group rounded-3xl border border-border/80 bg-card/90 backdrop-blur-xl p-5 sm:p-6 space-y-3 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Total Available
+              </span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
+                <Coins className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-3xl sm:text-4xl font-black text-foreground">
+                {currentUser.credits}
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground">Tokens</span>
+            </div>
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Ready across all tools</span>
+              <span className="font-semibold text-emerald-500 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Active
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-              <Mail className="h-3.5 w-3.5" />
-              <span>{currentUser.email}</span>
-              <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.2 text-[10px] font-bold">
-                <ShieldCheck className="h-3 w-3" />
-                <span>Verified</span>
+          </div>
+
+          {/* Card 2: Bronze Tokens (Daily Allowance) */}
+          <div className="group rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-card/90 to-card/90 backdrop-blur-xl p-5 sm:p-6 space-y-3 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-amber-500/50 transition-all duration-300 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <TokenCoin type="bronze" size="xs" />
+                <span>Bronze Tokens (Daily)</span>
+              </span>
+              <span className="rounded-md bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                10 Free / Day
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-3xl sm:text-4xl font-black text-amber-700 dark:text-amber-300">
+                {freeCredits}
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground">/ 10 allowance</span>
+            </div>
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-amber-500" />
+                <span>Refreshes daily at 00:00 UTC</span>
               </span>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <Link
-            to="/pricing"
-            className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors shadow-sm"
-          >
-            <Wand2 className="h-3.5 w-3.5" />
-            <span>Top Up Tokens</span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-500/20 transition-colors cursor-pointer"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Token Balances Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Tokens */}
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-2 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span>Total Available</span>
-            <Coins className="h-4 w-4 text-foreground" />
-          </div>
-          <div className="font-mono text-3xl font-black text-foreground">
-            {currentUser.credits}
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Active tokens across all 30 studio tools
-          </p>
-        </div>
-
-        {/* Bronze Free Tokens */}
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-2 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span className="flex items-center gap-1.5">
-              <TokenCoin type="bronze" size="xs" />
-              <span>Bronze Tokens (Daily)</span>
-            </span>
-          </div>
-          <div className="font-mono text-3xl font-black text-amber-700 dark:text-amber-300">
-            {freeCredits}
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Refreshes automatically to 10 every midnight UTC
-          </p>
-        </div>
-
-        {/* Gold Tokens */}
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-2 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-semibold">
-            <span className="flex items-center gap-1.5">
-              <TokenCoin type="gold" size="xs" showGlow={paidCredits > 0} />
-              <span>Gold Tokens (Purchased)</span>
-            </span>
-          </div>
-          <div className="font-mono text-3xl font-black text-amber-500">
-            {paidCredits}
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Permanent tokens that never expire
-          </p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-border gap-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("profile")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
-            activeTab === "profile"
-              ? "border-foreground text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <User className="h-4 w-4" />
-          <span>Profile Details</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("security")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
-            activeTab === "security"
-              ? "border-foreground text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Lock className="h-4 w-4" />
-          <span>Security & Password</span>
-        </button>
-      </div>
-
-      {/* Tab 1: Profile Details */}
-      {activeTab === "profile" && (
-        <div className="max-w-xl rounded-3xl border border-border bg-card p-6 sm:p-8 space-y-6 shadow-md animate-fade-in">
-          <div>
-            <h3 className="font-display text-xl font-bold">Personal Information</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Update your display name and review account details.
-            </p>
-          </div>
-
-          {profileSuccessMsg && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{profileSuccessMsg}</span>
+          {/* Card 3: Gold Tokens (Purchased) */}
+          <div className="group rounded-3xl border border-border/80 bg-card/90 backdrop-blur-xl p-5 sm:p-6 space-y-3 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <TokenCoin type="gold" size="xs" showGlow={paidCredits > 0} />
+                <span>Gold Tokens (Purchased)</span>
+              </span>
+              <span className="rounded-md bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-500">
+                Never Expire
+              </span>
             </div>
-          )}
-
-          {profileErrorMsg && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-600 dark:text-rose-400">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{profileErrorMsg}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-3xl sm:text-4xl font-black text-amber-500">
+                {paidCredits}
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground">Paid Tokens</span>
             </div>
-          )}
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground">Permanent pay-as-you-go</span>
+              <Link
+                to="/pricing"
+                className="font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1 transition-colors"
+              >
+                <span>Top up</span>
+                <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          </div>
+        </section>
 
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="account-name" className="text-xs font-semibold text-muted-foreground">
-                Display Name
-              </Label>
-              <Input
-                id="account-name"
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                required
-                disabled={isUpdatingProfile}
-                className="rounded-xl border-border bg-muted/40"
-              />
+        {/* 3. Navigation Tab Bar */}
+        <div className="flex items-center justify-start">
+          <div className="inline-flex p-1.5 rounded-2xl bg-muted/70 border border-border/60 backdrop-blur-md gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("profile")}
+              className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                activeTab === "profile"
+                  ? "bg-card text-foreground shadow-sm scale-[1.01]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+              }`}
+            >
+              <User className="h-4 w-4" />
+              <span>Profile Details</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("security")}
+              className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                activeTab === "security"
+                  ? "bg-card text-foreground shadow-sm scale-[1.01]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+              }`}
+            >
+              <Lock className="h-4 w-4" />
+              <span>Security & Password</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 4. Two-Column Dashboard Content Layout */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Main Active Form Column (7 cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Tab 1: Profile Details */}
+            {activeTab === "profile" && (
+              <div className="rounded-3xl border border-border/80 bg-card/90 backdrop-blur-xl p-6 sm:p-8 space-y-6 shadow-sm animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+                <div className="border-b border-border/60 pb-5">
+                  <h3 className="font-display text-xl font-bold text-foreground">Personal Information</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Update your account display name and check your registered email details.
+                  </p>
+                </div>
+
+                {profileSuccessMsg && (
+                  <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-600 dark:text-emerald-400 animate-in fade-in duration-200">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{profileSuccessMsg}</span>
+                  </div>
+                )}
+
+                {profileErrorMsg && (
+                  <div className="flex items-start gap-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-600 dark:text-rose-400 animate-in fade-in duration-200">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{profileErrorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleUpdateProfile} className="space-y-5">
+                  {/* Display Name Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="account-name" className="text-xs font-bold text-foreground">
+                      Display Name
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="account-name"
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        required
+                        disabled={isUpdatingProfile}
+                        className="rounded-2xl border-border bg-muted/30 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500 pl-10 text-sm h-11"
+                      />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      This name is displayed across your workspace and profile menu.
+                    </p>
+                  </div>
+
+                  {/* Registered Email */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-foreground">
+                        Email Address
+                      </Label>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <ShieldCheck className="h-3 w-3" />
+                        Verified via OTP
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type="email"
+                        value={currentUser.email}
+                        disabled
+                        className="rounded-2xl border-border bg-muted/20 opacity-80 cursor-not-allowed pl-10 text-sm h-11 font-mono"
+                      />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Primary email used for security OTP codes, transaction receipts, and recovery.
+                    </p>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isUpdatingProfile || editName === currentUser.name}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-xs sm:text-sm font-bold text-background hover:opacity-90 disabled:opacity-40 disabled:pointer-events-none hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer shadow-md"
+                    >
+                      {isUpdatingProfile ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Saving Changes...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" />
+                          <span>Save Changes</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Tab 2: Security & Password */}
+            {activeTab === "security" && (
+              <div className="rounded-3xl border border-border/80 bg-card/90 backdrop-blur-xl p-6 sm:p-8 space-y-6 shadow-sm animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+                <div className="border-b border-border/60 pb-5">
+                  <h3 className="font-display text-xl font-bold text-foreground">Security & Credentials</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Keep your account secure with a strong password. Changing your password revokes other active sessions.
+                  </p>
+                </div>
+
+                {passwordSuccessMsg && (
+                  <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-600 dark:text-emerald-400 animate-in fade-in duration-200">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{passwordSuccessMsg}</span>
+                  </div>
+                )}
+
+                {passwordErrorMsg && (
+                  <div className="flex items-start gap-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-600 dark:text-rose-400 animate-in fade-in duration-200">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{passwordErrorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} className="space-y-5">
+                  {/* Current Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="account-current-password" className="text-xs font-bold text-foreground">
+                      Current Password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="account-current-password"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                        placeholder="Enter current password"
+                        disabled={isChangingPassword}
+                        className="rounded-2xl border-border bg-muted/30 pr-10 pl-10 text-sm h-11 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                      />
+                      <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="account-new-password" className="text-xs font-bold text-foreground">
+                      New Password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="account-new-password"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        placeholder="At least 8 characters"
+                        disabled={isChangingPassword}
+                        className="rounded-2xl border-border bg-muted/30 pr-10 pl-10 text-sm h-11 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                      />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {newPassword && (
+                      <div className="flex items-center gap-2 pt-1 text-[11px]">
+                        <span
+                          className={`font-semibold ${
+                            newPassword.length >= 8 ? "text-emerald-500" : "text-amber-500"
+                          }`}
+                        >
+                          {newPassword.length >= 8 ? "✓ 8+ characters met" : "Must be at least 8 characters"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="account-confirm-new-password" className="text-xs font-bold text-foreground">
+                      Confirm New Password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="account-confirm-new-password"
+                        type="password"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        required
+                        placeholder="Re-enter new password"
+                        disabled={isChangingPassword}
+                        className="rounded-2xl border-border bg-muted/30 pl-10 text-sm h-11 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                      />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    {confirmNewPassword && (
+                      <p
+                        className={`text-[11px] font-semibold ${
+                          newPassword === confirmNewPassword ? "text-emerald-500" : "text-rose-500"
+                        }`}
+                      >
+                        {newPassword === confirmNewPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isChangingPassword || !currentPassword || !newPassword || newPassword !== confirmNewPassword}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-xs sm:text-sm font-bold text-background hover:opacity-90 disabled:opacity-40 disabled:pointer-events-none hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer shadow-md"
+                    >
+                      {isChangingPassword ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Updating Password...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-4 w-4" />
+                          <span>Update Password</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Account Hub & Perks Sidebar (5 cols) */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Card 1: Current Plan & Features */}
+            <div className="rounded-3xl border border-border/80 bg-card/90 backdrop-blur-xl p-6 space-y-5 shadow-sm">
+              <div className="flex items-center justify-between border-b border-border/60 pb-4">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+                    Subscription Status
+                  </span>
+                  <h4 className="font-display text-lg font-bold text-foreground">
+                    {planName} Plan
+                  </h4>
+                </div>
+                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase">
+                  Active
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs text-foreground">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mt-0.5">
+                    <Check className="h-3 w-3" />
+                  </div>
+                  <span>10 Bronze Tokens replenished daily at midnight UTC</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mt-0.5">
+                    <Check className="h-3 w-3" />
+                  </div>
+                  <span>Full access to AI background removal & image converters</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mt-0.5">
+                    <Check className="h-3 w-3" />
+                  </div>
+                  <span>High-speed cloud AI processing queue</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mt-0.5">
+                    <Check className="h-3 w-3" />
+                  </div>
+                  <span>Zero tracking & automatic privacy deletion</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/50">
+                <Link
+                  to="/pricing"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 font-bold text-xs py-3 px-4 transition-all duration-200 cursor-pointer group"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500 group-hover:rotate-12 transition-transform" />
+                  <span>Upgrade to Lite or Pro Plans</span>
+                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Email Address (Verified)
-              </Label>
-              <Input
-                type="email"
-                value={currentUser.email}
-                disabled
-                className="rounded-xl border-border bg-muted/20 opacity-70 cursor-not-allowed"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Primary email used for OTP verification and transactional notifications.
+            {/* Card 2: Pay-as-you-go Gold Tokens Banner */}
+            <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card/90 to-card/90 backdrop-blur-xl p-6 space-y-4 shadow-sm relative overflow-hidden group">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                    <Flame className="h-3 w-3 text-amber-500" />
+                    <span>Pay As You Go</span>
+                  </div>
+                  <h4 className="font-display text-base font-bold text-foreground">
+                    Need extra processing capacity?
+                  </h4>
+                </div>
+                <TokenCoin type="gold" size="sm" showGlow />
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Gold Tokens never expire and kick in automatically if you exceed your daily Bronze quota. Starting from just ₹199 with instant checkout.
+              </p>
+
+              <Link
+                to="/pricing"
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs px-5 py-2.5 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <span>Get Gold Tokens</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {/* Card 3: Account Protection Info */}
+            <div className="rounded-3xl border border-border/80 bg-card/60 backdrop-blur-xl p-5 space-y-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 font-bold text-foreground">
+                <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                <span>Account Protection Active</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Your credentials are encrypted using secure cryptographic hashing. All transactions are processed through RBI-authorized payment gateways.
               </p>
             </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isUpdatingProfile || editName === currentUser.name}
-                className="inline-flex items-center gap-2 rounded-2xl bg-foreground px-6 py-3 text-xs font-bold text-background hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer shadow-sm"
-              >
-                {isUpdatingProfile ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <span>Save Changes</span>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Tab 2: Security & Password */}
-      {activeTab === "security" && (
-        <div className="max-w-xl rounded-3xl border border-border bg-card p-6 sm:p-8 space-y-6 shadow-md animate-fade-in">
-          <div>
-            <h3 className="font-display text-xl font-bold">Change Password</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ensure your account stays protected by using a strong, unique password.
-            </p>
           </div>
+        </section>
+      </main>
 
-          {passwordSuccessMsg && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{passwordSuccessMsg}</span>
-            </div>
-          )}
-
-          {passwordErrorMsg && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-600 dark:text-rose-400">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{passwordErrorMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleChangePassword} className="space-y-4">
-            {/* Current Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="account-current-password" className="text-xs font-semibold text-muted-foreground">
-                Current Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="account-current-password"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  placeholder="Enter current password"
-                  disabled={isChangingPassword}
-                  className="rounded-xl border-border bg-muted/40 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* New Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="account-new-password" className="text-xs font-semibold text-muted-foreground">
-                New Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="account-new-password"
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  placeholder="At least 8 characters"
-                  disabled={isChangingPassword}
-                  className="rounded-xl border-border bg-muted/40 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm New Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="account-confirm-new-password" className="text-xs font-semibold text-muted-foreground">
-                Confirm New Password
-              </Label>
-              <Input
-                id="account-confirm-new-password"
-                type="password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                required
-                placeholder="Re-enter new password"
-                disabled={isChangingPassword}
-                className="rounded-xl border-border bg-muted/40"
-              />
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isChangingPassword || !currentPassword || !newPassword}
-                className="inline-flex items-center gap-2 rounded-2xl bg-foreground px-6 py-3 text-xs font-bold text-background hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer shadow-sm"
-              >
-                {isChangingPassword ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Updating Password...</span>
-                  </>
-                ) : (
-                  <span>Update Password</span>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <SiteFooter />
     </div>
   );
 }
