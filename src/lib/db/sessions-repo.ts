@@ -103,6 +103,8 @@ export const sessionsRepo = {
       paid_credits: row.paid_credits,
       total_processed: row.total_processed,
       status: row.status,
+      email_verified: row.email_verified ?? 0,
+      verified_at: row.verified_at ?? null,
       registered_at: row.registered_at,
       last_active: row.last_active,
       last_credit_reset: row.last_credit_reset,

@@ -1,6 +1,6 @@
 import React from "react";
 
-export type TokenType = "silver" | "gold";
+export type TokenType = "bronze" | "silver" | "gold" | "platinum";
 
 interface TokenCoinProps {
   type: TokenType;
@@ -23,8 +23,84 @@ export function TokenCoin({
   className = "",
   showGlow = false,
 }: TokenCoinProps) {
-  const isGold = type === "gold";
   const sizeClass = sizeMap[size];
+
+  // Bronze Coin (Free Daily Token — Resets Daily)
+  if (type === "bronze") {
+    return (
+      <span
+        className={`relative inline-flex items-center justify-center shrink-0 select-none ${sizeClass} ${className}`}
+        title="Bronze Token (Free Daily Token — Resets Daily)"
+      >
+        {showGlow && (
+          <span className="absolute inset-0 rounded-full bg-orange-500/40 blur-xs" />
+        )}
+        <svg
+          viewBox="0 0 32 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-full drop-shadow-xs"
+        >
+          <defs>
+            <linearGradient id="bronzeOuter" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#FED7AA" />
+              <stop offset="25%" stopColor="#FB923C" />
+              <stop offset="50%" stopColor="#EA580C" />
+              <stop offset="75%" stopColor="#C2410C" />
+              <stop offset="100%" stopColor="#7C2D12" />
+            </linearGradient>
+            <linearGradient id="bronzeInner" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#FFEDD5" />
+              <stop offset="35%" stopColor="#F97316" />
+              <stop offset="70%" stopColor="#C2410C" />
+              <stop offset="100%" stopColor="#9A3412" />
+            </linearGradient>
+            <linearGradient id="bronzeSheen" x1="6" y1="6" x2="26" y2="16" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.75" />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {/* Outer Coin Edge */}
+          <circle cx="16" cy="16" r="15" fill="url(#bronzeOuter)" stroke="#7C2D12" strokeWidth="1" />
+          {/* Inner Coin Rim */}
+          <circle cx="16" cy="16" r="12" fill="url(#bronzeInner)" stroke="#FFEDD5" strokeWidth="1" strokeDasharray="1.5 1.5" />
+          {/* Sheen Highlight */}
+          <path d="M 6 16 A 10 10 0 0 1 24 8 A 12 12 0 0 0 6 16 Z" fill="url(#bronzeSheen)" opacity="0.6" />
+          {/* Center Brand Stamp "bg." */}
+          <text
+            x="16"
+            y="19.6"
+            fontSize="9"
+            fontWeight="900"
+            fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            letterSpacing="-0.5"
+            textAnchor="middle"
+            fill="rgba(0, 0, 0, 0.25)"
+          >
+            bg.
+          </text>
+          <text
+            x="16"
+            y="19"
+            fontSize="9"
+            fontWeight="900"
+            fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            letterSpacing="-0.5"
+            textAnchor="middle"
+            fill="#431407"
+            stroke="#FED7AA"
+            strokeWidth="0.25"
+          >
+            bg<tspan fill="#FB923C">.</tspan>
+          </text>
+          {/* Top-Right Micro Accent */}
+          <circle cx="21" cy="10" r="1" fill="#FFFFFF" opacity="0.9" />
+        </svg>
+      </span>
+    );
+  }
+
+  const isGold = type === "gold";
 
   if (isGold) {
     return (

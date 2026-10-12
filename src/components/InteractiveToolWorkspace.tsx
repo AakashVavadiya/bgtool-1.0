@@ -76,7 +76,7 @@ import {
 import { toast } from "sonner";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
-import { Telemetry } from "@/lib/telemetry";
+import { Telemetry, REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { TokenCoin } from "@/components/TokenCoins";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { type Tool } from "@/lib/tools";
@@ -4665,6 +4665,21 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [origSize, setOrigSize] = useState<number>(0);
   const [newSize, setNewSize] = useState<number>(0);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [creditBalance, setCreditBalance] = useState(() => AuthUser.getCredits());
+
+  useEffect(() => {
+    const handleCreditUpdate = () => {
+      setCreditBalance(AuthUser.getCredits());
+    };
+    window.addEventListener("bg:credit_updated", handleCreditUpdate);
+    window.addEventListener(REALTIME_EVENT_NAME, handleCreditUpdate);
+    window.addEventListener("storage", handleCreditUpdate);
+    return () => {
+      window.removeEventListener("bg:credit_updated", handleCreditUpdate);
+      window.removeEventListener(REALTIME_EVENT_NAME, handleCreditUpdate);
+      window.removeEventListener("storage", handleCreditUpdate);
+    };
+  }, []);
 
   // Tool Specific Controls State
   // 1. Compress
@@ -7057,7 +7072,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
       Telemetry.trackToolUsage(tool.slug, tool.name);
       const cost = AdminStore.getToolCreditCost(tool.slug);
       if (cost > 0) {
-        AuthUser.deductCredit(cost);
+        AuthUser.deductCredit(cost, tool.slug);
       }
       AdminStore.recordToolDailyUsage(tool.slug);
     } catch (e) {
@@ -8947,16 +8962,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
     <div ref={workspaceContainerRef} className="w-full flex flex-col gap-8">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Smooth Centered Animation) ─────── */}
       {hasProcessed && !isEditingSettings && !isCodeEditorOpen && (
-        <div className="fixed top-4 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-3">
+        <div className="fixed top-3 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
           <aside
             aria-label="Quick download dynamic island"
-            className={`pointer-events-auto dynamic-island-box flex items-center gap-3 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[96vw] sm:max-w-2xl ${
+            className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
               showDynamicIsland ? "island-enter" : "island-exit"
             }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
-            <div className="flex items-center gap-3 pl-1 sm:pl-1.5">
-              <div className="relative h-11 w-11 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black">
+            <div className="flex items-center gap-2 sm:gap-3 pl-0.5 sm:pl-1.5 shrink-0">
+              <div className="relative h-9 w-9 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black">
                 {processedSrc || imageSrc ? (
                   <img
                     src={processedSrc || imageSrc || undefined}
@@ -8965,7 +8980,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-white/10 text-amber-400">
-                    <ImageIcon className="h-5 w-5" />
+                    <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 )}
               </div>
@@ -8989,9 +9004,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             <button
               type="button"
               onClick={handleDownload}
-              className="wobbly-btn flex items-center gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="wobbly-btn flex items-center gap-1.5 sm:gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-3 xs:px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <Download className="h-5 w-5 text-amber-500 shrink-0" />
+              <Download className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
               <span>
                 {tool.slug === "compress-image"
                   ? "Download Image"
@@ -9035,11 +9050,11 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 setIsEditingSettings(true);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="wobbly-btn flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
+              className="wobbly-btn flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
               title="Change Settings"
               aria-label="Change Settings"
             >
-              <Sliders className="h-5 w-5 text-amber-400" />
+              <Sliders className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" />
             </button>
 
             {/* 4. Upload Another File (Icon Only Button) */}
@@ -9048,11 +9063,11 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               onClick={() => {
                 fileInputRef.current?.click();
               }}
-              className="wobbly-btn flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
+              className="wobbly-btn flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
               title="Process another File"
               aria-label="Process another File"
             >
-              <FolderUp className="h-5 w-5 text-white" />
+              <FolderUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
           </aside>
         </div>

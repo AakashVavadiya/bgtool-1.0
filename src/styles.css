@@ -667,6 +667,8 @@ vite-error-overlay,
   isolation: isolate;
   position: relative;
   z-index: 100;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
 }
 
 .dynamic-island-box.island-enter {

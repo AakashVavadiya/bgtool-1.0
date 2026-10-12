@@ -8,14 +8,11 @@ import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import {
   Search,
   X,
-  Wand2,
   ArrowRight,
   Filter,
   CheckCircle2,
   Wrench,
   Layers,
-  Zap,
-  ShieldCheck,
   Cpu,
 } from "lucide-react";
 
@@ -101,23 +98,7 @@ export function ToolsDirectoryPage() {
         {/* Full-width Hero Header with aligned edge padding */}
         <section className="relative border-b border-border bg-gradient-to-b from-secondary/40 via-card/50 to-background px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 2xl:px-20 py-12 md:py-20 w-full">
           <div className="w-full">
-            {/* Top Badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 px-3.5 py-1 text-xs font-bold text-orange-600 dark:text-orange-400">
-                <Wand2 className="h-3.5 w-3.5" />
-                <span>Complete Toolkit Directory</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <Zap className="h-3.5 w-3.5" />
-                <span>10 Daily Free Credits Enabled</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-400">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>In-Browser Privacy</span>
-              </span>
-            </div>
-
-            <h1 className="mt-5 font-display text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+            <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               130+ Tools<span className="text-accent">.</span> One Workspace.
             </h1>
 

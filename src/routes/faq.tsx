@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { Faq, faqs } from "@/components/Faq";
+import { Faq, faqs, type FaqItem } from "@/components/Faq";
 import { buildPageMeta, SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/faq")({
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/faq")({
     const faqSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: faqs.map((f) => ({
+      mainEntity: faqs.map((f: FaqItem) => ({
         "@type": "Question",
         name: f.q,
         acceptedAnswer: {

@@ -75,8 +75,16 @@ function Auth() {
       if (isLogin) {
         const res = await AuthUser.login(email, password);
         if (!res.success) {
-          setErrorMsg(res.error || "Login failed. Please check your credentials.");
-          toast.error(res.error || "Login failed.");
+          if (res.requireVerification) {
+            setErrorMsg("Your email is not verified yet. Please enter your verification code.");
+            toast.error("Email verification required.");
+            setTimeout(() => {
+              window.location.href = `/verify-email?email=${encodeURIComponent(res.email || email)}`;
+            }, 800);
+          } else {
+            setErrorMsg(res.error || "Login failed. Please check your credentials.");
+            toast.error(res.error || "Login failed.");
+          }
           setIsLoading(false);
           return;
         }
@@ -84,7 +92,7 @@ function Auth() {
         toast.success(`Welcome back, ${res.user!.name}! (${res.user!.credits} credits available)`);
         setCurrentUser(res.user!);
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/account";
         }, 300);
       } else {
         const res = await AuthUser.signUp(name, email, password);
@@ -95,11 +103,10 @@ function Auth() {
           return;
         }
 
-        toast.success(`Account created! Welcome, ${res.user!.name}! 10 free daily credits added.`);
-        setCurrentUser(res.user!);
+        toast.success("Account created! A 6-digit verification code has been sent to your email.");
         setTimeout(() => {
-          window.location.href = "/";
-        }, 300);
+          window.location.href = `/verify-email?email=${encodeURIComponent(res.email || email)}`;
+        }, 800);
       }
     } catch {
       setErrorMsg("Authentication request failed. Please try again.");
@@ -300,6 +307,17 @@ function Auth() {
                     </button>
                   </div>
                 </div>
+
+                {isLogin && (
+                  <div className="flex justify-end pt-0.5">
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                )}
 
                 <button
                   type="submit"

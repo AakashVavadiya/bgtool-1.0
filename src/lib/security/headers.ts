@@ -1,10 +1,11 @@
 export const BASE_CSP =
   "default-src 'self'; " +
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://unpkg.com; " +
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://unpkg.com https://www.googletagmanager.com https://checkout.razorpay.com https://*.razorpay.com; " +
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-  "img-src 'self' data: blob: https://images.unsplash.com; " +
+  "img-src 'self' data: blob: https://images.unsplash.com https://flagcdn.com https://www.googletagmanager.com https://*.google-analytics.com https://*.razorpay.com; " +
   "font-src 'self' data: https://fonts.gstatic.com; " +
-  "connect-src 'self' blob: data: http://127.0.0.1:* http://localhost:* https://unpkg.com https://cdn.jsdelivr.net; " +
+  "connect-src 'self' blob: data: http://127.0.0.1:* http://localhost:* https://unpkg.com https://cdn.jsdelivr.net https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.razorpay.com https://*.razorpay.com https://lumberjack.razorpay.com https://lumberjack-cx.razorpay.com; " +
+  "frame-src 'self' https://api.razorpay.com https://*.razorpay.com https://checkout.razorpay.com; " +
   "worker-src 'self' blob:; " +
   "frame-ancestors 'self';";
 
@@ -12,7 +13,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "SAMEORIGIN",
   "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=*",
   "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
   "Content-Security-Policy": BASE_CSP,
 };

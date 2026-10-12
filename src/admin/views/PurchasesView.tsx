@@ -65,6 +65,7 @@ export function PurchasesView() {
     window.addEventListener(REALTIME_EVENT_NAME, handleUpdate);
     window.addEventListener("storage", handleUpdate);
     AdminStore.fetchPlansFromServer().then((data) => setPlans(data));
+    AdminStore.fetchPurchasesFromServer().then((data) => setPurchases(data));
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, handleUpdate);
       window.removeEventListener("storage", handleUpdate);

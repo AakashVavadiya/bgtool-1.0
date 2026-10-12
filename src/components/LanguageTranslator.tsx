@@ -21,16 +21,25 @@ interface LanguageTranslatorProps {
 export function LanguageFlag({
   countryCode,
   name,
+  flag,
   className = "w-5 h-3.5",
 }: {
   countryCode?: string;
   name?: string;
+  flag?: string;
   className?: string;
 }) {
   const [hasError, setHasError] = useState(false);
   const code = (countryCode || "us").toLowerCase();
 
   if (hasError) {
+    if (flag) {
+      return (
+        <span className="inline-flex items-center justify-center text-sm leading-none shrink-0" role="img" aria-label={name || code}>
+          {flag}
+        </span>
+      );
+    }
     return (
       <span className="inline-flex items-center justify-center rounded-xs bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold text-foreground border border-border">
         {code.toUpperCase()}
@@ -140,7 +149,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
             : "rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold hover:border-foreground"
         }`}
       >
-        <LanguageFlag countryCode={activeLanguageObj.countryCode} name={activeLanguageObj.name} />
+        <LanguageFlag countryCode={activeLanguageObj.countryCode} name={activeLanguageObj.name} flag={activeLanguageObj.flag} />
         <span className="font-extrabold truncate max-w-[85px] sm:max-w-[120px]">
           {activeLanguageObj.nativeName}
         </span>
@@ -201,7 +210,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
                 className="w-full flex items-center justify-between rounded-xl p-2.5 text-xs font-bold transition-all cursor-pointer border border-border bg-muted/40 hover:border-accent hover:bg-accent/10 hover:text-accent shadow-xs"
               >
                 <div className="flex items-center gap-2.5">
-                  <LanguageFlag countryCode="us" name="English" />
+                  <LanguageFlag countryCode="us" name="English" flag="🇺🇸" />
                   <div className="text-left">
                     <span className="block font-black text-foreground">Switch to English (Original)</span>
                     <span className="block text-[10px] text-muted-foreground">Restore original language</span>
@@ -282,7 +291,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
                   }`}
                 >
                   <div className="flex items-center gap-3 truncate">
-                    <LanguageFlag countryCode={l.countryCode} name={l.name} />
+                    <LanguageFlag countryCode={l.countryCode} name={l.name} flag={l.flag} />
                     <div className="text-left truncate">
                       <span className={`block text-xs truncate ${isSelected ? "font-black text-accent" : "font-bold text-foreground"}`}>
                         {l.nativeName}

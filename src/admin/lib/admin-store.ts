@@ -347,7 +347,7 @@ export const DEFAULT_PURCHASE_PLANS: PurchasePlanConfig[] = [
     ],
     imageUrl: "/images/festival-offer-banner.jpg",
     isFestivalOffer: true,
-    showInFestivalDialog: true,
+    showInFestivalDialog: false,
     dialogTitle: "Special Festival Celebration Offer! 🎉",
     dialogSubtitle: "Celebrate with 60% OFF & 150 extra bonus credits on our top-tier Creator Pack.",
     expiresAt: "Limited Time",
@@ -392,6 +392,7 @@ export const DEFAULT_PURCHASE_PLANS: PurchasePlanConfig[] = [
       "40 credits every month",
       "AI photo editor & background removal",
       "Erase & restore brush tools",
+      "Bulk editing",
       "Max quality exports",
     ],
     isFestivalOffer: false,
@@ -413,7 +414,7 @@ export const DEFAULT_PURCHASE_PLANS: PurchasePlanConfig[] = [
     features: [
       "200 credits every month",
       "Priority GPU processing pipeline",
-      "Bulk editing ⚡",
+      "Bulk editing & queue priority",
       "All AI models and 4K ultra downloads",
       "24/7 dedicated support",
     ],
@@ -751,6 +752,39 @@ export const AdminStore = {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "admin_purchases_updated" } }));
     }
+  },
+  async fetchPurchasesFromServer(): Promise<PurchaseTransaction[]> {
+    if (typeof window === "undefined") return this.getPurchases();
+    try {
+      const res = await fetch("/api/payments/orders", {
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const mapped: PurchaseTransaction[] = rows.map((r: any) => ({
+            id: r.payment_id || r.order_id,
+            userId: r.user_id || "guest",
+            userName: r.user_name || "Customer",
+            userEmail: r.user_email || "Customer",
+            type: r.plan_type === "subscription" ? "subscription" : "pack",
+            planName: r.plan_name,
+            creditsPurchased: r.credits,
+            amountINR: r.amount_inr,
+            currency: r.currency || "INR",
+            status: r.status === "completed" ? "completed" : r.status === "failed" ? "failed" : "completed",
+            paymentMethod: (r.payment_method || "Razorpay") as any,
+            date: r.created_at,
+          }));
+          saveToStorage(STORAGE_KEYS.PURCHASES, mapped);
+          return mapped;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return this.getPurchases();
   },
 
   // Purchase Plans & Festival Offers

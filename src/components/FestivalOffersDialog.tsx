@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AdminStore, type PurchasePlanConfig } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
+import { initiateRazorpayCheckout } from "@/lib/razorpay";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import {
   X,
@@ -73,20 +74,7 @@ export function FestivalOffersDialog({
     };
     window.addEventListener(OPEN_FESTIVAL_DIALOG_EVENT, handleOpenTrigger);
 
-    // Auto-open on initial visit for public visitors (if active offer exists and not yet dismissed in session)
-    if (!isAdminRoute) {
-      const dismissed = sessionStorage.getItem("bg.festival_dialog.dismissed");
-      if (!dismissed) {
-        const timer = setTimeout(() => {
-          const currentActive = AdminStore.getActiveFestivalOffer();
-          if (currentActive) {
-            setOffer(currentActive);
-            setIsOpen(true);
-          }
-        }, 1500);
-        return () => clearTimeout(timer);
-      }
-    }
+
 
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, refreshOffer);
@@ -111,19 +99,22 @@ export function FestivalOffersDialog({
 
   const handleClaimOffer = () => {
     setIsClaiming(true);
-    setTimeout(() => {
-      const txnId = AuthUser.addPurchasedCredits(
-        totalCredits,
-        offer.name,
-        offer.priceINR,
-        "UPI"
-      );
-      setIsClaiming(false);
-      handleClose();
-      toast.success(
-        `🎉 Congratulations! Claimed "${offer.name}". ${totalCredits} credits added to your account! (Ref: ${txnId})`
-      );
-    }, 600);
+    initiateRazorpayCheckout({
+      planName: offer.name,
+      planType: "festival",
+      credits: totalCredits,
+      amountINR: offer.priceINR,
+      onSuccess: () => {
+        setIsClaiming(false);
+        handleClose();
+      },
+      onError: () => {
+        setIsClaiming(false);
+      },
+      onCancel: () => {
+        setIsClaiming(false);
+      },
+    });
   };
 
   const bannerImg = offer.imageUrl || "/images/festival-offer-banner.jpg";

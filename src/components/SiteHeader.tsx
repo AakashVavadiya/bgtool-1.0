@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminStore, type PurchasePlanConfig, type UiEditSettings } from "@/admin/lib/admin-store";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
-import { openFestivalOffersDialog } from "@/components/FestivalOffersDialog";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
@@ -203,9 +202,9 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                       <span className="inline-block rounded-md bg-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">
                         {currentUser.plan} plan
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20 px-1.5 py-0.5 text-[9px] font-bold">
-                        <TokenCoin type="silver" size="xs" />
-                        <span>10 Free / Day</span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-900/10 text-amber-700 dark:text-amber-300 border border-amber-600/20 px-1.5 py-0.5 text-[9px] font-bold">
+                        <TokenCoin type="bronze" size="xs" />
+                        <span>10 Bronze / Day</span>
                       </span>
                     </div>
                   </div>
@@ -221,13 +220,13 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                       </span>
                     </div>
 
-                    {/* Silver Free Tokens */}
+                    {/* Bronze Free Tokens */}
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 text-muted-foreground">
-                        <TokenCoin type="silver" size="xs" />
-                        <span>Silver Tokens (Free)</span>
+                        <TokenCoin type="bronze" size="xs" />
+                        <span>Bronze Tokens (Daily)</span>
                       </span>
-                      <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                      <span className="font-mono font-bold text-amber-700 dark:text-amber-300">
                         {currentUser.freeCredits ?? 10}
                       </span>
                     </div>
@@ -244,13 +243,10 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                     </div>
                   </div>
 
-                  {/* Special Offer Button in Profile */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      openFestivalOffersDialog();
-                    }}
+                  {/* Special Offer Link in Profile */}
+                  <Link
+                    to="/pricing"
+                    onClick={() => setProfileOpen(false)}
                     className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20 transition-all cursor-pointer group"
                   >
                     <span className="flex items-center gap-2">
@@ -270,7 +266,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                         Special
                       </span>
                     )}
-                  </button>
+                  </Link>
 
                   <Link
                     to="/pricing"
@@ -282,6 +278,14 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                       <span>Get Gold Tokens</span>
                     </span>
                     <span className="font-mono font-bold text-amber-500">Top up →</span>
+                  </Link>
+
+                  <Link
+                    to="/account"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                  >
+                    <span>Account & Settings</span>
                   </Link>
 
                   <Link
@@ -305,11 +309,11 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
             </div>
           ) : (
             <div className="flex items-center gap-2.5 sm:gap-4">
-              <Link to="/auth" className="text-base font-medium transition-opacity hover:opacity-60 hidden sm:inline">
+              <Link to="/login" className="text-base font-medium transition-opacity hover:opacity-60 hidden sm:inline">
                 Log in
               </Link>
               <Link
-                to="/auth"
+                to="/signup"
                 className="rounded-full bg-foreground px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-semibold text-background transition-all hover:scale-[1.03] hover:opacity-90"
               >
                 Sign up

@@ -17,7 +17,6 @@ import { NotFoundPage } from "@/components/NotFoundPage";
 import { ErrorPage } from "@/components/ErrorPage";
 import { Telemetry } from "@/lib/telemetry";
 import { initWebsiteTranslator } from "@/lib/translator";
-import { FestivalOffersDialog } from "@/components/FestivalOffersDialog";
 import { RestrictedUserDialog } from "@/components/RestrictedUserDialog";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -60,6 +59,15 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-RP1JF6Q4TY" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-RP1JF6Q4TY');`,
+          }}
+        />
+        {/* Razorpay Checkout SDK */}
+        <script async src="https://checkout.razorpay.com/v1/checkout.js" />
       </head>
       <body>
         <div id="google_translate_element" style={{ display: "none" }} className="notranslate" aria-hidden="true" />
@@ -81,6 +89,14 @@ function RootComponent() {
 
     // Track Real Page View on Route change
     Telemetry.trackPageView(currentPath, document.title);
+
+    // Track Google Analytics 4 pageview on route change (SPA navigation)
+    if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+      (window as any).gtag("config", "G-RP1JF6Q4TY", {
+        page_path: currentPath,
+        page_title: typeof document !== "undefined" ? document.title : "",
+      });
+    }
 
     // Heartbeat every 20s to keep real-time live visitors counter accurate
     const timer = setInterval(() => {
@@ -138,7 +154,6 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster />
-      <FestivalOffersDialog />
       {!isAdminRoute && <RestrictedUserDialog />}
     </QueryClientProvider>
   );

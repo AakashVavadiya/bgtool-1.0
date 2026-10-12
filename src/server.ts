@@ -23,11 +23,21 @@ import {
   migrateUsersData,
   atomicWriteJson,
   handleSignup,
+  handleVerifyOtp,
+  handleResendOtp,
   handleLogin,
+  handleForgotPassword,
+  handleResetPassword,
+  handleUpdateProfile,
+  handleChangePassword,
   handleLogout,
   handleMe,
+  handleDeductCredit,
   getUserFromRequest,
   enforceToolCreditsAndLimits,
+  handleCreatePaymentOrder,
+  handleVerifyPayment,
+  handleListPayments,
 } from "./lib/security";
 import {
   usersRepo,
@@ -36,6 +46,7 @@ import {
   creditLedgerRepo,
   toolUsageRepo,
   rateLimitsRepo,
+  paymentsRepo,
 } from "./lib/db";
 
 validateAdminEnvironment();
@@ -110,19 +121,17 @@ function getPythonCommand(): string {
 let isSpawningPython = false;
 
 async function ensurePythonServerRunning(): Promise<boolean> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(2000) });
-      if (ping.ok) return true;
-    } catch {}
-    if (attempt < 2) await new Promise((r) => setTimeout(r, 500));
-  }
+  // Fast single check (timeout 300ms)
+  try {
+    const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(300) });
+    if (ping.ok) return true;
+  } catch {}
 
   if (isSpawningPython) {
-    for (let i = 0; i < 15; i++) {
-      await new Promise((r) => setTimeout(r, 1000));
+    for (let i = 0; i < 25; i++) {
+      await new Promise((r) => setTimeout(r, 150));
       try {
-        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(2000) });
+        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(300) });
         if (ping.ok) return true;
       } catch {}
     }
@@ -140,10 +149,10 @@ async function ensurePythonServerRunning(): Promise<boolean> {
     });
     child.unref();
 
-    for (let i = 0; i < 15; i++) {
-      await new Promise((r) => setTimeout(r, 1000));
+    for (let i = 0; i < 35; i++) {
+      await new Promise((r) => setTimeout(r, 120));
       try {
-        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(2000) });
+        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(300) });
         if (ping.ok) {
           console.log("[Auto-Spawn] Python background remover server is online!");
           return true;
@@ -157,6 +166,13 @@ async function ensurePythonServerRunning(): Promise<boolean> {
   } finally {
     isSpawningPython = false;
   }
+}
+
+// Auto-warmup Python server in background on launch
+if (typeof process !== "undefined") {
+  setTimeout(() => {
+    ensurePythonServerRunning().catch(() => {});
+  }, 100);
 }
 
 export default {
@@ -195,21 +211,10 @@ export default {
         );
       }
 
-      const creditCheck = await enforceToolCreditsAndLimits(request, "remove-bg", clientIp);
-      if (!creditCheck.allowed) {
-        const errRes = applySecurityHeaders(
-          createSafeErrorResponse(creditCheck.status || 402, creditCheck.error || "Credit limit exceeded.")
-        );
-        if (creditCheck.guestCookieHeader) {
-          errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
-        }
-        return errRes;
-      }
-
+      let creditCheck: any = null;
       try {
         const bodyText = await request.text();
         if (bodyText.length > 55 * 1024 * 1024) {
-          creditCheck.refund?.("Oversized payload");
           return applySecurityHeaders(
             createSafeErrorResponse(413, "File size exceeds the 30 MB limit. Please upload a smaller file.")
           );
@@ -219,23 +224,31 @@ export default {
         try {
           parsed = JSON.parse(bodyText);
         } catch {
-          creditCheck.refund?.("Invalid JSON");
           return applySecurityHeaders(createSafeErrorResponse(400, "Invalid JSON payload."));
         }
 
         const rawB64 = parsed.base64Image || parsed.image;
         if (!rawB64) {
-          creditCheck.refund?.("No image payload");
           return applySecurityHeaders(createSafeErrorResponse(400, "No image payload provided."));
         }
 
         // Validate actual file magic bytes and enforce 10MB limit
         const validation = validateBase64Payload(rawB64, TOOL_PROFILES["remove-bg"]);
         if (!validation.valid) {
-          creditCheck.refund?.(validation.error || "Invalid file format");
           return applySecurityHeaders(
             createSafeErrorResponse(validation.status || 400, validation.error || "Invalid file format.")
           );
+        }
+
+        creditCheck = await enforceToolCreditsAndLimits(request, "remove-bg", clientIp);
+        if (!creditCheck.allowed) {
+          const errRes = applySecurityHeaders(
+            createSafeErrorResponse(creditCheck.status || 402, creditCheck.error || "Credit limit exceeded.")
+          );
+          if (creditCheck.guestCookieHeader) {
+            errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+          }
+          return errRes;
         }
 
         let pythonResponse: Response;
@@ -579,9 +592,38 @@ export default {
       return handleSignup(request, clientIp);
     }
 
+    if (url.pathname === "/api/auth/verify-otp" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleVerifyOtp(request, clientIp);
+    }
+
+    if (url.pathname === "/api/auth/resend-otp" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleResendOtp(request, clientIp);
+    }
+
     if (url.pathname === "/api/auth/login" && request.method === "POST") {
       const clientIp = extractClientIp(request);
       return handleLogin(request, clientIp);
+    }
+
+    if (url.pathname === "/api/auth/forgot-password" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleForgotPassword(request, clientIp);
+    }
+
+    if (url.pathname === "/api/auth/reset-password" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleResetPassword(request, clientIp);
+    }
+
+    if (url.pathname === "/api/auth/profile" && request.method === "PUT") {
+      return handleUpdateProfile(request);
+    }
+
+    if (url.pathname === "/api/auth/change-password" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleChangePassword(request, clientIp);
     }
 
     if (url.pathname === "/api/auth/logout" && request.method === "POST") {
@@ -590,6 +632,26 @@ export default {
 
     if (url.pathname === "/api/auth/me" && request.method === "GET") {
       return handleMe(request);
+    }
+
+    if (url.pathname === "/api/auth/deduct-credit" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleDeductCredit(request, clientIp);
+    }
+
+    // 6.6 Razorpay Payments Endpoints
+    if (url.pathname === "/api/payments/create-order" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleCreatePaymentOrder(request, clientIp);
+    }
+
+    if (url.pathname === "/api/payments/verify" && request.method === "POST") {
+      const clientIp = extractClientIp(request);
+      return handleVerifyPayment(request, clientIp);
+    }
+
+    if (url.pathname === "/api/payments/orders" && request.method === "GET") {
+      return handleListPayments(request);
     }
 
     // 7. /api/contact

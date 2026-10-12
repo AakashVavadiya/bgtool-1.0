@@ -6,3 +6,7 @@ export * from "./inquiries-repo";
 export * from "./tool-usage-repo";
 export * from "./rate-limits-repo";
 export * from "./config-repo";
+export * from "./payments-repo";
+export * from "./otp-repo";
+export * from "./password-reset-repo";
+export * from "./security-events-repo";

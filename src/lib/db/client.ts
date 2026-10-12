@@ -56,6 +56,8 @@ function initSchema(db: Database.Database): void {
       paid_credits REAL NOT NULL DEFAULT 0,
       total_processed INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'active',
+      email_verified INTEGER NOT NULL DEFAULT 0,
+      verified_at TEXT,
       registered_at TEXT NOT NULL,
       last_active TEXT NOT NULL,
       last_credit_reset TEXT NOT NULL
@@ -75,6 +77,52 @@ function initSchema(db: Database.Database): void {
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions(token_hash);
     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+
+    CREATE TABLE IF NOT EXISTS otp_challenges (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      otp_hash TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      max_attempts INTEGER NOT NULL DEFAULT 5,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      created_at TEXT NOT NULL,
+      ip TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_otp_challenges_email_purpose ON otp_challenges(email, purpose);
+    CREATE INDEX IF NOT EXISTS idx_otp_challenges_user ON otp_challenges(user_id);
+    CREATE INDEX IF NOT EXISTS idx_otp_challenges_expires ON otp_challenges(expires_at);
+
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      token_hash TEXT UNIQUE NOT NULL,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      created_at TEXT NOT NULL,
+      ip TEXT
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets(token_hash);
+    CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
+    CREATE INDEX IF NOT EXISTS idx_password_resets_email ON password_resets(email);
+
+    CREATE TABLE IF NOT EXISTS security_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      user_id TEXT,
+      email TEXT,
+      ip TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_security_events_type_date ON security_events(event_type, created_at);
+    CREATE INDEX IF NOT EXISTS idx_security_events_ip_date ON security_events(ip, created_at);
 
     CREATE TABLE IF NOT EXISTS credit_ledger (
       id TEXT PRIMARY KEY,
@@ -127,7 +175,46 @@ function initSchema(db: Database.Database): void {
       value TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id TEXT PRIMARY KEY,
+      order_id TEXT UNIQUE NOT NULL,
+      payment_id TEXT UNIQUE,
+      user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      user_name TEXT,
+      user_email TEXT,
+      plan_name TEXT NOT NULL,
+      plan_type TEXT NOT NULL DEFAULT 'pack',
+      credits REAL NOT NULL,
+      amount_inr REAL NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'INR',
+      status TEXT NOT NULL DEFAULT 'created',
+      payment_method TEXT NOT NULL DEFAULT 'Razorpay',
+      signature TEXT,
+      receipt TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_payment_id ON payments(payment_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
   `);
+
+  // Migrate existing users table if columns are missing
+  try {
+    const columns = db.pragma("table_info(users)") as Array<{ name: string }>;
+    const colNames = new Set(columns.map((c) => c.name));
+    if (!colNames.has("email_verified")) {
+      db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0;");
+    }
+    if (!colNames.has("verified_at")) {
+      db.exec("ALTER TABLE users ADD COLUMN verified_at TEXT;");
+    }
+  } catch (err) {
+    console.error("[DB Schema Migration Warning]", err);
+  }
 }
 
 export function closeDb(): void {

@@ -20,7 +20,7 @@
     ],
     "imageUrl": "/images/festival-offer-banner.jpg",
     "isFestivalOffer": true,
-    "showInFestivalDialog": true,
+    "showInFestivalDialog": false,
     "dialogTitle": "Special Festival Celebration Offer! 🎉",
     "dialogSubtitle": "Celebrate with 60% OFF & 150 extra bonus credits on our top-tier Creator Pack.",
     "expiresAt": "Limited Time",

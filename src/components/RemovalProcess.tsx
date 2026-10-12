@@ -227,15 +227,14 @@ export function RemovalProcess() {
 
     const startTime = performance.now();
 
-    // Step 0: Uploading image
-    await new Promise((r) => setTimeout(r, 320));
-    setStep(1); // Detecting subject
-    await new Promise((r) => setTimeout(r, 380));
-    setStep(2); // Refining edges
-    await new Promise((r) => setTimeout(r, 400));
-    setStep(3); // Rebuilding alpha
-    await new Promise((r) => setTimeout(r, 350));
-    setStep(4); // Exporting PNG
+    // Advance steps asynchronously in the background while fetch is in-flight
+    let currentStep = 0;
+    const stepTimer = setInterval(() => {
+      currentStep++;
+      if (currentStep < steps.length) {
+        setStep(currentStep);
+      }
+    }, 250);
 
     let outputResult = "";
 
@@ -249,6 +248,21 @@ export function RemovalProcess() {
           smoothEdge: 0.0,
         }),
       });
+      clearInterval(stepTimer);
+      if (res.status === 402) {
+        const errData = await res.json().catch(() => ({}));
+        window.dispatchEvent(
+          new CustomEvent("bg:show_add_credits_dialog", {
+            detail: {
+              toolName: "Background Remover",
+              toolSlug: "remove-background",
+              creditCost: cost,
+              currentCredits: 0,
+            },
+          })
+        );
+        throw new Error(errData.error || "Credit limit exceeded. Please top up your tokens.");
+      }
       const data = await res.json();
       if (data.success && data.base64Image) {
         outputResult = data.base64Image;
@@ -256,13 +270,13 @@ export function RemovalProcess() {
         throw new Error(data.error || "AI background removal failed. Please check server.");
       }
     } catch (err: any) {
+      clearInterval(stepTimer);
       console.error("AI removal error:", err);
       toast.error(err.message || "Failed to remove background with AI. Please try again.");
       setProcessing(false);
       return;
     }
 
-    await new Promise((r) => setTimeout(r, 250));
     const endTime = performance.now();
     const finalSec = parseFloat(((endTime - startTime) / 1000).toFixed(2));
 
@@ -281,7 +295,7 @@ export function RemovalProcess() {
       const cost = AdminStore.getToolCreditCost("remove-background");
       if (cost > 0) {
         import("@/lib/auth-user").then(({ AuthUser }) => {
-          AuthUser.deductCredit(cost);
+          AuthUser.deductCredit(cost, "remove-background", true);
         });
       }
     });
@@ -339,16 +353,16 @@ export function RemovalProcess() {
     <div ref={containerRef} className="w-full">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll) ─────── */}
       {hasProcessed && !showCutoutEditor && (
-        <div className="fixed top-4 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-3">
+        <div className="fixed top-3 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
           <aside
             aria-label="Quick download dynamic island"
-            className={`pointer-events-auto dynamic-island-box flex items-center gap-3 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[96vw] sm:max-w-2xl ${
+            className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
               showDynamicIsland ? "island-enter" : "island-exit"
             }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
-            <div className="flex items-center gap-3 pl-1 sm:pl-1.5">
-              <div className="relative h-11 w-11 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black">
+            <div className="flex items-center gap-2 sm:gap-3 pl-0.5 sm:pl-1.5 shrink-0">
+              <div className="relative h-9 w-9 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black">
                 {afterImage || beforeImage ? (
                   <img
                     src={afterImage || beforeImage || undefined}
@@ -357,7 +371,7 @@ export function RemovalProcess() {
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-white/10 text-amber-400">
-                    <ImageIcon className="h-5 w-5" />
+                    <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 )}
               </div>
@@ -375,10 +389,10 @@ export function RemovalProcess() {
             <button
               type="button"
               onClick={() => setShowCutoutEditor(true)}
-              className="wobbly-btn flex items-center gap-2 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black px-4 sm:px-5 py-2.5 sm:py-3 text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="wobbly-btn flex items-center gap-1.5 sm:gap-2 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black px-2.5 xs:px-3 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
               title="Edit cutout with remove brush, restore brush, and magic brush"
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Edit</span>
             </button>
 
@@ -386,21 +400,21 @@ export function RemovalProcess() {
             <button
               type="button"
               onClick={handleDownload}
-              className="wobbly-btn flex items-center gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="wobbly-btn flex items-center gap-1.5 sm:gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-3 xs:px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <Download className="h-5 w-5 text-amber-500 shrink-0" />
-              <span>Download PNG</span>
+              <Download className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
+              <span>Download<span className="hidden xs:inline"> PNG</span></span>
             </button>
 
-            {/* 3. Upload Another File (Icon Only Button) */}
+            {/* 4. Upload Another File (Icon Only Button) */}
             <button
               type="button"
               onClick={handleReset}
-              className="wobbly-btn flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
+              className="wobbly-btn flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
               title="Process another File"
               aria-label="Process another File"
             >
-              <FolderUp className="h-5 w-5 text-white" />
+              <FolderUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
           </aside>
         </div>
@@ -470,26 +484,29 @@ export function RemovalProcess() {
           {/* Left Column: Canvas Preview Area */}
           <div className="flex flex-col gap-3 w-full">
             {/* Top Canvas Header Bar */}
-            <div className="flex items-center justify-between px-2 py-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 px-1 sm:px-2 py-1 w-full">
+              <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">
                   {hasProcessed ? "Cutout Result" : "Uploaded Image"}
                 </span>
                 {fileName && (
-                  <span className="rounded-md bg-secondary/60 px-2 py-0.5 text-xs font-medium text-foreground max-w-[200px] truncate">
+                  <span
+                    className="rounded-md bg-secondary/60 px-2 py-0.5 text-xs font-medium text-foreground max-w-[130px] xs:max-w-[180px] sm:max-w-[200px] truncate"
+                    title={fileName}
+                  >
                     {fileName}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center flex-wrap gap-2 justify-between sm:justify-end">
                 {hasProcessed && (
                   <>
-                    <div className="flex items-center rounded-lg border border-border bg-card p-0.5 text-xs font-semibold">
+                    <div className="flex items-center rounded-lg border border-border bg-card p-0.5 text-xs font-semibold shrink-0">
                       <button
                         type="button"
                         onClick={() => setBgType("checker")}
-                        className={`px-2.5 py-1 rounded-md transition-all ${
+                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${
                           bgType === "checker" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
@@ -498,7 +515,7 @@ export function RemovalProcess() {
                       <button
                         type="button"
                         onClick={() => setBgType("white")}
-                        className={`px-2.5 py-1 rounded-md transition-all ${
+                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${
                           bgType === "white" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
@@ -507,7 +524,7 @@ export function RemovalProcess() {
                       <button
                         type="button"
                         onClick={() => setBgType("black")}
-                        className={`px-2.5 py-1 rounded-md transition-all ${
+                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${
                           bgType === "black" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
@@ -518,7 +535,7 @@ export function RemovalProcess() {
                     <button
                       type="button"
                       onClick={() => setShowCutoutEditor(true)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:bg-secondary cursor-pointer shadow-xs"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:bg-secondary cursor-pointer shadow-xs shrink-0"
                       title="Edit cutout with remove brush, restore brush, and magic brush"
                     >
                       <Pencil className="h-3.5 w-3.5 text-primary" /> Edit Cutout
@@ -529,16 +546,16 @@ export function RemovalProcess() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-all"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 sm:px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-all shrink-0"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Change Image
+                  <RefreshCw className="h-3.5 w-3.5" /> <span className="hidden xs:inline">Change Image</span><span className="xs:hidden">Change</span>
                 </button>
               </div>
             </div>
 
             {/* Main Visual Canvas Frame */}
             <div
-              className="group relative flex h-[540px] sm:h-[620px] md:h-[680px] lg:h-[720px] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-border bg-card transition-all shadow-xl select-none"
+              className="group relative flex h-[440px] xs:h-[500px] sm:h-[620px] md:h-[680px] lg:h-[720px] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-border bg-card transition-all shadow-xl select-none"
               style={hasProcessed && bgType === "checker" ? checkerStyle : { backgroundColor: bgType === "black" ? "#0a0a0c" : bgType === "white" ? "#ffffff" : undefined }}
             >
               {/* Loaded Image Display */}
@@ -546,7 +563,7 @@ export function RemovalProcess() {
                 <img
                   src={beforeImage}
                   alt="Original uploaded"
-                  className="max-h-full max-w-full object-contain p-6 md:p-8 transition-opacity duration-300"
+                  className="max-h-full max-w-full object-contain p-4 sm:p-6 md:p-8 transition-opacity duration-300"
                 />
               ) : null}
 
@@ -555,7 +572,7 @@ export function RemovalProcess() {
                 <img
                   src={afterImage}
                   alt="Cutout PNG"
-                  className="max-h-full max-w-full object-contain p-6 md:p-8 transition-opacity duration-300"
+                  className="max-h-full max-w-full object-contain p-4 sm:p-6 md:p-8 transition-opacity duration-300 pb-16 sm:pb-8"
                 />
               ) : null}
 
@@ -563,42 +580,42 @@ export function RemovalProcess() {
               {processing ? (
                 <>
                   <span className="scan-sweep pointer-events-none absolute inset-x-0 top-0 h-full z-10" />
-                  <span className="pointer-events-none absolute inset-6 rounded-2xl border-2 border-dashed border-accent/80 animate-pulse z-10" />
+                  <span className="pointer-events-none absolute inset-4 sm:inset-6 rounded-2xl border-2 border-dashed border-accent/80 animate-pulse z-10" />
                 </>
               ) : null}
 
-              {/* Bottom Status / Duration Pill */}
-              <div className="absolute bottom-6 left-6 flex items-center gap-2.5 rounded-full bg-card/95 px-5 py-2.5 text-xs md:text-sm font-bold backdrop-blur shadow-md border border-border z-20">
+              {/* Status / Duration Pill: Top-left on mobile to prevent collision, bottom-left on desktop */}
+              <div className="absolute top-3 left-3 sm:top-auto sm:bottom-6 sm:left-6 flex items-center gap-2 sm:gap-2.5 rounded-full bg-card/95 px-3.5 sm:px-5 py-1.5 sm:py-2.5 text-xs md:text-sm font-bold backdrop-blur shadow-md border border-border z-20 max-w-[calc(100%-24px)]">
                 {processing ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                    <span>{steps[step]?.label || "Processing"}…</span>
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin text-amber-500 shrink-0" />
+                    <span className="truncate">{steps[step]?.label || "Processing"}…</span>
                   </>
                 ) : hasProcessed ? (
                   <>
-                    <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Background removed · {duration || 0.8}s</span>
+                    <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 shrink-0" />
+                    <span className="truncate">Background removed · {duration || 0.8}s</span>
                   </>
                 ) : (
                   <>
-                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                    <span>Image ready</span>
+                    <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">Image ready</span>
                   </>
                 )}
               </div>
 
-              {/* Bottom Right Actions on Canvas (Edit + Download) */}
+              {/* Bottom Actions on Canvas (Edit + Download) */}
               {hasProcessed && afterImage && !processing ? (
-                <div className="absolute bottom-6 right-6 flex items-center gap-2.5 z-20">
+                <div className="absolute bottom-3 inset-x-3 sm:inset-x-auto sm:bottom-6 sm:right-6 flex items-center justify-end gap-2 sm:gap-2.5 z-20">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowCutoutEditor(true);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full border-2 border-foreground/30 bg-background/90 backdrop-blur-md px-5 py-3 text-xs md:text-sm font-extrabold text-foreground shadow-xl transition-all hover:scale-105 hover:bg-foreground hover:text-background cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full border-2 border-foreground/30 bg-background/90 backdrop-blur-md px-3.5 sm:px-5 py-2.5 sm:py-3 text-xs md:text-sm font-extrabold text-foreground shadow-xl transition-all hover:scale-105 hover:bg-foreground hover:text-background cursor-pointer shrink-0"
                   >
-                    <Pencil className="h-4 w-4" /> Edit Cutout
+                    <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>Edit<span className="hidden xs:inline"> Cutout</span></span>
                   </button>
                   <button
                     type="button"
@@ -606,9 +623,9 @@ export function RemovalProcess() {
                       e.stopPropagation();
                       handleDownload();
                     }}
-                    className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-xs md:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer"
+                    className="inline-flex items-center justify-center flex-1 sm:flex-none gap-1.5 sm:gap-2 rounded-full bg-foreground px-4 sm:px-6 py-2.5 sm:py-3 text-xs md:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
                   >
-                    <Download className="h-4 w-4" /> Download PNG →
+                    <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 sm:text-inherit shrink-0" /> <span>Download PNG →</span>
                   </button>
                 </div>
               ) : null}
@@ -616,7 +633,7 @@ export function RemovalProcess() {
           </div>
 
           {/* Right Column: Pipeline & Settings Control Panel */}
-          <div className="rounded-3xl border-2 border-border bg-card p-6 md:p-8 shadow-md flex flex-col justify-between min-h-[540px] sm:min-h-[620px] md:min-h-[680px] lg:min-h-[720px] lg:sticky lg:top-6">
+          <div className="rounded-3xl border-2 border-border bg-card p-5 sm:p-6 md:p-8 shadow-md flex flex-col justify-between min-h-0 sm:min-h-[620px] md:min-h-[680px] lg:min-h-[720px] lg:sticky lg:top-6">
             <div>
               <div className="flex items-center justify-between text-xs md:text-sm font-bold text-foreground">
                 <span>Pipeline Status</span>

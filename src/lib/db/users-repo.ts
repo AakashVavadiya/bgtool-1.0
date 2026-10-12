@@ -13,6 +13,8 @@ export interface DbUser {
   paid_credits: number;
   total_processed: number;
   status: "active" | "restricted" | "banned";
+  email_verified: number;
+  verified_at: string | null;
   registered_at: string;
   last_active: string;
   last_credit_reset: string;
@@ -29,6 +31,8 @@ export function toSafeUser(user: DbUser): SafeUser {
     paidCredits: user.paid_credits,
     totalProcessed: user.total_processed,
     status: user.status,
+    emailVerified: user.email_verified === 1,
+    verifiedAt: user.verified_at,
     registeredAt: user.registered_at,
     lastActive: user.last_active,
     lastCreditReset: user.last_credit_reset,
@@ -65,20 +69,23 @@ export const usersRepo = {
     freeCredits?: number;
     paidCredits?: number;
     status?: "active" | "restricted" | "banned";
+    emailVerified?: boolean;
   }): DbUser {
     const db = getDb();
     const now = new Date().toISOString();
     const today = now.slice(0, 10);
     const id = user.id || `usr_${crypto.randomBytes(8).toString("hex")}`;
     const cleanEmail = user.email.trim().toLowerCase();
+    const emailVerified = user.emailVerified ? 1 : 0;
+    const verifiedAt = user.emailVerified ? now : null;
 
     const insert = db.prepare(`
       INSERT INTO users (
         id, name, email, password_hash, plan, credits, free_credits, paid_credits,
-        total_processed, status, registered_at, last_active, last_credit_reset
+        total_processed, status, email_verified, verified_at, registered_at, last_active, last_credit_reset
       ) VALUES (
         @id, @name, @email, @password_hash, @plan, @credits, @free_credits, @paid_credits,
-        @total_processed, @status, @registered_at, @last_active, @last_credit_reset
+        @total_processed, @status, @email_verified, @verified_at, @registered_at, @last_active, @last_credit_reset
       )
     `);
 
@@ -97,6 +104,8 @@ export const usersRepo = {
       paid_credits: paidCredits,
       total_processed: 0,
       status: user.status || "active",
+      email_verified: emailVerified,
+      verified_at: verifiedAt,
       registered_at: now,
       last_active: now,
       last_credit_reset: today,
@@ -187,7 +196,41 @@ export const usersRepo = {
         });
       }
     });
+    runTx();
+  },
 
+  markEmailVerified(userId: string): void {
+    const db = getDb();
+    const now = new Date().toISOString();
+    const runTx = db.transaction(() => {
+      db.prepare("UPDATE users SET email_verified = 1, verified_at = ? WHERE id = ?").run(now, userId);
+    });
+    runTx();
+  },
+
+  updatePassword(userId: string, newPasswordHash: string): void {
+    const db = getDb();
+    const now = new Date().toISOString();
+    const runTx = db.transaction(() => {
+      db.prepare("UPDATE users SET password_hash = ?, last_active = ? WHERE id = ?").run(newPasswordHash, now, userId);
+    });
+    runTx();
+  },
+
+  updateName(userId: string, name: string): void {
+    const db = getDb();
+    const cleanName = name.trim().slice(0, 100);
+    const runTx = db.transaction(() => {
+      db.prepare("UPDATE users SET name = ? WHERE id = ?").run(cleanName, userId);
+    });
+    runTx();
+  },
+
+  deleteUser(userId: string): void {
+    const db = getDb();
+    const runTx = db.transaction(() => {
+      db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+    });
     runTx();
   },
 };

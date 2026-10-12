@@ -54,6 +54,10 @@ import {
 } from "@/lib/pdf-engine";
 import { generateFileThumbnail, renderPdfPage } from "@/lib/pdf-preview";
 import { PdfPreviewViewer } from "@/components/PdfPreviewViewer";
+import { Telemetry, REALTIME_EVENT_NAME } from "@/lib/telemetry";
+import { AdminStore } from "@/admin/lib/admin-store";
+import { AuthUser } from "@/lib/auth-user";
+import { TokenCoin } from "@/components/TokenCoins";
 
 interface UploadedPdfItem {
   id: string;
@@ -138,6 +142,21 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
   const [resultPageCount, setResultPageCount] = useState<number>(1);
   const [copiedLink, setCopiedLink] = useState(false);
   const [previewModalItem, setPreviewModalItem] = useState<UploadedPdfItem | null>(null);
+  const [creditBalance, setCreditBalance] = useState(() => AuthUser.getCredits());
+
+  useEffect(() => {
+    const handleCreditUpdate = () => {
+      setCreditBalance(AuthUser.getCredits());
+    };
+    window.addEventListener("bg:credit_updated", handleCreditUpdate);
+    window.addEventListener(REALTIME_EVENT_NAME, handleCreditUpdate);
+    window.addEventListener("storage", handleCreditUpdate);
+    return () => {
+      window.removeEventListener("bg:credit_updated", handleCreditUpdate);
+      window.removeEventListener(REALTIME_EVENT_NAME, handleCreditUpdate);
+      window.removeEventListener("storage", handleCreditUpdate);
+    };
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -689,6 +708,25 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
       return;
     }
 
+    const cost = AdminStore.getToolCreditCost(tool.slug);
+    const isFree = cost === 0;
+
+    if (!isFree && !AuthUser.hasCredits(cost)) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("bg:show_add_credits_dialog", {
+            detail: {
+              toolName: tool.name,
+              toolSlug: tool.slug,
+              creditCost: cost,
+              currentCredits: AuthUser.getCredits(),
+            },
+          })
+        );
+      }
+      return;
+    }
+
     setProcessing(true);
     try {
       let outputPdfBytes: Uint8Array;
@@ -863,6 +901,19 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
       setOriginalTotalSize(origSize);
       setResultPageCount(pageCount);
       setHasProcessed(true);
+
+      // Track usage and deduct credit
+      try {
+        Telemetry.trackToolUsage(tool.slug, tool.name);
+        const cost = AdminStore.getToolCreditCost(tool.slug);
+        if (cost > 0) {
+          AuthUser.deductCredit(cost, tool.slug);
+        }
+        AdminStore.recordToolDailyUsage(tool.slug);
+      } catch (trackErr) {
+        console.warn("PDF tool tracking error:", trackErr);
+      }
+
       toast.success(`${tool.name} completed successfully!`);
     } catch (err: any) {
       console.error("Processing error:", err);
@@ -925,10 +976,10 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     <div ref={containerRef} className="w-full flex flex-col gap-6 py-2">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll) ─────── */}
       {hasProcessed && (
-        <div className="fixed top-4 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-3">
+        <div className="fixed top-3 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
           <aside
             aria-label="Quick download dynamic island"
-            className={`pointer-events-auto dynamic-island-box flex items-center gap-3 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[96vw] sm:max-w-2xl ${
+            className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
               showDynamicIsland
                 ? "island-enter"
                 : hasScrolledOnce
@@ -937,8 +988,8 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
             }`}
           >
             {/* 1. PDF Thumbnail & Details */}
-            <div className="flex items-center gap-3 pl-1 sm:pl-1.5">
-              <div className="relative h-11 w-11 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black flex items-center justify-center">
+            <div className="flex items-center gap-2 sm:gap-3 pl-0.5 sm:pl-1.5 shrink-0">
+              <div className="relative h-9 w-9 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black flex items-center justify-center">
                 {files[0]?.thumbnailUrl ? (
                   <img
                     src={files[0].thumbnailUrl}
@@ -947,7 +998,7 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-rose-500/20 text-rose-400">
-                    <FileText className="h-5 w-5" />
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 )}
               </div>
@@ -990,10 +1041,10 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
             <button
               type="button"
               onClick={handleDownload}
-              className="wobbly-btn flex items-center gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="wobbly-btn flex items-center gap-1.5 sm:gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-3 xs:px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <Download className="h-5 w-5 text-rose-500 shrink-0" />
-              <span>Download PDF</span>
+              <Download className="h-4 w-4 sm:h-5 sm:w-5 text-rose-500 shrink-0" />
+              <span>Download<span className="hidden xs:inline"> PDF</span></span>
             </button>
 
             {/* 3. Reset / Process Another (Icon Only Button) */}
@@ -1005,11 +1056,11 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
                 setResultBuffer(null);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="wobbly-btn flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
+              className="wobbly-btn flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
               title="Process another PDF"
               aria-label="Process another PDF"
             >
-              <RefreshCw className="h-5 w-5 text-white" />
+              <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
           </aside>
         </div>
@@ -2219,6 +2270,54 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
                 </div>
               </div>
             )}
+
+            {/* Credit Cost or Free Daily Quota Indicator */}
+            {(() => {
+              const cost = AdminStore.getToolCreditCost(tool.slug);
+              const isFree = cost === 0;
+
+              if (isFree) {
+                const usage = AdminStore.getToolDailyUsage(tool.slug);
+                return (
+                  <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <Wand2 className="h-3.5 w-3.5" />
+                      <span>Free Tool (20 files/day)</span>
+                    </span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {usage} / 20 used today
+                    </span>
+                  </div>
+                );
+              }
+
+              const silver = AuthUser.getSilverTokens();
+              const gold = AuthUser.getGoldTokens();
+
+              return (
+                <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">
+                  <span className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-foreground font-bold">
+                      Cost: {cost} Token{cost === 1 ? "" : "s"}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] bg-muted/60 px-2 py-0.5 rounded-full border border-border/60">
+                      <span className="flex items-center gap-1" title="Silver Tokens (Free)">
+                        <TokenCoin type="silver" size="xs" />
+                        <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{silver}</span>
+                      </span>
+                      <span className="text-border">|</span>
+                      <span className="flex items-center gap-1" title="Gold Tokens (Purchased)">
+                        <TokenCoin type="gold" size="xs" />
+                        <span className="font-mono text-amber-500 font-bold">{gold}</span>
+                      </span>
+                    </span>
+                  </span>
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    Balance: {AuthUser.getCredits()}
+                  </span>
+                </div>
+              );
+            })()}
 
             {/* ACTION EXECUTE BUTTON */}
             <div className="pt-2 border-t border-border">

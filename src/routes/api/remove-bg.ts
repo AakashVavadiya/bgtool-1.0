@@ -9,6 +9,7 @@ import {
   createRateLimitResponse,
   applySecurityHeaders,
   createSafeErrorResponse,
+  enforceToolCreditsAndLimits,
 } from "@/lib/security";
 
 function getPythonCommand(): string {
@@ -26,19 +27,17 @@ function getPythonCommand(): string {
 let isSpawningPython = false;
 
 async function ensurePythonServerRunning(): Promise<boolean> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(1500) });
-      if (ping.ok) return true;
-    } catch {}
-    if (attempt < 2) await new Promise((r) => setTimeout(r, 400));
-  }
+  // 1. Fast single check (timeout 300ms)
+  try {
+    const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(300) });
+    if (ping.ok) return true;
+  } catch {}
 
   if (isSpawningPython) {
-    for (let i = 0; i < 15; i++) {
-      await new Promise((r) => setTimeout(r, 800));
+    for (let i = 0; i < 25; i++) {
+      await new Promise((r) => setTimeout(r, 150));
       try {
-        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(1500) });
+        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(300) });
         if (ping.ok) return true;
       } catch {}
     }
@@ -56,10 +55,10 @@ async function ensurePythonServerRunning(): Promise<boolean> {
     });
     child.unref();
 
-    for (let i = 0; i < 15; i++) {
-      await new Promise((r) => setTimeout(r, 1000));
+    for (let i = 0; i < 35; i++) {
+      await new Promise((r) => setTimeout(r, 120));
       try {
-        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(1500) });
+        const ping = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(300) });
         if (ping.ok) {
           console.log("[Auto-Spawn Dev] Python background remover server online!");
           return true;
@@ -75,6 +74,13 @@ async function ensurePythonServerRunning(): Promise<boolean> {
   }
 }
 
+// Auto-warmup Python server in background
+if (typeof process !== "undefined") {
+  setTimeout(() => {
+    ensurePythonServerRunning().catch(() => {});
+  }, 100);
+}
+
 export const Route = createFileRoute("/api/remove-bg")({
   server: {
     handlers: {
@@ -87,6 +93,7 @@ export const Route = createFileRoute("/api/remove-bg")({
           );
         }
 
+        let creditCheck: any = null;
         try {
           const bodyText = await request.text();
           if (bodyText.length > 55 * 1024 * 1024) {
@@ -114,17 +121,30 @@ export const Route = createFileRoute("/api/remove-bg")({
             );
           }
 
+          creditCheck = await enforceToolCreditsAndLimits(request, "remove-bg", clientIp);
+          if (!creditCheck.allowed) {
+            const errRes = applySecurityHeaders(
+              createSafeErrorResponse(creditCheck.status || 402, creditCheck.error || "Credit limit exceeded.")
+            );
+            if (creditCheck.guestCookieHeader) {
+              errRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+            }
+            return errRes;
+          }
+
           let pythonResponse: Response;
           try {
             pythonResponse = await fetch("http://127.0.0.1:5000/remove-base64", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: bodyText,
+              signal: AbortSignal.timeout(30000),
             });
           } catch {
             console.warn("[API Route] Python backend unreachable. Auto-spawning...");
             const running = await ensurePythonServerRunning();
             if (!running) {
+              creditCheck.refund?.("Python backend offline");
               return applySecurityHeaders(
                 createSafeErrorResponse(503, "AI Model Server is starting up. Please try again in a few moments.")
               );
@@ -133,17 +153,29 @@ export const Route = createFileRoute("/api/remove-bg")({
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: bodyText,
+              signal: AbortSignal.timeout(60000),
             });
           }
 
+          if (!pythonResponse.ok) {
+            creditCheck.refund?.(`Python status ${pythonResponse.status}`);
+          } else {
+            creditCheck.recordSuccess?.();
+          }
+
           const responseData = await pythonResponse.text();
-          return applySecurityHeaders(
+          const finalRes = applySecurityHeaders(
             new Response(responseData, {
               status: pythonResponse.status,
               headers: { "Content-Type": "application/json" },
             })
           );
+          if (creditCheck.guestCookieHeader) {
+            finalRes.headers.set("Set-Cookie", creditCheck.guestCookieHeader);
+          }
+          return finalRes;
         } catch (err: any) {
+          creditCheck.refund?.(err?.message || "Internal failure");
           console.error("API /api/remove-bg error:", err?.message || err);
           return applySecurityHeaders(
             createSafeErrorResponse(500, "Failed to process image. Please try again.")

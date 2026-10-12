@@ -12,15 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as R500RouteImport } from './routes/500'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ModelsRouteImport } from './routes/models'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as ApiBlurFaceRouteImport } from './routes/api/blur-face'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
@@ -49,6 +55,11 @@ const R500Route = R500RouteImport.update({
   path: '/500',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -74,6 +85,16 @@ const FaqRoute = FaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ModelsRoute = ModelsRouteImport.update({
   id: '/models',
   path: '/models',
@@ -89,9 +110,24 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBlurFaceRoute = ApiBlurFaceRouteImport.update({
@@ -159,15 +195,21 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/500': typeof R500Route
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
   '/models': typeof ModelsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
@@ -185,14 +227,20 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/500': typeof R500Route
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
   '/models': typeof ModelsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
@@ -211,15 +259,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/500': typeof R500Route
+  '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
   '/models': typeof ModelsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
@@ -239,15 +293,21 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/500'
+    | '/account'
     | '/admin'
     | '/auth'
     | '/chat'
     | '/contact'
     | '/faq'
+    | '/forgot-password'
+    | '/login'
     | '/models'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/terms'
+    | '/verify-email'
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
@@ -265,14 +325,20 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/500'
+    | '/account'
     | '/admin'
     | '/auth'
     | '/contact'
     | '/faq'
+    | '/forgot-password'
+    | '/login'
     | '/models'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/terms'
+    | '/verify-email'
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
@@ -290,15 +356,21 @@ export interface FileRouteTypes {
     | '/'
     | '/404'
     | '/500'
+    | '/account'
     | '/admin'
     | '/auth'
     | '/chat'
     | '/contact'
     | '/faq'
+    | '/forgot-password'
+    | '/login'
     | '/models'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/terms'
+    | '/verify-email'
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
@@ -317,15 +389,21 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
   R500Route: typeof R500Route
+  AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
   ContactRoute: typeof ContactRoute
   FaqRoute: typeof FaqRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
   ModelsRoute: typeof ModelsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   ApiBlurFaceRoute: typeof ApiBlurFaceRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiContactRoute: typeof ApiContactRoute
@@ -359,6 +437,13 @@ declare module '@tanstack/react-router' {
       path: '/500'
       fullPath: '/500'
       preLoaderRoute: typeof R500RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -396,6 +481,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/models': {
       id: '/models'
       path: '/models'
@@ -417,11 +516,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/blur-face': {
@@ -527,15 +647,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   R404Route: R404Route,
   R500Route: R500Route,
+  AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
   ContactRoute: ContactRoute,
   FaqRoute: FaqRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
   ModelsRoute: ModelsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   ApiBlurFaceRoute: ApiBlurFaceRoute,
   ApiChatRoute: ApiChatRoute,
   ApiContactRoute: ApiContactRoute,

@@ -227,7 +227,7 @@ export const creditLedgerRepo = {
       .prepare(`
         SELECT * FROM credit_ledger
         WHERE user_id = ?
-        ORDER BY created_at DESC
+        ORDER BY created_at DESC, rowid DESC
         LIMIT ?
       `)
       .all(userId, limit) as CreditLedgerEntry[];

@@ -13,6 +13,8 @@ export interface SafeUser {
   paidCredits?: number | undefined;
   totalProcessed: number;
   status: "active" | "restricted" | "banned";
+  emailVerified?: boolean | undefined;
+  verifiedAt?: string | null | undefined;
   registeredAt: string;
   lastActive: string;
   lastCreditReset?: string | undefined;

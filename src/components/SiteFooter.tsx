@@ -9,12 +9,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   Zap,
-  Github,
-  Twitter,
-  Disc as Discord,
-  Linkedin,
   Mail,
-  Heart,
 } from "lucide-react";
 
 export function SiteFooter() {
@@ -103,45 +98,6 @@ export function SiteFooter() {
             <p className="mt-4 text-sm leading-relaxed font-medium text-muted-foreground">
               Ultra-fast online AI image toolkit. Sub-pixel alpha matting background removal, 4K upscaling, and object cleaning.
             </p>
-
-            <div className="mt-6 flex items-center gap-3 text-muted-foreground">
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-xl border border-border p-2.5 transition-all hover:bg-foreground hover:text-background hover:scale-110"
-                aria-label="GitHub"
-              >
-                <Github className="h-4 w-4" />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-xl border border-border p-2.5 transition-all hover:bg-foreground hover:text-background hover:scale-110"
-                aria-label="Twitter"
-              >
-                <Twitter className="h-4 w-4" />
-              </a>
-              <a
-                href="https://discord.com"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-xl border border-border p-2.5 transition-all hover:bg-foreground hover:text-background hover:scale-110"
-                aria-label="Discord"
-              >
-                <Discord className="h-4 w-4" />
-              </a>
-              <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-xl border border-border p-2.5 transition-all hover:bg-foreground hover:text-background hover:scale-110"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="h-4 w-4" />
-              </a>
-            </div>
           </div>
 
           {/* Tools & Shortcuts */}
@@ -345,7 +301,7 @@ export function SiteFooter() {
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Notice</Link>
             <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
             <span className="flex items-center gap-1">
-              Built with <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" /> for creators
+              Made in Bharat
             </span>
           </div>
         </div>

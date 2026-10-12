@@ -54,7 +54,12 @@ export async function enforceToolCreditsAndLimits(
 
   // 1. Inspect tool configuration from SQLite configRepo
   const tools = configRepo.getToolsConfig();
-  const tool = tools.find((t) => t.slug === toolSlug);
+  const tool = tools.find(
+    (t) =>
+      t.slug === toolSlug ||
+      (t.slug === "remove-bg" && toolSlug === "remove-background") ||
+      (t.slug === "remove-background" && toolSlug === "remove-bg")
+  );
 
   if (tool) {
     if (!tool.isEnabled) {

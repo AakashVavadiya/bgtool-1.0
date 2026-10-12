@@ -185,6 +185,11 @@ def run_server(port=5000):
     httpd = ThreadingHTTPServer(server_address, GangaRequestHandler)
     print(f"Ganga AI Native Engine Server running on port {port} (rembg-free)...")
     sys.stdout.flush()
+
+    # Pre-warm neural model in background daemon so first user request has 0 cold-start latency
+    warmup_thread = threading.Thread(target=GangaEngine.warmup, daemon=True)
+    warmup_thread.start()
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
