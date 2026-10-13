@@ -1,3 +1,4 @@
+# robots.txt for https://bg.tools
 User-agent: Googlebot
 Allow: /
 
@@ -12,9 +13,26 @@ Allow: /
 
 User-agent: *
 Allow: /
+Allow: /tools/
+Allow: /pricing
+Allow: /faq
+Allow: /models
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+
+# Disallow admin panel and private portals
 Disallow: /admin
+Disallow: /admin/
 Disallow: /api/
+Disallow: /account
 Disallow: /auth
 Disallow: /chat
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
 
+# Sitemap location
 Sitemap: https://bg.tools/sitemap.xml

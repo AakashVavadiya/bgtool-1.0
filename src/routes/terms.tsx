@@ -21,7 +21,7 @@ export const Route = createFileRoute("/terms")({
     const seo = buildPageMeta({
       title: "Terms of Service | bg.tools",
       description:
-        "Official Terms of Service for bg.tools. Details on token usage, Bronze/Silver/Gold credit lifecycle, commercial licensing, acceptable use policy, and zero data archiving.",
+        "Official Terms of Service for bg.tools. Details on token usage, Bronze/Silver/Gold credit lifecycle, asset ownership, acceptable use policy, and zero data archiving.",
       path: "/terms",
     });
     return {
@@ -70,9 +70,9 @@ export function TermsPage() {
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
               <Scale className="h-5 w-5 text-emerald-500 mb-2.5" />
-              <h3 className="font-display text-sm font-bold">100% Commercial Rights</h3>
+              <h3 className="font-display text-sm font-bold">100% Asset Ownership</h3>
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                You retain full copyright over your original assets and all transparent or edited outputs.
+                You retain full copyright and ownership over your original assets and all processed outputs.
               </p>
             </div>
 
@@ -226,7 +226,7 @@ export function TermsPage() {
                   05
                 </span>
                 <h2 className="font-display text-xl md:text-2xl font-bold text-foreground">
-                  Intellectual Property & Commercial Licensing
+                  Intellectual Property & Asset Ownership
                 </h2>
               </div>
               <div className="space-y-3 text-muted-foreground text-sm md:text-base leading-relaxed">
@@ -234,11 +234,6 @@ export function TermsPage() {
                   <strong>Your Ownership:</strong> You retain complete, unrestricted copyright, trademark, and ownership
                   rights over all source images, graphics, and assets uploaded to bg.tools. We assert zero ownership
                   claim over your inputs or the resulting outputs.
-                </p>
-                <p>
-                  <strong>Commercial License:</strong> All processed images (transparent cutouts, upscaled renders,
-                  color-corrected graphics) generated through your account are licensed for unrestricted personal,
-                  commercial, advertising, e-commerce, and print production usage worldwide.
                 </p>
                 <p>
                   <strong>Platform Assets:</strong> The code, user interfaces, logos, brand identities, algorithms, and
@@ -284,7 +279,7 @@ export function TermsPage() {
                 </h2>
               </div>
               <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-                We make commercially reasonable efforts to maintain 99.9% uptime for our AI processing infrastructure.
+                We make reasonable technical efforts to maintain 99.9% uptime for our AI processing infrastructure.
                 However, <strong>bg.tools</strong> is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. We
                 disclaim all warranties of any kind, whether express or implied, including merchantability, fitness for
                 a particular purpose, and non-infringement. We do not warrant that output quality will meet every

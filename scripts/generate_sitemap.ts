@@ -3,8 +3,33 @@ import path from "path";
 import { execSync } from "child_process";
 import { tools } from "../src/lib/tools";
 
-const BASE_URL = process.env["SITE_URL"] || "https://bg.tools";
+const BASE_URL = (process.env["SITE_URL"] || "https://bg.tools").replace(/\/+$/, "");
 const fallbackDate = new Date().toISOString().split("T")[0]!;
+
+// Strict exclusion patterns: NEVER permit admin panel or private portals in the sitemap
+const EXCLUDED_PATTERNS = [
+  "/admin",
+  "admin",
+  "/api",
+  "/account",
+  "/auth",
+  "/chat",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+];
+
+function isSafePublicRoute(routePath: string): boolean {
+  const normalized = routePath.toLowerCase();
+  for (const pattern of EXCLUDED_PATTERNS) {
+    if (normalized.includes(pattern)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function getGitLastMod(relativeFile?: string): string {
   if (relativeFile) {
@@ -26,6 +51,7 @@ function getGitLastMod(relativeFile?: string): string {
   return fallbackDate;
 }
 
+// Canonical Public Indexable Routes (strictly excluding /admin and account management)
 const staticRoutes = [
   { path: "", changefreq: "daily", priority: "1.0", file: "src/routes/index.tsx" },
   { path: "/tools", changefreq: "daily", priority: "0.9", file: "src/routes/tools.index.tsx" },
@@ -41,8 +67,14 @@ let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 `;
 
-// Add static routes with real git commit dates
+let includedCount = 0;
+
+// 1. Add static public routes with real git commit dates
 for (const route of staticRoutes) {
+  if (!isSafePublicRoute(route.path)) {
+    console.warn(`[Sitemap] Skipped excluded route: ${route.path}`);
+    continue;
+  }
   const lastmod = getGitLastMod(route.file);
   xml += `  <url>
     <loc>${BASE_URL}${route.path}</loc>
@@ -51,9 +83,10 @@ for (const route of staticRoutes) {
     <priority>${route.priority}</priority>
   </url>
 `;
+  includedCount++;
 }
 
-// Add all verified public tools
+// 2. Add all verified public tools (ensuring 0 admin tools leak)
 const seenSlugs = new Set<string>();
 const toolsFileDate = getGitLastMod("src/lib/tools.ts");
 
@@ -61,13 +94,20 @@ for (const tool of tools) {
   if (!tool.slug || seenSlugs.has(tool.slug)) continue;
   seenSlugs.add(tool.slug);
 
+  const toolUrl = `/tools/${tool.slug}`;
+  if (!isSafePublicRoute(toolUrl)) {
+    console.warn(`[Sitemap] Skipped excluded tool: ${toolUrl}`);
+    continue;
+  }
+
   xml += `  <url>
-    <loc>${BASE_URL}/tools/${tool.slug}</loc>
+    <loc>${BASE_URL}${toolUrl}</loc>
     <lastmod>${toolsFileDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 `;
+  includedCount++;
 }
 
 xml += `</urlset>
@@ -79,10 +119,11 @@ if (!fs.existsSync(publicDir)) {
 }
 
 fs.writeFileSync(path.join(publicDir, "sitemap.xml"), xml, "utf-8");
-console.log(`Generated public/sitemap.xml with ${staticRoutes.length + seenSlugs.size} verified URLs for ${BASE_URL}.`);
+console.log(`Generated public/sitemap.xml with ${includedCount} verified public URLs for ${BASE_URL} (Admin panel strictly excluded).`);
 
-// Update robots.txt
-const robotsTxt = `User-agent: Googlebot
+// 3. Update robots.txt with strict security disallows
+const robotsTxt = `# robots.txt for https://bg.tools
+User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
@@ -96,13 +137,30 @@ Allow: /
 
 User-agent: *
 Allow: /
+Allow: /tools/
+Allow: /pricing
+Allow: /faq
+Allow: /models
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+
+# Disallow admin panel and private portals
 Disallow: /admin
+Disallow: /admin/
 Disallow: /api/
+Disallow: /account
 Disallow: /auth
 Disallow: /chat
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
 
+# Sitemap location
 Sitemap: ${BASE_URL}/sitemap.xml
 `;
 
 fs.writeFileSync(path.join(publicDir, "robots.txt"), robotsTxt, "utf-8");
-console.log("Updated public/robots.txt with /admin, /api, /auth, /chat disallow rules and Sitemap link.");
+console.log("Updated public/robots.txt with strict /admin and internal route disallow rules.");

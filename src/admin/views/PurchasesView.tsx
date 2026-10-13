@@ -109,7 +109,7 @@ export function PurchasesView() {
     setFormBilling("one-time");
     setFormImageUrl("/images/festival-offer-banner.jpg");
     setFormFeatures(
-      "650 Total Credits (500 + 150 Extra Bonus)\nUltra HD 4K Outputs on All Tools\nFull Access to AI Background Removal\nLifetime Validity — Credits Never Expire\nCommercial Use License Included"
+      "650 Total Credits (500 + 150 Extra Bonus)\nUltra HD 4K Outputs on All Tools\nFull Access to AI Background Removal\nLifetime Validity — Credits Never Expire"
     );
     setFormIsFestival(true);
     setFormShowInDialog(true);
@@ -859,7 +859,7 @@ export function PurchasesView() {
                   rows={4}
                   value={formFeatures}
                   onChange={(e) => setFormFeatures(e.target.value)}
-                  placeholder="Ultra HD 4K Outputs&#10;Full AI Tool Access&#10;Lifetime Validity&#10;Commercial License"
+                  placeholder="Ultra HD 4K Outputs&#10;Full AI Tool Access&#10;Lifetime Validity"
                   className="mt-1.5 w-full rounded-2xl border border-input bg-background/60 p-4 text-xs font-medium text-foreground focus:border-foreground focus:outline-none font-mono"
                 />
               </div>

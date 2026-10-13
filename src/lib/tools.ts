@@ -4375,7 +4375,7 @@ export const tools: Tool[] = [
           },
           {
                     "heading": "High Resolution Export",
-                    "body": "Maintains high DPI for crisp commercial and desktop printing."
+                    "body": "Maintains high DPI for crisp high-resolution and desktop printing."
           },
           {
                     "heading": "Free & Fast",

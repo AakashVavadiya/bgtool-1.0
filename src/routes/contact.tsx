@@ -62,7 +62,7 @@ function ContactPage() {
     });
 
     setSubmitted(true);
-    toast.success("Message sent! Our support team will reply within 24 hours.");
+    toast.success("Message sent! Our support team will reply within 2 working days.");
   };
 
   return (
@@ -116,7 +116,7 @@ function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-display text-lg font-bold">Response Guarantee</h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">Average reply time: <strong>&lt; 2 Hours</strong> (Mon – Sat)</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">Average reply time: <strong>2 Working Days</strong> (Mon – Sat)</p>
                   </div>
                 </div>
               </div>

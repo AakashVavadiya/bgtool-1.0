@@ -6,7 +6,7 @@ import { Link } from "@tanstack/react-router";
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(() => typeof window !== "undefined");
   const [session, setSession] = useState<AdminUser | null>(() => getAdminSession());
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("admin@bg.tools");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);

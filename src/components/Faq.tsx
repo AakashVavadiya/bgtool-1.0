@@ -37,17 +37,13 @@ export const pricingFaqs: FaqItem[] = [
     a: "Contact support within 7 days if no tokens were used. [Note: Policy subject to confirmation]",
     note: "Flagged for confirmation",
   },
-  {
-    q: "Can I use images commercially?",
-    a: "Yes, on all plans. You retain 100% intellectual property ownership of all uploaded and processed assets.",
-  },
 ];
 
 export const faqs: FaqItem[] = pricingFaqs;
 
 export function Faq({ items = pricingFaqs }: { items?: FaqItem[] }) {
   return (
-    <section id="faq" className="border-t border-border px-5 py-20 md:px-10 md:py-28">
+    <section id="faq" className="border-t border-border px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 py-20 md:py-28 w-full">
       <div className="grid gap-12 md:grid-cols-[1fr_1.4fr]">
         <div>
           <p className="font-display text-sm uppercase tracking-[0.3em] text-muted-foreground">

@@ -192,7 +192,7 @@ function AccountPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-between selection:bg-amber-500/20">
       <SiteHeader />
 
-      <main className="flex-1 relative overflow-hidden pb-20 pt-8 sm:pt-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full space-y-8 sm:space-y-10">
+      <main className="flex-1 relative overflow-hidden pb-20 pt-8 sm:pt-12 px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 w-full space-y-8 sm:space-y-10">
         {/* Ambient Warm Gradient Backdrop */}
         <div className="pointer-events-none absolute -top-40 right-10 h-96 w-96 rounded-full bg-amber-500/8 blur-3xl" />
         <div className="pointer-events-none absolute top-1/3 -left-20 h-80 w-80 rounded-full bg-orange-500/6 blur-3xl" />

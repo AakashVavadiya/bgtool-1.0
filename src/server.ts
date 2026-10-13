@@ -180,6 +180,39 @@ export default {
     const url = new URL(request.url);
     const clientIp = extractClientIp(request);
 
+    // 0. Static SEO Endpoints: /sitemap.xml & /robots.txt
+    if (url.pathname === "/sitemap.xml") {
+      const sitemapPath = path.join(process.cwd(), "public", "sitemap.xml");
+      if (fs.existsSync(sitemapPath)) {
+        const xml = fs.readFileSync(sitemapPath, "utf-8");
+        return applySecurityHeaders(
+          new Response(xml, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/xml; charset=utf-8",
+              "Cache-Control": "public, max-age=3600, s-maxage=86400",
+            },
+          })
+        );
+      }
+    }
+
+    if (url.pathname === "/robots.txt") {
+      const robotsPath = path.join(process.cwd(), "public", "robots.txt");
+      if (fs.existsSync(robotsPath)) {
+        const text = fs.readFileSync(robotsPath, "utf-8");
+        return applySecurityHeaders(
+          new Response(text, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+              "Cache-Control": "public, max-age=3600, s-maxage=86400",
+            },
+          })
+        );
+      }
+    }
+
     // 1. General Rate Limiting for all /api endpoints
     if (url.pathname.startsWith("/api/")) {
       const generalCheck = generalLimiter.check(clientIp);

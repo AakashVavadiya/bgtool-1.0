@@ -496,14 +496,25 @@ export async function runBatchLiveSeoAudit(callbacks?: {
 /**
  * Generate standard Google Search Console XML Sitemap
  */
-export function generateSitemapXml(pages: SeoPageAudit[], siteBaseUrl = "https://yourdomain.com"): string {
+export function generateSitemapXml(pages: SeoPageAudit[], siteBaseUrl = "https://bg.tools"): string {
   const dateStr = new Date().toISOString().slice(0, 10);
+  const cleanBase = siteBaseUrl.replace(/\/+$/, "");
   const urlsXml = pages
+    .filter((p) => {
+      const lower = p.url.toLowerCase();
+      return (
+        !lower.includes("admin") &&
+        !lower.startsWith("/api") &&
+        !lower.startsWith("/account") &&
+        !lower.startsWith("/auth") &&
+        !lower.startsWith("/chat")
+      );
+    })
     .map((p) => {
       const priority = p.url === "/" ? "1.0" : p.category.includes("Tools") ? "0.9" : "0.7";
       const changefreq = p.url === "/" ? "daily" : "weekly";
       return `  <url>
-    <loc>${siteBaseUrl}${p.url}</loc>
+    <loc>${cleanBase}${p.url}</loc>
     <lastmod>${dateStr}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
@@ -520,20 +531,33 @@ ${urlsXml}
 /**
  * Generate standard Googlebot Robots.txt
  */
-export function generateRobotsTxt(siteBaseUrl = "https://yourdomain.com"): string {
+export function generateRobotsTxt(siteBaseUrl = "https://bg.tools"): string {
+  const cleanBase = siteBaseUrl.replace(/\/+$/, "");
   return `# Robots.txt for Search Engines
 User-agent: *
 Allow: /
 Allow: /tools/
-Allow: /chat
 Allow: /pricing
+Allow: /faq
+Allow: /models
+Allow: /contact
+Allow: /privacy
+Allow: /terms
 
-# Disallow internal admin dashboard from indexing
+# Disallow internal admin dashboard and private portals
 Disallow: /admin
 Disallow: /admin/
-Disallow: /api/admin/
+Disallow: /api/
+Disallow: /account
+Disallow: /auth
+Disallow: /chat
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
 
 # Sitemap location
-Sitemap: ${siteBaseUrl}/sitemap.xml
+Sitemap: ${cleanBase}/sitemap.xml
 `;
 }

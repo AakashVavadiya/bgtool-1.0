@@ -343,7 +343,6 @@ export const DEFAULT_PURCHASE_PLANS: PurchasePlanConfig[] = [
       "Full Access to AI Background Removal & Upscaling",
       "Lifetime Validity — Credits Never Expire",
       "Dedicated High-Speed Processing Engine",
-      "Commercial Use License Included",
     ],
     imageUrl: "/images/festival-offer-banner.jpg",
     isFestivalOffer: true,

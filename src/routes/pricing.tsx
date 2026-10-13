@@ -292,7 +292,7 @@ function Pricing() {
       </section>
 
       {/* Main Pricing Cards Container */}
-      <section className="px-5 py-12 md:px-10 md:py-16 max-w-7xl mx-auto">
+      <section className="px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 py-12 md:py-16 w-full">
         {/* Optional Active Festival Offer Promo Banner */}
         {activeOffer && (
           <div className="mb-12 overflow-hidden rounded-3xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-card p-6 sm:p-8 shadow-xl shadow-amber-500/10">
