@@ -15,6 +15,7 @@ import { SupportDeskView } from "@/admin/views/SupportDeskView";
 import { MarketingMailView } from "@/admin/views/MarketingMailView";
 import { OlderReportsView } from "@/admin/views/OlderReportsView";
 import { ProSettingsView } from "@/admin/views/ProSettingsView";
+import { ToolGearView } from "@/admin/views/ToolGearView";
 import { AdminStore } from "@/admin/lib/admin-store";
 import {
   Activity,
@@ -36,12 +37,14 @@ import {
   Archive,
   Sliders,
   BotOff,
+  Cog,
 } from "lucide-react";
 
 export type AdminTab =
   | "overview"
   | "users"
   | "purchases"
+  | "tool-gear"
   | "tools"
   | "pro-settings"
   | "errors"
@@ -57,6 +60,7 @@ const VALID_TABS: AdminTab[] = [
   "overview",
   "users",
   "purchases",
+  "tool-gear",
   "tools",
   "pro-settings",
   "errors",
@@ -98,6 +102,7 @@ const navTabs = [
   { id: "overview" as const, label: "Traffic & Overview", icon: Activity },
   { id: "users" as const, label: "Logged Users & Credits", icon: Users },
   { id: "purchases" as const, label: "Purchases & Plans", icon: CreditCard },
+  { id: "tool-gear" as const, label: "Tool Gear", icon: Cog },
   { id: "tools" as const, label: "Tools Limits & Toggles", icon: Wrench },
   { id: "pro-settings" as const, label: "Pro Settings & Page Tree", icon: Sliders },
   { id: "errors" as const, label: "Error Logs & Reports", icon: AlertTriangle },
@@ -131,6 +136,9 @@ export function AdminLayout() {
   };
 
   useEffect(() => {
+    // Initial server sync of registered users
+    AdminStore.fetchUsersFromServer().catch(() => {});
+
     // Keep tab in sync with browser hash / back-forward navigation
     const syncFromUrlOrStorage = () => {
       const current = getInitialAdminTab();
@@ -299,6 +307,7 @@ export function AdminLayout() {
           {activeTab === "overview" && <DashboardOverview />}
           {activeTab === "users" && <UsersManagement />}
           {activeTab === "purchases" && <PurchasesView />}
+          {activeTab === "tool-gear" && <ToolGearView />}
           {activeTab === "tools" && <ToolsConfigView />}
           {activeTab === "pro-settings" && <ProSettingsView />}
           {activeTab === "errors" && <ErrorLogsView />}

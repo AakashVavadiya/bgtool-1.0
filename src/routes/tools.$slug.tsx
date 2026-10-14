@@ -16,6 +16,8 @@ import { MandalaDecor, MandalaCorner } from "@/components/decorations/MandalaDec
 
 import { ToolLimitReachedDialog } from "@/components/ToolLimitReachedDialog";
 import { AddCreditsDialog } from "@/components/AddCreditsDialog";
+import { GuestLoginDialog } from "@/components/GuestLoginDialog";
+import type { CurrentUser } from "@/lib/auth-user";
 
 function getStepMeta(step: string, i: number, total: number) {
   const lower = step.toLowerCase();
@@ -145,9 +147,11 @@ function ToolPage() {
     currentCredits?: number;
   }>({});
   const [isRestricted, setIsRestricted] = useState(() => AuthUser.isUserRestricted());
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
 
   useEffect(() => {
     setIsRestricted(AuthUser.isUserRestricted());
+    setCurrentUser(AuthUser.getCurrentUser());
     AdminStore.syncToolsConfigFromServer().then(() => {
       const enabled = AdminStore.isToolEnabled(slug);
       setIsEnabled(enabled);
@@ -156,10 +160,12 @@ function ToolPage() {
       setDailyStatus(ds);
       if (ds.reached) setShowLimitModal(true);
       setIsRestricted(AuthUser.isUserRestricted());
+      setCurrentUser(AuthUser.getCurrentUser());
     });
 
     const handleUpdate = () => {
       setIsRestricted(AuthUser.isUserRestricted());
+      setCurrentUser(AuthUser.getCurrentUser());
       const enabled = AdminStore.isToolEnabled(slug);
       setIsEnabled(enabled);
       if (!enabled) {
@@ -233,6 +239,9 @@ function ToolPage() {
             usedToday={dailyStatus.usedToday}
           />
         )}
+
+        {/* Guest 5 Free Uses Reached Dialog Popup */}
+        <GuestLoginDialog toolName={tool.name} />
 
         {/* ─── UPLOAD ZONE & WORKSPACE ─────────────────────────────────────── */}
         <section className="grain border-b border-border px-4 py-4 md:px-8 md:py-6 relative">
@@ -374,12 +383,14 @@ function ToolPage() {
 
             {/* Stats row */}
             <div className="mt-4 flex flex-wrap justify-center gap-4">
-              <div className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium">
-                <span className="text-muted-foreground">Credit Cost:</span>
-                <span className="font-semibold text-accent">
-                  {creditCost === 0 ? "Free (0 Credits)" : `${creditCost} Credit${creditCost === 1 ? "" : "s"}`}
-                </span>
-              </div>
+              {currentUser && (
+                <div className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium">
+                  <span className="text-muted-foreground">Credit Cost:</span>
+                  <span className="font-semibold text-accent">
+                    {creditCost === 0 ? "Free (0 Credits)" : `${creditCost} Credit${creditCost === 1 ? "" : "s"}`}
+                  </span>
+                </div>
+              )}
               {dailyStatus.limit > 0 && (
                 <div className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium">
                   <span className="text-muted-foreground">Daily Limit:</span>

@@ -3,25 +3,18 @@ import { useState, useEffect } from "react";
 import { AuthUser } from "@/lib/auth-user";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TokenCoin } from "@/components/TokenCoins";
 import {
   Eye,
   EyeOff,
   Loader2,
-  CheckCircle2,
   AlertCircle,
   ArrowRight,
   ShieldCheck,
   User,
   Mail,
   Lock,
-  Sparkles,
-  Zap,
-  Check,
-  Shield,
-  Layers,
   ArrowLeft,
-  Flame,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,7 +50,7 @@ function SignupPage() {
     }
   }, [navigate]);
 
-  // Dynamic Password Strength Calculator
+  // Password Strength Calculator
   const getPasswordStrength = () => {
     if (!password) return { score: 0, label: "", color: "" };
     let score = 0;
@@ -129,170 +122,82 @@ function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col lg:grid lg:grid-cols-12 selection:bg-amber-500/20 relative overflow-hidden">
-      {/* Ambient Radial Lights */}
-      <div className="pointer-events-none absolute -top-40 -left-20 h-[500px] w-[500px] rounded-full bg-amber-500/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-orange-500/8 blur-[140px]" />
-
-      {/* LEFT COLUMN: Creative Showcase Panel (5 or 6 cols on lg) */}
-      <aside className="relative lg:col-span-6 xl:col-span-5 hidden lg:flex flex-col justify-between border-r border-border/70 bg-card/40 backdrop-blur-2xl p-10 xl:p-14 overflow-hidden">
-        {/* Subtle Decorative Pattern Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-
-        {/* Top Brand Link */}
-        <div className="relative z-10 flex items-center justify-between">
+    <div className="min-h-screen bg-background text-foreground flex flex-col lg:grid lg:grid-cols-12 relative">
+      {/* LEFT COLUMN: Clean Minimalist Brand Panel (NO gradients, ONLY BG., back button, terms, privacy, made in bharat) */}
+      <aside className="relative lg:col-span-5 hidden lg:flex flex-col justify-between border-r border-border bg-card/40 p-10 xl:p-14">
+        {/* Top: Back to Home Button Only (Top BG Logo removed) */}
+        <div className="flex items-center justify-end">
           <Link
             to="/"
-            className="group flex items-center gap-2 font-display text-2xl font-black tracking-tight text-foreground transition-transform hover:scale-105"
-          >
-            <span>bg</span>
-            <span className="h-2 w-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 inline-block" />
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors rounded-full border border-border px-3.5 py-1.5 hover:bg-muted"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Home</span>
           </Link>
         </div>
 
-        {/* Middle Creative Content */}
-        <div className="relative z-10 my-auto py-8 space-y-8">
-          {/* Animated Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 px-3.5 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 shadow-sm animate-in fade-in duration-500">
-            <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
-            <span>10 Free Bronze Tokens Daily Allowance</span>
+        {/* Center: Dotted Halftone Big Logo (Same as Home Page) */}
+        <div className="my-auto py-12 flex flex-col items-start justify-center select-none">
+          <div className="leading-none">
+            <span className="halftone-text font-display text-7xl sm:text-8xl xl:text-9xl font-medium tracking-tight text-foreground">
+              bg
+            </span>
+            <span className="halftone-text font-display text-7xl sm:text-8xl xl:text-9xl font-medium tracking-tight text-accent">
+              .
+            </span>
           </div>
-
-          <div className="space-y-4">
-            <h1 className="font-display text-4xl xl:text-5xl font-black tracking-tight text-foreground leading-[1.15]">
-              Create your account & unlock{" "}
-              <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 bg-clip-text text-transparent">
-                instant AI tools.
-              </span>
-            </h1>
-            <p className="text-sm xl:text-base text-muted-foreground leading-relaxed max-w-md">
-              Experience ultra-fast background removal, high-definition exports, and automated conversions with zero watermarks and strict data privacy.
-            </p>
-          </div>
-
-          {/* Creative Floating Visual Card */}
-          <div className="rounded-3xl border border-border/80 bg-card/85 backdrop-blur-xl p-5 shadow-xl space-y-4 hover:shadow-2xl hover:border-amber-500/40 transition-all duration-300 group">
-            {/* Live Token Status Pill */}
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 font-black text-sm shadow-md">
-                  ✨
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground">Welcome Daily Allowance</p>
-                  <p className="text-[10px] text-muted-foreground">Automatically credited upon signup</p>
-                </div>
-              </div>
-              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                100% Free
-              </span>
-            </div>
-
-            {/* Token Ecosystem Shimmer */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
-                  <TokenCoin type="bronze" size="xs" />
-                  <span>Bronze Tokens</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">10 free tokens replenished every midnight UTC.</p>
-              </div>
-
-              <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                  <TokenCoin type="gold" size="xs" showGlow />
-                  <span>Gold Tokens</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Permanent pay-as-you-go tokens that never expire.</p>
-              </div>
-            </div>
-
-            {/* Status Footer */}
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-                <span>AI Vision Engine v2.4 Active</span>
-              </span>
-              <span className="font-mono text-foreground font-semibold">0.3s processing</span>
-            </div>
-          </div>
-
-          {/* Value Props Checklist */}
-          <div className="space-y-3 text-xs text-muted-foreground pt-2">
-            <div className="flex items-center gap-3">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                <Check className="h-3 w-3" />
-              </div>
-              <span><strong>Full Privacy:</strong> Uploaded images are wiped automatically from GPU memory</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                <Check className="h-3 w-3" />
-              </div>
-              <span><strong>Fast Verification:</strong> Instant 6-digit OTP email delivery</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                <Check className="h-3 w-3" />
-              </div>
-              <span><strong>No Credit Card Required:</strong> Get started completely free in under 60 seconds</span>
-            </div>
-          </div>
+          <p className="mt-4 text-sm text-muted-foreground font-medium max-w-xs">
+            High-precision AI image processing and creative suite.
+          </p>
         </div>
 
-        {/* Bottom Copyright */}
-        <div className="relative z-10 flex items-center justify-between text-xs text-muted-foreground pt-4 border-t border-border/50">
-          <p>© {new Date().getFullYear()} bg.tools. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+        {/* Bottom: Made in Bharat Tag & Terms / Privacy Links */}
+        <div className="flex items-center justify-between pt-6 border-t border-border text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+            <span className="h-2 w-2 rounded-full bg-[#f97316]" />
+            <span>Made in Bharat</span>
+          </span>
+
+          <div className="flex items-center gap-4 font-medium">
+            <Link to="/terms" className="hover:text-foreground transition-colors underline-offset-4 hover:underline">
+              Terms
+            </Link>
+            <span>•</span>
+            <Link to="/privacy" className="hover:text-foreground transition-colors underline-offset-4 hover:underline">
+              Privacy
+            </Link>
           </div>
         </div>
       </aside>
 
-      {/* RIGHT COLUMN: Interactive Animated Form Area (6 or 7 cols on lg) */}
-      <main className="lg:col-span-6 xl:col-span-7 flex items-center justify-center px-4 sm:px-8 py-12 lg:py-16 relative">
-        <div className="w-full max-w-lg">
-          {/* Mobile Top Header (hidden on desktop) */}
+      {/* RIGHT COLUMN: Signup Form Area (NO gradients, Clean Website Card) */}
+      <main className="lg:col-span-7 flex items-center justify-center px-4 sm:px-8 py-12 lg:py-16 relative">
+        <div className="w-full max-w-md">
+          {/* Mobile Top Header */}
           <div className="lg:hidden flex items-center justify-between mb-8">
             <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
-              bg<span className="text-amber-500">.</span>
+              BG<span className="text-accent">.</span>
             </Link>
             <Link
-              to="/login"
-              className="text-xs font-bold text-foreground border border-border/80 rounded-full px-3.5 py-1.5 hover:bg-muted transition-colors"
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border rounded-full px-3 py-1.5 hover:bg-muted transition-colors"
             >
-              Sign In
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back</span>
             </Link>
           </div>
 
-          {/* Elevated Glassmorphic Card Container */}
-          <div className="relative rounded-3xl border border-border/80 bg-card/90 backdrop-blur-2xl p-6 sm:p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-            {/* Top Gradient Highlight */}
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 rounded-t-3xl" />
-
+          {/* Clean Card Container (NO gradients) */}
+          <div className="rounded-3xl border border-border bg-card p-6 sm:p-10 shadow-xl">
             <div className="mb-8 space-y-2">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-                  Create an account
-                </h2>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/25">
-                  <Flame className="h-3 w-3 text-amber-500" />
-                  <span>Free 10 Daily Tokens</span>
-                </span>
-              </div>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                Create an account
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link
                   to="/login"
-                  className="font-bold text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors"
+                  className="font-bold text-foreground underline underline-offset-4 hover:text-accent transition-colors"
                 >
                   Log in
                 </Link>
@@ -303,7 +208,7 @@ function SignupPage() {
             {errorMsg && (
               <div
                 role="alert"
-                className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs font-medium text-rose-600 dark:text-rose-400 animate-in fade-in duration-200"
+                className="mb-6 flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-xs font-medium text-destructive"
               >
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div className="flex-1">{errorMsg}</div>
@@ -329,7 +234,7 @@ function SignupPage() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Alex Morgan"
                     disabled={isLoading}
-                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
                   />
                   <User className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
@@ -353,7 +258,7 @@ function SignupPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@domain.com"
                     disabled={isLoading}
-                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
                   />
                   <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
@@ -384,7 +289,7 @@ function SignupPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
                     disabled={isLoading}
-                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 pr-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 pr-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
                   />
                   <Lock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <button
@@ -397,9 +302,9 @@ function SignupPage() {
                   </button>
                 </div>
 
-                {/* Animated Password Strength Bar */}
+                {/* Password Strength Meter */}
                 {password && (
-                  <div className="space-y-1 pt-1 animate-in fade-in duration-200">
+                  <div className="space-y-1 pt-1">
                     <div className="grid grid-cols-4 gap-1.5 h-1.5">
                       <div className={`rounded-full transition-all duration-300 ${strength.score >= 1 ? strength.color.split(" ")[0] : "bg-muted"}`} />
                       <div className={`rounded-full transition-all duration-300 ${strength.score >= 2 ? strength.color.split(" ")[0] : "bg-muted"}`} />
@@ -422,7 +327,7 @@ function SignupPage() {
                   {confirmPassword && (
                     <span
                       className={`text-[11px] font-bold ${
-                        password === confirmPassword ? "text-emerald-500" : "text-rose-500"
+                        password === confirmPassword ? "text-emerald-500" : "text-destructive"
                       }`}
                     >
                       {password === confirmPassword ? "✓ Match" : "✗ Do not match"}
@@ -439,7 +344,7 @@ function SignupPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter your password"
                     disabled={isLoading}
-                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 pr-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 pr-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
                   />
                   <ShieldCheck className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <button
@@ -453,16 +358,16 @@ function SignupPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Solid Submit Button (NO Gradients) */}
               <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm py-4 px-6 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group disabled:opacity-50 disabled:pointer-events-none"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#f97316] hover:bg-[#ea580c] text-white font-bold text-sm py-3.5 px-6 shadow-sm hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin text-slate-950" />
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
                       <span>Creating Account & Sending OTP...</span>
                     </>
                   ) : (
@@ -475,15 +380,28 @@ function SignupPage() {
               </div>
             </form>
 
+            {/* Mobile Footer with Made in Bharat & Legal Links */}
+            <div className="lg:hidden flex items-center justify-between pt-6 mt-6 border-t border-border text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                <span className="h-2 w-2 rounded-full bg-[#f97316]" />
+                <span>Made in Bharat</span>
+              </span>
+              <div className="flex items-center gap-3 font-medium">
+                <Link to="/terms" className="hover:text-foreground">Terms</Link>
+                <span>•</span>
+                <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+              </div>
+            </div>
+
             {/* Terms and Security Footer */}
             <div className="mt-6 pt-5 border-t border-border/50 text-center space-y-2">
               <p className="text-xs text-muted-foreground">
                 By signing up, you agree to our{" "}
-                <Link to="/terms" className="underline text-foreground hover:text-amber-500 transition-colors">
+                <Link to="/terms" className="underline text-foreground hover:text-accent transition-colors">
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link to="/privacy" className="underline text-foreground hover:text-amber-500 transition-colors">
+                <Link to="/privacy" className="underline text-foreground hover:text-accent transition-colors">
                   Privacy Policy
                 </Link>
                 .

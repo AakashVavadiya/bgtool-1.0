@@ -10,3 +10,4 @@ export * from "./payments-repo";
 export * from "./otp-repo";
 export * from "./password-reset-repo";
 export * from "./security-events-repo";
+export * from "./telemetry-repo";

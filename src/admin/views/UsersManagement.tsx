@@ -14,6 +14,7 @@ import {
   Clock,
   Wand2,
   Shield,
+  RefreshCw,
 } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
@@ -23,16 +24,42 @@ export function UsersManagement() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [customCreditUser, setCustomCreditUser] = useState<string | null>(null);
   const [customCreditAmount, setCustomCreditAmount] = useState<number>(50);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchLatest = async (showToast = false) => {
+    setIsSyncing(true);
+    try {
+      const serverUsers = await AdminStore.fetchUsersFromServer();
+      setUsers([...serverUsers]);
+      if (showToast) {
+        toast.success(`Synced ${serverUsers.length} user account${serverUsers.length === 1 ? "" : "s"} from database.`);
+      }
+    } catch {
+      if (showToast) {
+        toast.error("Failed to sync users from server.");
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
+    // Initial fetch from server
+    fetchLatest();
+
     const handleUpdate = () => {
       setUsers(AdminStore.getUsers());
     };
     window.addEventListener(REALTIME_EVENT_NAME, handleUpdate);
     window.addEventListener("storage", handleUpdate);
+    const interval = setInterval(() => {
+      fetchLatest();
+    }, 5000);
+
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
+      clearInterval(interval);
     };
   }, []);
 
@@ -77,6 +104,16 @@ export function UsersManagement() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => fetchLatest(true)}
+            disabled={isSyncing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer shadow-xs disabled:opacity-50"
+            title="Fetch latest user accounts from server database"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin text-accent" : ""}`} />
+            <span>{isSyncing ? "Syncing..." : "Sync Database"}</span>
+          </button>
           <span className="rounded-full bg-muted/60 border border-border px-4 py-1.5 text-xs font-bold text-foreground">
             {filteredUsers.length} User{filteredUsers.length === 1 ? "" : "s"}
           </span>

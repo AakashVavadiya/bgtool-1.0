@@ -256,3 +256,33 @@ export async function handleListPayments(request: Request): Promise<Response> {
     );
   }
 }
+
+/**
+ * DELETE /api/payments/orders?id=...
+ * Deletes payment order from SQLite (admin only)
+ */
+export async function handleDeletePaymentOrder(request: Request): Promise<Response> {
+  if (!isAuthorizedAdmin(request)) {
+    return applySecurityHeaders(
+      createSafeErrorResponse(401, "Administrator authentication required to delete orders.")
+    );
+  }
+
+  try {
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return applySecurityHeaders(createSafeErrorResponse(400, "Missing order id."));
+    }
+
+    paymentsRepo.deleteOrder(id);
+    return applySecurityHeaders(
+      new Response(JSON.stringify({ success: true, id }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  } catch (err: any) {
+    return applySecurityHeaders(createSafeErrorResponse(500, "Failed to delete order."));
+  }
+}

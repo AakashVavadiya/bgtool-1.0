@@ -18,6 +18,7 @@ import { ErrorPage } from "@/components/ErrorPage";
 import { Telemetry } from "@/lib/telemetry";
 import { initWebsiteTranslator } from "@/lib/translator";
 import { RestrictedUserDialog } from "@/components/RestrictedUserDialog";
+import { GlobalSiteDialog } from "@/components/GlobalSiteDialog";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -155,6 +156,7 @@ function RootComponent() {
       <Outlet />
       <Toaster />
       {!isAdminRoute && <RestrictedUserDialog />}
+      {!isAdminRoute && <GlobalSiteDialog />}
     </QueryClientProvider>
   );
 }

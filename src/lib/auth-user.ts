@@ -27,7 +27,8 @@ let cachedUser: CurrentUser | null = null;
 let isInitializing = false;
 let hasInitialized = false;
 
-const GUEST_CREDITS_KEY = "bg.guest.credits.v2";
+const GUEST_CREDITS_KEY = "bg.guest.free_uses.v3";
+export const GUEST_FREE_USES_LIMIT = 5;
 
 interface GuestCreditState {
   date: string;
@@ -39,30 +40,35 @@ function getTodayString(): string {
 }
 
 function getGuestCreditsFromStorage(): number {
-  if (typeof window === "undefined") return 10;
+  if (typeof window === "undefined") return GUEST_FREE_USES_LIMIT;
   try {
     const raw = localStorage.getItem(GUEST_CREDITS_KEY);
     if (!raw) {
-      const initial: GuestCreditState = { date: getTodayString(), credits: 10 };
+      const initial: GuestCreditState = { date: getTodayString(), credits: GUEST_FREE_USES_LIMIT };
       localStorage.setItem(GUEST_CREDITS_KEY, JSON.stringify(initial));
-      return 10;
+      return GUEST_FREE_USES_LIMIT;
     }
     const parsed = JSON.parse(raw) as GuestCreditState;
     if (parsed.date !== getTodayString()) {
-      const resetState: GuestCreditState = { date: getTodayString(), credits: 10 };
+      const resetState: GuestCreditState = { date: getTodayString(), credits: GUEST_FREE_USES_LIMIT };
       localStorage.setItem(GUEST_CREDITS_KEY, JSON.stringify(resetState));
-      return 10;
+      return GUEST_FREE_USES_LIMIT;
     }
-    return typeof parsed.credits === "number" ? parsed.credits : 10;
+    return typeof parsed.credits === "number"
+      ? Math.min(GUEST_FREE_USES_LIMIT, Math.max(0, parsed.credits))
+      : GUEST_FREE_USES_LIMIT;
   } catch {
-    return 10;
+    return GUEST_FREE_USES_LIMIT;
   }
 }
 
 function setGuestCreditsInStorage(credits: number): void {
   if (typeof window === "undefined") return;
   try {
-    const state: GuestCreditState = { date: getTodayString(), credits: Math.max(0, credits) };
+    const state: GuestCreditState = {
+      date: getTodayString(),
+      credits: Math.min(GUEST_FREE_USES_LIMIT, Math.max(0, credits)),
+    };
     localStorage.setItem(GUEST_CREDITS_KEY, JSON.stringify(state));
   } catch {}
 }
@@ -111,6 +117,19 @@ export const AuthUser = {
       isInitializing = false;
       return cachedUser;
     }
+  },
+
+  isLoggedIn(): boolean {
+    if (typeof window === "undefined") return false;
+    return Boolean(cachedUser || this.getCurrentUser());
+  },
+
+  getGuestRemainingUses(): number {
+    return getGuestCreditsFromStorage();
+  },
+
+  getGuestMaxUses(): number {
+    return GUEST_FREE_USES_LIMIT;
   },
 
   isUserRestricted(email?: string): boolean {
@@ -514,7 +533,16 @@ export const AuthUser = {
     } else {
       // Guest visitor deduction
       const current = getGuestCreditsFromStorage();
-      if (current < amount) return false;
+      if (current < amount) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("bg:show_guest_login_dialog", {
+              detail: { toolSlug, remaining: 0 },
+            })
+          );
+        }
+        return false;
+      }
       const next = Math.max(0, current - amount);
       setGuestCreditsInStorage(next);
     }

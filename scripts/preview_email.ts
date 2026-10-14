@@ -54,6 +54,10 @@ const mandalaSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600
 const encodedSvg = Buffer.from(mandalaSvg).toString("base64");
 const mandalaDataUri = `data:image/svg+xml;base64,${encodedSvg}`;
 
+const logoPath = path.join(process.cwd(), "public", "images", "logo.png");
+const logoBase64 = fs.existsSync(logoPath) ? fs.readFileSync(logoPath).toString("base64") : "";
+const logoDataUri = logoBase64 ? `data:image/png;base64,${logoBase64}` : "/images/logo.png";
+
 const previewHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,15 +102,14 @@ const previewHtml = `<!DOCTYPE html>
       padding: 40px 36px 36px 36px;
     }
     .brand-logo {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      color: #000000;
-      text-decoration: none;
       display: inline-block;
+      text-decoration: none;
+      line-height: 1;
     }
-    .brand-logo span {
-      color: #FF6B00;
+    .brand-logo img {
+      display: block;
+      border: 0;
+      outline: none;
     }
     .badge-pill {
       display: inline-block;
@@ -283,8 +286,8 @@ const previewHtml = `<!DOCTYPE html>
       
       <div class="content-body">
         <!-- Logo -->
-        <a href="https://bg.tools" class="brand-logo">
-          bg<span>.tools</span>
+        <a href="https://bg.tools" target="_blank" class="brand-logo" style="text-decoration: none; display: inline-block;">
+          <img src="${logoDataUri}" alt="bg.tools" width="150" height="44" style="display: block; border: 0; outline: none; text-decoration: none; width: 150px; height: 44px; max-width: 160px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: 900; color: #0F172A;" />
         </a>
         
         <div>

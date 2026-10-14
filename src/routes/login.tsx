@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { AuthUser } from "@/lib/auth-user";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TokenCoin } from "@/components/TokenCoins";
 import {
   Eye,
   EyeOff,
@@ -13,11 +12,8 @@ import {
   ArrowRight,
   AlertCircle,
   ShieldAlert,
-  Sparkles,
   ArrowLeft,
   Shield,
-  Check,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -97,148 +93,84 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col lg:grid lg:grid-cols-12 selection:bg-amber-500/20 relative overflow-hidden">
-      {/* Ambient Lights */}
-      <div className="pointer-events-none absolute -top-40 -left-20 h-[500px] w-[500px] rounded-full bg-amber-500/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-orange-500/8 blur-[140px]" />
-
-      {/* LEFT COLUMN: Creative Showcase Panel (5 or 6 cols on lg) */}
-      <aside className="relative lg:col-span-6 xl:col-span-5 hidden lg:flex flex-col justify-between border-r border-border/70 bg-card/40 backdrop-blur-2xl p-10 xl:p-14 overflow-hidden">
-        {/* Subtle Decorative Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-
-        {/* Top Brand Link */}
-        <div className="relative z-10 flex items-center justify-between">
+    <div className="min-h-screen bg-background text-foreground flex flex-col lg:grid lg:grid-cols-12 relative">
+      {/* LEFT COLUMN: Clean Minimalist Brand Panel (NO gradients, ONLY BG., back button, terms, privacy, made in bharat) */}
+      <aside className="relative lg:col-span-5 hidden lg:flex flex-col justify-between border-r border-border bg-card/40 p-10 xl:p-14">
+        {/* Top: Back to Home Button Only (Top BG Logo removed) */}
+        <div className="flex items-center justify-end">
           <Link
             to="/"
-            className="group flex items-center gap-2 font-display text-2xl font-black tracking-tight text-foreground transition-transform hover:scale-105"
-          >
-            <span>bg</span>
-            <span className="h-2 w-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 inline-block" />
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors rounded-full border border-border px-3.5 py-1.5 hover:bg-muted"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Home</span>
           </Link>
         </div>
 
-        {/* Middle Content */}
-        <div className="relative z-10 my-auto py-8 space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 px-3.5 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 shadow-sm animate-in fade-in duration-500">
-            <Sparkles className="h-4 w-4 text-amber-500" />
-            <span>Welcome Back to bg.tools</span>
+        {/* Center: Dotted Halftone Big Logo (Same as Home Page) */}
+        <div className="my-auto py-12 flex flex-col items-start justify-center select-none">
+          <div className="leading-none">
+            <span className="halftone-text font-display text-7xl sm:text-8xl xl:text-9xl font-medium tracking-tight text-foreground">
+              bg
+            </span>
+            <span className="halftone-text font-display text-7xl sm:text-8xl xl:text-9xl font-medium tracking-tight text-accent">
+              .
+            </span>
           </div>
-
-          <div className="space-y-4">
-            <h1 className="font-display text-4xl xl:text-5xl font-black tracking-tight text-foreground leading-[1.15]">
-              Log in & resume your{" "}
-              <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 bg-clip-text text-transparent">
-                creative workflow.
-              </span>
-            </h1>
-            <p className="text-sm xl:text-base text-muted-foreground leading-relaxed max-w-md">
-              Access your daily token allowances, purchased Gold Token packs, processed batches, and fast export pipelines.
-            </p>
-          </div>
-
-          {/* Creative Quick Stats Card */}
-          <div className="rounded-3xl border border-border/80 bg-card/85 backdrop-blur-xl p-5 shadow-xl space-y-4 hover:shadow-2xl hover:border-amber-500/40 transition-all duration-300 group">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 font-black text-sm shadow-md">
-                  <Zap className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground">Token System Active</p>
-                  <p className="text-[10px] text-muted-foreground">All tools ready with high-speed queue</p>
-                </div>
-              </div>
-              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                Online
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
-                  <TokenCoin type="bronze" size="xs" />
-                  <span>Daily Free Tokens</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Refreshed daily for active creators.</p>
-              </div>
-
-              <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                  <TokenCoin type="gold" size="xs" showGlow />
-                  <span>Gold Tokens</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Your balance is securely preserved.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Security Features */}
-          <div className="space-y-3 text-xs text-muted-foreground pt-2">
-            <div className="flex items-center gap-3">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                <Check className="h-3 w-3" />
-              </div>
-              <span>Hostinger encrypted SMTP OTP verification</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                <Check className="h-3 w-3" />
-              </div>
-              <span>Session tokens secured with HttpOnly cookies & SHA-256</span>
-            </div>
-          </div>
+          <p className="mt-4 text-sm text-muted-foreground font-medium max-w-xs">
+            High-precision AI image processing and creative suite.
+          </p>
         </div>
 
-        {/* Bottom Copyright */}
-        <div className="relative z-10 flex items-center justify-between text-xs text-muted-foreground pt-4 border-t border-border/50">
-          <p>© {new Date().getFullYear()} bg.tools. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+        {/* Bottom: Made in Bharat Tag & Terms / Privacy Links */}
+        <div className="flex items-center justify-between pt-6 border-t border-border text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+            <span className="h-2 w-2 rounded-full bg-[#f97316]" />
+            <span>Made in Bharat</span>
+          </span>
+
+          <div className="flex items-center gap-4 font-medium">
+            <Link to="/terms" className="hover:text-foreground transition-colors underline-offset-4 hover:underline">
+              Terms
+            </Link>
+            <span>•</span>
+            <Link to="/privacy" className="hover:text-foreground transition-colors underline-offset-4 hover:underline">
+              Privacy
+            </Link>
           </div>
         </div>
       </aside>
 
-      {/* RIGHT COLUMN: Form Panel */}
-      <main className="lg:col-span-6 xl:col-span-7 flex items-center justify-center px-4 sm:px-8 py-12 lg:py-16 relative">
-        <div className="w-full max-w-lg">
+      {/* RIGHT COLUMN: Login Form Area (NO gradients, Clean Website Card) */}
+      <main className="lg:col-span-7 flex items-center justify-center px-4 sm:px-8 py-12 lg:py-16 relative">
+        <div className="w-full max-w-md">
           {/* Mobile Top Header */}
           <div className="lg:hidden flex items-center justify-between mb-8">
             <Link to="/" className="font-display text-2xl font-black tracking-tight text-foreground">
-              bg<span className="text-amber-500">.</span>
+              BG<span className="text-accent">.</span>
             </Link>
             <Link
-              to="/signup"
-              className="text-xs font-bold text-foreground border border-border/80 rounded-full px-3.5 py-1.5 hover:bg-muted transition-colors"
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border rounded-full px-3 py-1.5 hover:bg-muted transition-colors"
             >
-              Sign Up
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back</span>
             </Link>
           </div>
 
-          {/* Elevated Glassmorphic Card Container */}
-          <div className="relative rounded-3xl border border-border/80 bg-card/90 backdrop-blur-2xl p-6 sm:p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-            {/* Top Gradient Line */}
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 rounded-t-3xl" />
-
+          {/* Clean Card Container (NO gradients) */}
+          <div className="rounded-3xl border border-border bg-card p-6 sm:p-10 shadow-xl">
             <div className="mb-8 space-y-2">
-              <h2 className="font-display text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                 Sign in to your account
-              </h2>
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Link
                   to="/signup"
-                  className="font-bold text-foreground underline underline-offset-4 hover:text-amber-500 transition-colors"
+                  className="font-bold text-foreground underline underline-offset-4 hover:text-accent transition-colors"
                 >
-                  Create one now for free
+                  Create one now
                 </Link>
               </p>
             </div>
@@ -247,10 +179,10 @@ function LoginPage() {
             {unverifiedEmail && (
               <div
                 role="alert"
-                className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs font-medium text-amber-700 dark:text-amber-300 animate-in fade-in duration-200 space-y-2.5"
+                className="mb-6 rounded-2xl border border-border bg-muted/40 p-4 text-xs font-medium text-foreground space-y-2.5"
               >
                 <div className="flex items-start gap-2.5">
-                  <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+                  <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-[#f97316]" />
                   <div className="flex-1">
                     <strong>Email Verification Required:</strong> Your account is registered but unverified. Please verify your 6-digit OTP to activate your account.
                   </div>
@@ -259,7 +191,7 @@ function LoginPage() {
                   <Link
                     to="/verify-email"
                     search={{ email: unverifiedEmail } as any}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 font-bold text-xs text-slate-950 hover:bg-amber-400 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#f97316] hover:bg-[#ea580c] px-3.5 py-1.5 font-bold text-xs text-white transition-colors"
                   >
                     <span>Verify Email Now</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -272,7 +204,7 @@ function LoginPage() {
             {errorMsg && !unverifiedEmail && (
               <div
                 role="alert"
-                className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs font-medium text-rose-600 dark:text-rose-400 animate-in fade-in duration-200"
+                className="mb-6 flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-xs font-medium text-destructive"
               >
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div className="flex-1">{errorMsg}</div>
@@ -298,7 +230,7 @@ function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@domain.com"
                     disabled={isLoading}
-                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
                   />
                   <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
@@ -315,7 +247,7 @@ function LoginPage() {
                   </Label>
                   <Link
                     to="/forgot-password"
-                    className="text-xs font-semibold text-muted-foreground hover:text-amber-500 transition-colors"
+                    className="text-xs font-semibold text-muted-foreground hover:text-accent transition-colors"
                   >
                     Forgot password?
                   </Link>
@@ -330,7 +262,7 @@ function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Your account password"
                     disabled={isLoading}
-                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 pr-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-amber-500/30 focus-visible:border-amber-500"
+                    className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 pr-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
                   />
                   <Lock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <button
@@ -344,16 +276,16 @@ function LoginPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Solid Submit Button (NO Gradients) */}
               <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm py-4 px-6 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group disabled:opacity-50 disabled:pointer-events-none"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#f97316] hover:bg-[#ea580c] text-white font-bold text-sm py-3.5 px-6 shadow-sm hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin text-slate-950" />
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
                       <span>Signing In...</span>
                     </>
                   ) : (
@@ -366,8 +298,21 @@ function LoginPage() {
               </div>
             </form>
 
+            {/* Mobile Footer with Made in Bharat & Legal Links */}
+            <div className="lg:hidden flex items-center justify-between pt-6 mt-6 border-t border-border text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                <span className="h-2 w-2 rounded-full bg-[#f97316]" />
+                <span>Made in Bharat</span>
+              </span>
+              <div className="flex items-center gap-3 font-medium">
+                <Link to="/terms" className="hover:text-foreground">Terms</Link>
+                <span>•</span>
+                <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+              </div>
+            </div>
+
             {/* Security Guarantee */}
-            <div className="mt-8 pt-6 border-t border-border/50 text-center space-y-2">
+            <div className="mt-6 pt-5 border-t border-border/50 text-center">
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                 <Shield className="h-3 w-3 text-emerald-500" />
                 <span>256-bit Encrypted Session • Protected by bg.tools</span>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Check,
   Download,
@@ -11,10 +12,12 @@ import {
   FolderUp,
   Pencil,
   Zap,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CutoutBrushEditorModal } from "@/components/CutoutBrushEditorModal";
-import { AuthUser } from "@/lib/auth-user";
+import { AuthUser, type CurrentUser } from "@/lib/auth-user";
+import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 
 const steps = [
   { label: "Uploading image", detail: "Secure transfer · discarded after processing" },
@@ -120,9 +123,27 @@ export function RemovalProcess() {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showDynamicIsland, setShowDynamicIsland] = useState<boolean>(false);
   const [showCutoutEditor, setShowCutoutEditor] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
+  const [guestRemaining, setGuestRemaining] = useState<number>(() => AuthUser.getGuestRemainingUses());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync auth and guest limits
+  useEffect(() => {
+    const handleSync = () => {
+      setCurrentUser(AuthUser.getCurrentUser());
+      setGuestRemaining(AuthUser.getGuestRemainingUses());
+    };
+    window.addEventListener(REALTIME_EVENT_NAME, handleSync);
+    window.addEventListener("bg:credit_updated", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener(REALTIME_EVENT_NAME, handleSync);
+      window.removeEventListener("bg:credit_updated", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, []);
 
   // Dynamic Island scroll listener
   useEffect(() => {
@@ -205,18 +226,32 @@ export function RemovalProcess() {
         return;
       }
     } else {
-      if (!AuthUser.hasCredits(cost)) {
-        window.dispatchEvent(
-          new CustomEvent("bg:show_add_credits_dialog", {
-            detail: {
-              toolName: "Background Remover",
-              toolSlug: "remove-background",
-              creditCost: cost,
-              currentCredits: AuthUser.getCredits(),
-            },
-          })
-        );
-        return;
+      if (!currentUser) {
+        if (AuthUser.getGuestRemainingUses() <= 0) {
+          window.dispatchEvent(
+            new CustomEvent("bg:show_guest_login_dialog", {
+              detail: {
+                toolName: "Background Remover",
+                toolSlug: "remove-background",
+              },
+            })
+          );
+          return;
+        }
+      } else {
+        if (!AuthUser.hasCredits(cost)) {
+          window.dispatchEvent(
+            new CustomEvent("bg:show_add_credits_dialog", {
+              detail: {
+                toolName: "Background Remover",
+                toolSlug: "remove-background",
+                creditCost: cost,
+                currentCredits: AuthUser.getCredits(),
+              },
+            })
+          );
+          return;
+        }
       }
     }
 
@@ -249,19 +284,31 @@ export function RemovalProcess() {
         }),
       });
       clearInterval(stepTimer);
-      if (res.status === 402) {
+      if (res.status === 402 || res.status === 429) {
         const errData = await res.json().catch(() => ({}));
-        window.dispatchEvent(
-          new CustomEvent("bg:show_add_credits_dialog", {
-            detail: {
-              toolName: "Background Remover",
-              toolSlug: "remove-background",
-              creditCost: cost,
-              currentCredits: 0,
-            },
-          })
-        );
-        throw new Error(errData.error || "Credit limit exceeded. Please top up your tokens.");
+        if (!AuthUser.getCurrentUser()) {
+          window.dispatchEvent(
+            new CustomEvent("bg:show_guest_login_dialog", {
+              detail: {
+                toolName: "Background Remover",
+                toolSlug: "remove-background",
+              },
+            })
+          );
+          throw new Error(errData.error || "Free guest limit of 5 uses reached. Please log in for 10 daily free credits.");
+        } else {
+          window.dispatchEvent(
+            new CustomEvent("bg:show_add_credits_dialog", {
+              detail: {
+                toolName: "Background Remover",
+                toolSlug: "remove-background",
+                creditCost: cost,
+                currentCredits: 0,
+              },
+            })
+          );
+          throw new Error(errData.error || "Credit limit exceeded. Please top up your tokens.");
+        }
       }
       const data = await res.json();
       if (data.success && data.base64Image) {
@@ -682,36 +729,38 @@ export function RemovalProcess() {
 
             <div className="mt-8 border-t border-border pt-6">
               <div className="flex flex-col gap-3">
-                {/* Credit Cost Indicator */}
-                <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <Zap className="h-3.5 w-3.5 text-amber-500 fill-current" />
-                    <span>Cost: <strong className="text-foreground">1 credit</strong></span>
-                    <span className="text-[11px] text-muted-foreground ml-1">
-                      (Balance: <span className="font-mono font-bold text-amber-500">{AuthUser.getCredits()}</span>)
+                {/* Credit Cost Indicator (only for logged-in users) */}
+                {currentUser && (
+                  <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-amber-500 fill-current" />
+                      <span>Cost: <strong className="text-foreground">1 credit</strong></span>
+                      <span className="text-[11px] text-muted-foreground ml-1">
+                        (Balance: <span className="font-mono font-bold text-amber-500">{AuthUser.getCredits()}</span>)
+                      </span>
                     </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof window !== "undefined") {
-                        window.dispatchEvent(
-                          new CustomEvent("bg:show_add_credits_dialog", {
-                            detail: {
-                              toolName: "Background Remover",
-                              toolSlug: "remove-background",
-                              creditCost: 1,
-                              currentCredits: AuthUser.getCredits(),
-                            },
-                          })
-                        );
-                      }
-                    }}
-                    className="text-amber-600 dark:text-amber-400 hover:underline font-extrabold cursor-pointer text-xs"
-                  >
-                    + Add Credits
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          window.dispatchEvent(
+                            new CustomEvent("bg:show_add_credits_dialog", {
+                              detail: {
+                                toolName: "Background Remover",
+                                toolSlug: "remove-background",
+                                creditCost: 1,
+                                currentCredits: AuthUser.getCredits(),
+                              },
+                            })
+                          );
+                        }
+                      }}
+                      className="text-amber-600 dark:text-amber-400 hover:underline font-extrabold cursor-pointer text-xs"
+                    >
+                      + Add Credits
+                    </button>
+                  </div>
+                )}
 
                 {!hasProcessed && !processing ? (
                   <button

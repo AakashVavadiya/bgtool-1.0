@@ -18,6 +18,8 @@ export interface SafeUser {
   registeredAt: string;
   lastActive: string;
   lastCreditReset?: string | undefined;
+  location?: string | undefined;
+  ip?: string | undefined;
 }
 
 export interface AdminSessionPayload {

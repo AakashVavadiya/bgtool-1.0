@@ -103,6 +103,27 @@ export const Telemetry = {
       if (existingViews.length > 5000) existingViews.length = 5000;
       localStorage.setItem(STORAGE_KEYS.PAGE_VIEWS, JSON.stringify(existingViews));
 
+      // Asynchronously send hit to server for global visitor telemetry
+      if (typeof fetch !== "undefined") {
+        fetch("/api/telemetry", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "hit",
+            sessionId,
+            path: pageView.path,
+            title: pageView.title,
+            device,
+            os,
+            browser,
+            language: pageView.language,
+            timezone: pageView.timezone,
+            referrer: pageView.referrer,
+          }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+
       // Update active session heartbeat
       this.sendHeartbeat(pageView.path, device, pageView.referrer, pageView.timezone);
 
@@ -119,14 +140,17 @@ export const Telemetry = {
       const sessionId = getOrCreateSessionId();
       const sessions = this.getRawSessions();
       const now = Date.now();
+      const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const dev = device || "Desktop";
+      const p = path || window.location.pathname;
 
       sessions[sessionId] = {
         sessionId,
         lastPing: now,
-        path: path || window.location.pathname,
-        device: device || "Desktop",
+        path: p,
+        device: dev,
         referrer: referrer || "Direct",
-        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        timezone: tz,
       };
 
       // Clean sessions older than 45 seconds
@@ -138,6 +162,24 @@ export const Telemetry = {
       });
 
       localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+
+      // Asynchronously ping server to maintain global live visitor count
+      if (typeof fetch !== "undefined") {
+        fetch("/api/telemetry", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "heartbeat",
+            sessionId,
+            path: p,
+            device: dev,
+            timezone: tz,
+            language: navigator.language || "en-US",
+          }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+
       window.dispatchEvent(new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "heartbeat" } }));
     } catch {
       /* ignore */
@@ -160,6 +202,21 @@ export const Telemetry = {
       events.unshift(entry);
       if (events.length > 3000) events.length = 3000;
       localStorage.setItem(STORAGE_KEYS.TOOL_EVENTS, JSON.stringify(events));
+
+      // Asynchronously record tool run in server database for Tool Gear reports
+      if (typeof fetch !== "undefined") {
+        fetch("/api/tool-gear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            toolSlug,
+            toolName,
+            durationMs: durationMs || 0,
+            success: true,
+          }),
+          keepalive: true,
+        }).catch(() => {});
+      }
 
       window.dispatchEvent(new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "tool_usage", toolSlug } }));
     } catch {

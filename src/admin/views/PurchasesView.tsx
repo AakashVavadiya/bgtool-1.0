@@ -24,6 +24,8 @@ import {
   Image as ImageIcon,
   Clock,
   Layers,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +36,8 @@ export function PurchasesView() {
   const [purchases, setPurchases] = useState<PurchaseTransaction[]>(() => AdminStore.getPurchases());
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Plans & Offers State
   const [plans, setPlans] = useState<PurchasePlanConfig[]>(() => AdminStore.getPlans());
@@ -57,29 +61,50 @@ export function PurchasesView() {
   const [formShowInDialog, setFormShowInDialog] = useState(true);
   const [formActive, setFormActive] = useState(true);
 
+  const fetchLatest = async (showToast = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await AdminStore.fetchPurchasesFromServer();
+      setPurchases([...data]);
+      if (showToast) {
+        toast.success(`Synced ${data.length} order record${data.length === 1 ? "" : "s"} from database.`);
+      }
+    } catch {
+      if (showToast) {
+        toast.error("Failed to sync orders from server.");
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
+    fetchLatest();
+    AdminStore.fetchPlansFromServer().then((data) => setPlans(data));
+
     const handleUpdate = () => {
       setPurchases(AdminStore.getPurchases());
       setPlans(AdminStore.getPlans());
     };
     window.addEventListener(REALTIME_EVENT_NAME, handleUpdate);
     window.addEventListener("storage", handleUpdate);
-    AdminStore.fetchPlansFromServer().then((data) => setPlans(data));
-    AdminStore.fetchPurchasesFromServer().then((data) => setPurchases(data));
+    const interval = setInterval(() => {
+      fetchLatest();
+    }, 5000);
+
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
+      clearInterval(interval);
     };
   }, []);
 
-  const totalGrossINR = purchases.reduce(
-    (sum, p) => (p.status === "completed" ? sum + p.amountINR : sum),
-    0
-  );
-  const totalCreditsSold = purchases.reduce(
-    (sum, p) => (p.status === "completed" ? sum + p.creditsPurchased : sum),
-    0
-  );
+  const completedOrders = purchases.filter((p) => p.status === "completed");
+  const unpaidOrders = purchases.filter((p) => p.status !== "completed");
+
+  const totalGrossINR = completedOrders.reduce((sum, p) => sum + p.amountINR, 0);
+  const totalCreditsSold = completedOrders.reduce((sum, p) => sum + p.creditsPurchased, 0);
+  const completedCount = completedOrders.length;
 
   const filteredPurchases = purchases.filter((p) => {
     const matchesSearch =
@@ -89,8 +114,22 @@ export function PurchasesView() {
       p.id.toLowerCase().includes(search.toLowerCase());
 
     const matchesType = typeFilter === "all" || p.type === typeFilter;
-    return matchesSearch && matchesType;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "completed" && p.status === "completed") ||
+      (statusFilter === "unpaid" && p.status !== "completed");
+
+    return matchesSearch && matchesType && matchesStatus;
   });
+
+  const handleDeleteOrder = async (orderId: string, customer: string) => {
+    if (confirm(`Remove unpaid order record ${orderId} (${customer}) from database?`)) {
+      await AdminStore.deletePurchaseOrder(orderId);
+      const updated = purchases.filter((p) => p.id !== orderId && p.orderId !== orderId);
+      setPurchases([...updated]);
+      toast.success(`Deleted unpaid order record ${orderId}.`);
+    }
+  };
 
   const handleDownloadInvoice = (txnId: string) => {
     toast.success(`Generated official GST Invoice PDF for transaction ${txnId}.`);
@@ -271,7 +310,7 @@ export function PurchasesView() {
               </p>
               <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                <span>Verified Payment Gateway</span>
+                <span>Verified Successful Payments</span>
               </div>
             </div>
 
@@ -280,20 +319,22 @@ export function PurchasesView() {
               <p className="mt-3 font-display text-3xl font-extrabold text-amber-500">
                 {totalCreditsSold.toLocaleString()} Credits
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">Across credit packs & festive offers</p>
+              <p className="mt-2 text-xs text-muted-foreground">Granted across successful paid orders</p>
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6 shadow-xs">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Completed Transactions</span>
               <p className="mt-3 font-display text-3xl font-extrabold text-foreground">
-                {purchases.length}
+                {completedCount}
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">Total customer order records</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {unpaidOrders.length > 0 ? `${unpaidOrders.length} unpaid / abandoned order${unpaidOrders.length === 1 ? "" : "s"}` : "All orders verified"}
+              </p>
             </div>
           </div>
 
-          {/* Filter & Search */}
-          <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-border bg-card p-4 shadow-xs">
+          {/* Filter, Search & Refresh Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-4 shadow-xs">
             <div className="relative flex-1 min-w-[240px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -305,21 +346,77 @@ export function PurchasesView() {
               />
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {["all", "subscription", "pack"].map((t) => (
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Type Filter */}
+              <div className="flex items-center gap-1">
+                {["all", "subscription", "pack"].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTypeFilter(t)}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-bold capitalize transition-all cursor-pointer ${
+                      typeFilter === t
+                        ? "bg-foreground text-background shadow-xs font-extrabold"
+                        : "border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {t === "all" ? "All Types" : t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-px bg-border mx-0.5 hidden sm:block" />
+
+              {/* Status Filter */}
+              <div className="flex items-center gap-1">
                 <button
-                  key={t}
                   type="button"
-                  onClick={() => setTypeFilter(t)}
-                  className={`rounded-xl px-3.5 py-2 text-xs font-bold capitalize transition-all cursor-pointer ${
-                    typeFilter === t
+                  onClick={() => setStatusFilter("all")}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    statusFilter === "all"
                       ? "bg-foreground text-background shadow-xs font-extrabold"
                       : "border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
-                  {t === "all" ? "All Orders" : t}
+                  All ({purchases.length})
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("completed")}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    statusFilter === "completed"
+                      ? "bg-emerald-600 text-white shadow-xs font-extrabold"
+                      : "border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                  }`}
+                >
+                  ✓ Paid ({completedCount})
+                </button>
+                {unpaidOrders.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("unpaid")}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      statusFilter === "unpaid"
+                        ? "bg-amber-600 text-white shadow-xs font-extrabold"
+                        : "border border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                    }`}
+                  >
+                    ⏳ Unpaid ({unpaidOrders.length})
+                  </button>
+                )}
+              </div>
+
+              {/* Sync Button */}
+              <button
+                type="button"
+                onClick={() => fetchLatest(true)}
+                disabled={isSyncing}
+                title="Sync orders from server database"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin text-accent" : ""}`} />
+                <span>{isSyncing ? "Syncing..." : "Sync"}</span>
+              </button>
             </div>
           </div>
 
@@ -340,44 +437,93 @@ export function PurchasesView() {
                     <th className="py-4 px-6">Plan / Pack</th>
                     <th className="py-4 px-6">Credits</th>
                     <th className="py-4 px-6">Amount</th>
+                    <th className="py-4 px-6">Payment Status</th>
                     <th className="py-4 px-6">Payment Method</th>
                     <th className="py-4 px-6">Date</th>
-                    <th className="py-4 px-6 text-right">Invoice</th>
+                    <th className="py-4 px-6 text-right">Invoice / Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredPurchases.map((p) => (
-                    <tr key={p.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-4 px-6 font-mono text-[11px] font-bold text-foreground">
-                        {p.id}
-                      </td>
-                      <td className="py-4 px-6">
-                        <p className="font-bold text-foreground">{p.userName}</p>
-                        <p className="font-mono text-[11px] text-muted-foreground">{p.userEmail}</p>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="font-semibold text-foreground">{p.planName}</span>
-                      </td>
-                      <td className="py-4 px-6 font-mono font-bold text-amber-500">
-                        +{p.creditsPurchased}
-                      </td>
-                      <td className="py-4 px-6 font-mono font-bold text-foreground">
-                        ₹{p.amountINR.toLocaleString("en-IN")}
-                      </td>
-                      <td className="py-4 px-6 text-muted-foreground">{p.paymentMethod}</td>
-                      <td className="py-4 px-6 font-mono text-muted-foreground">{p.date}</td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadInvoice(p.id)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                        >
-                          <Download className="h-3 w-3" />
-                          <span>PDF</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredPurchases.map((p) => {
+                    const isCompleted = p.status === "completed";
+                    return (
+                      <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-4 px-6 font-mono text-[11px]">
+                          <span className="font-bold text-foreground">{p.id}</span>
+                          {p.orderId && p.paymentId && p.orderId !== p.id && (
+                            <p className="text-[10px] text-muted-foreground">Order: {p.orderId}</p>
+                          )}
+                        </td>
+                        <td className="py-4 px-6">
+                          <p className="font-bold text-foreground">{p.userName}</p>
+                          <p className="font-mono text-[11px] text-muted-foreground">{p.userEmail}</p>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-semibold text-foreground">{p.planName}</span>
+                        </td>
+                        <td className="py-4 px-6 font-mono">
+                          {isCompleted ? (
+                            <span className="font-bold text-amber-500">+{p.creditsPurchased}</span>
+                          ) : (
+                            <span className="text-muted-foreground text-[11px]">
+                              0 <span className="text-[10px] opacity-75">(Not credited)</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 font-mono font-bold text-foreground">
+                          ₹{p.amountINR.toLocaleString("en-IN")}
+                        </td>
+                        <td className="py-4 px-6">
+                          {isCompleted ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                              <span>Paid</span>
+                            </span>
+                          ) : p.status === "failed" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-rose-600 dark:text-rose-400">
+                              <AlertCircle className="h-3 w-3 text-rose-500" />
+                              <span>Failed</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-amber-600 dark:text-amber-400">
+                              <Clock className="h-3 w-3 text-amber-500" />
+                              <span>Unpaid / Created</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 text-muted-foreground">{p.paymentMethod}</td>
+                        <td className="py-4 px-6 font-mono text-muted-foreground text-[11px]">
+                          {p.date ? p.date.replace("T", " ").slice(0, 16) : ""}
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          {isCompleted ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadInvoice(p.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                            >
+                              <Download className="h-3 w-3" />
+                              <span>PDF</span>
+                            </button>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                                Unpaid
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteOrder(p.id, p.userName)}
+                                title="Delete / Dismiss unpaid order record"
+                                className="rounded-lg border border-border p-1.5 text-muted-foreground hover:border-destructive hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

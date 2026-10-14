@@ -200,6 +200,40 @@ function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_payments_payment_id ON payments(payment_id);
     CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
     CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+
+    CREATE TABLE IF NOT EXISTS telemetry_hits (
+      id TEXT PRIMARY KEY,
+      session_id TEXT,
+      path TEXT NOT NULL,
+      title TEXT,
+      country TEXT NOT NULL,
+      country_code TEXT NOT NULL,
+      flag TEXT NOT NULL,
+      device TEXT NOT NULL,
+      os TEXT,
+      browser TEXT,
+      referrer TEXT,
+      ip TEXT,
+      created_at TEXT NOT NULL,
+      timestamp INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_telemetry_created_at ON telemetry_hits(created_at);
+    CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_hits(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_telemetry_country ON telemetry_hits(country);
+    CREATE INDEX IF NOT EXISTS idx_telemetry_session ON telemetry_hits(session_id);
+
+    CREATE TABLE IF NOT EXISTS telemetry_sessions (
+      session_id TEXT PRIMARY KEY,
+      country TEXT NOT NULL,
+      country_code TEXT NOT NULL,
+      flag TEXT NOT NULL,
+      device TEXT NOT NULL,
+      last_ping INTEGER NOT NULL,
+      path TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_telemetry_sessions_ping ON telemetry_sessions(last_ping);
   `);
 
   // Migrate existing users table if columns are missing
@@ -212,6 +246,16 @@ function initSchema(db: Database.Database): void {
     if (!colNames.has("verified_at")) {
       db.exec("ALTER TABLE users ADD COLUMN verified_at TEXT;");
     }
+
+    const tuColumns = db.pragma("table_info(tool_usage)") as Array<{ name: string }>;
+    const tuColNames = new Set(tuColumns.map((c) => c.name));
+    if (!tuColNames.has("tool_name")) {
+      db.exec("ALTER TABLE tool_usage ADD COLUMN tool_name TEXT;");
+    }
+    if (!tuColNames.has("memory_bytes")) {
+      db.exec("ALTER TABLE tool_usage ADD COLUMN memory_bytes INTEGER DEFAULT 0;");
+    }
+    db.exec("CREATE INDEX IF NOT EXISTS idx_tool_usage_created ON tool_usage(created_at);");
   } catch (err) {
     console.error("[DB Schema Migration Warning]", err);
   }

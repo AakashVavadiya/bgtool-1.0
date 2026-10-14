@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { Faq } from "@/components/Faq";
 import { AdminStore, type PurchasePlanConfig } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
+import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { Wand2, Gift, Zap, ShieldCheck, Lock, Check, X, Sparkles, Minus } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { initiateRazorpayCheckout } from "@/lib/razorpay";
@@ -121,7 +122,7 @@ export const PRICING_CONFIG = {
       "Standard quality exports",
     ],
     buttonText: "Start free (Login)",
-    buttonHref: "/auth",
+    buttonHref: "/login",
   },
   lite: {
     name: "Lite",
@@ -206,14 +207,23 @@ function Pricing() {
   const [activeOffer, setActiveOffer] = useState<PurchasePlanConfig | null>(() =>
     AdminStore.getActiveFestivalOffer()
   );
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() =>
+    AuthUser.getCurrentUser()
+  );
 
   const isYearly = billingPeriod === "yearly";
 
   useEffect(() => {
-    const update = () => setActiveOffer(AdminStore.getActiveFestivalOffer());
+    const update = () => {
+      setActiveOffer(AdminStore.getActiveFestivalOffer());
+      setCurrentUser(AuthUser.getCurrentUser());
+    };
     window.addEventListener(REALTIME_EVENT_NAME, update);
     window.addEventListener("storage", update);
-    AdminStore.fetchPlansFromServer().then(() => setActiveOffer(AdminStore.getActiveFestivalOffer()));
+    AdminStore.fetchPlansFromServer().then(() => {
+      setActiveOffer(AdminStore.getActiveFestivalOffer());
+      setCurrentUser(AuthUser.getCurrentUser());
+    });
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, update);
       window.removeEventListener("storage", update);
@@ -375,7 +385,7 @@ function Pricing() {
                 <TokenCoin type="bronze" size="sm" />
               </div>
               <p className="mt-2 text-xs font-medium text-muted-foreground">
-                {PRICING_CONFIG.free.tokenQuota}
+                {currentUser ? "10 Bronze Tokens (Daily Allowance)" : PRICING_CONFIG.free.tokenQuota}
               </p>
 
               <div className="mt-6">
@@ -386,24 +396,43 @@ function Pricing() {
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground font-mono">
-                  Always 100% free • Login required
+                  {currentUser ? "Always 100% free • Active Plan" : "Always 100% free • Login required"}
                 </p>
               </div>
 
-              <Link
-                to={PRICING_CONFIG.free.buttonHref}
-                className="mt-6 w-full inline-flex justify-center items-center rounded-full border border-border bg-transparent px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
-              >
-                {PRICING_CONFIG.free.buttonText}
-              </Link>
+              {currentUser ? (
+                currentUser.plan === "free" ? (
+                  <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-border bg-muted/80 px-6 py-3 text-sm font-semibold text-foreground select-none cursor-default shadow-xs">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    <span>Your Current Plan</span>
+                  </div>
+                ) : (
+                  <div className="mt-6 w-full inline-flex justify-center items-center rounded-full border border-border/60 bg-muted/30 px-6 py-3 text-sm font-medium text-muted-foreground select-none cursor-default">
+                    Included
+                  </div>
+                )
+              ) : (
+                <Link
+                  to={PRICING_CONFIG.free.buttonHref}
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-full border border-border bg-transparent px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  {PRICING_CONFIG.free.buttonText}
+                </Link>
+              )}
 
               <ul className="mt-7 space-y-2.5 border-t border-border pt-6 text-sm text-muted-foreground">
-                {PRICING_CONFIG.free.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                    <span>{f}</span>
-                  </li>
-                ))}
+                {PRICING_CONFIG.free.features.map((f) => {
+                  const label =
+                    currentUser && f.includes("Need to login")
+                      ? "10 free daily credits active"
+                      : f;
+                  return (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <span>{label}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
@@ -431,20 +460,27 @@ function Pricing() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  handleBuy(
-                    40,
-                    isYearly ? "Lite Yearly Plan (Silver Tokens)" : "Lite Monthly Plan (Silver Tokens)",
-                    isYearly ? PRICING_CONFIG.lite.yearlyPrice : PRICING_CONFIG.lite.monthlyPrice,
-                    "subscription"
-                  )
-                }
-                className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer"
-              >
-                {PRICING_CONFIG.lite.buttonText}
-              </button>
+              {currentUser?.plan === "lite" ? (
+                <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-border bg-muted/80 px-6 py-3 text-sm font-semibold text-foreground select-none cursor-default shadow-xs">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  <span>Your Current Plan</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleBuy(
+                      40,
+                      isYearly ? "Lite Yearly Plan (Silver Tokens)" : "Lite Monthly Plan (Silver Tokens)",
+                      isYearly ? PRICING_CONFIG.lite.yearlyPrice : PRICING_CONFIG.lite.monthlyPrice,
+                      "subscription"
+                    )
+                  }
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer"
+                >
+                  {PRICING_CONFIG.lite.buttonText}
+                </button>
+              )}
 
               <ul className="mt-7 space-y-2.5 border-t border-border pt-6 text-sm text-muted-foreground">
                 {PRICING_CONFIG.lite.features.map((f) => (
@@ -485,20 +521,27 @@ function Pricing() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  handleBuy(
-                    200,
-                    isYearly ? "Pro Yearly Plan (Silver Tokens)" : "Pro Monthly Plan (Silver Tokens)",
-                    isYearly ? PRICING_CONFIG.pro.yearlyPrice : PRICING_CONFIG.pro.monthlyPrice,
-                    "subscription"
-                  )
-                }
-                className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer shadow-md"
-              >
-                {PRICING_CONFIG.pro.buttonText}
-              </button>
+              {currentUser?.plan === "pro" ? (
+                <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/15 px-6 py-3 text-sm font-semibold text-amber-500 select-none cursor-default shadow-xs">
+                  <Check className="h-4 w-4 text-amber-500" />
+                  <span>Your Current Plan</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleBuy(
+                      200,
+                      isYearly ? "Pro Yearly Plan (Silver Tokens)" : "Pro Monthly Plan (Silver Tokens)",
+                      isYearly ? PRICING_CONFIG.pro.yearlyPrice : PRICING_CONFIG.pro.monthlyPrice,
+                      "subscription"
+                    )
+                  }
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer shadow-md"
+                >
+                  {PRICING_CONFIG.pro.buttonText}
+                </button>
+              )}
 
               <ul className="mt-7 space-y-2.5 border-t border-border pt-6 text-sm text-muted-foreground">
                 {PRICING_CONFIG.pro.features.map((f) => (

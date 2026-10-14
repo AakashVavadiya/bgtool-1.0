@@ -88,9 +88,13 @@ export function DashboardOverview() {
 
   useEffect(() => {
     setTraffic(AdminStore.getTraffic(timeframe));
+    AdminStore.fetchTrafficFromServer(timeframe).then((t) => setTraffic(t)).catch(() => {});
   }, [timeframe]);
 
   useEffect(() => {
+    AdminStore.fetchUsersFromServer().then((u) => setUsers(u)).catch(() => {});
+    AdminStore.fetchTrafficFromServer(timeframe).then((t) => setTraffic(t)).catch(() => {});
+
     const handleUpdate = () => {
       setTraffic(AdminStore.getTraffic(timeframe));
       setUsers(AdminStore.getUsers());
@@ -103,7 +107,11 @@ export function DashboardOverview() {
 
     window.addEventListener(REALTIME_EVENT_NAME, handleUpdate);
     window.addEventListener("storage", handleUpdate);
-    const interval = setInterval(handleUpdate, 4000);
+    const interval = setInterval(() => {
+      handleUpdate();
+      AdminStore.fetchUsersFromServer().catch(() => {});
+      AdminStore.fetchTrafficFromServer(timeframe).catch(() => {});
+    }, 6000);
 
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, handleUpdate);
@@ -663,15 +671,18 @@ export function DashboardOverview() {
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">Resolved client geolocations</p>
 
-            <div className="mt-5 space-y-3.5">
+            <div className="mt-5 space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
               {traffic.countryBreakdown.map((c, i) => (
                 <div key={i} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="flex items-center gap-2 text-foreground">
-                      <span>{c.flag}</span>
-                      <span>{c.country}</span>
+                    <span className="flex items-center gap-2 text-foreground truncate">
+                      <span className="text-sm">{c.flag}</span>
+                      <span className="truncate">{c.country}</span>
                     </span>
-                    <span className="font-mono text-muted-foreground">{c.percentage}%</span>
+                    <span className="font-mono text-muted-foreground shrink-0 text-[11px]">
+                      {c.count ? <span className="opacity-75 mr-1 font-normal">{c.count} views •</span> : null}
+                      {c.percentage}%
+                    </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                     <div

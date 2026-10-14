@@ -55,8 +55,30 @@ export const usersRepo = {
 
   getAllSafe(): SafeUser[] {
     const db = getDb();
-    const rows = db.prepare("SELECT * FROM users ORDER BY registered_at DESC").all() as DbUser[];
-    return rows.map(toSafeUser);
+    const rows = db.prepare(`
+      SELECT 
+        u.*,
+        s.ip as session_ip
+      FROM users u
+      LEFT JOIN (
+        SELECT user_id, ip, MAX(created_at)
+        FROM sessions
+        GROUP BY user_id
+      ) s ON u.id = s.user_id
+      ORDER BY u.registered_at DESC
+    `).all() as (DbUser & { session_ip?: string | null })[];
+
+    return rows.map((row) => {
+      const safe = toSafeUser(row);
+      const ip = row.session_ip || "127.0.0.1";
+      safe.ip = ip;
+      if (!ip || ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.")) {
+        safe.location = "Localhost / India";
+      } else {
+        safe.location = "India";
+      }
+      return safe;
+    });
   },
 
   create(user: {

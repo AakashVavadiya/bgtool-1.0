@@ -72,7 +72,9 @@ import {
   Plus,
   Circle,
   Zap,
+  Sparkles,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
@@ -7104,21 +7106,37 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         return;
       }
     } else {
-      // Non-free tools: work with credits! When credits are over, show Add Credits option
-      if (!AuthUser.hasCredits(cost)) {
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("bg:show_add_credits_dialog", {
-              detail: {
-                toolName: tool.name,
-                toolSlug: tool.slug,
-                creditCost: cost,
-                currentCredits: AuthUser.getCredits(),
-              },
-            })
-          );
+      // Non-free tools: check credits or guest allowance
+      if (!AuthUser.isLoggedIn()) {
+        if (AuthUser.getGuestRemainingUses() <= 0) {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("bg:show_guest_login_dialog", {
+                detail: {
+                  toolName: tool.name,
+                  toolSlug: tool.slug,
+                },
+              })
+            );
+          }
+          return;
         }
-        return;
+      } else {
+        if (!AuthUser.hasCredits(cost)) {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("bg:show_add_credits_dialog", {
+                detail: {
+                  toolName: tool.name,
+                  toolSlug: tool.slug,
+                  creditCost: cost,
+                  currentCredits: AuthUser.getCredits(),
+                },
+              })
+            );
+          }
+          return;
+        }
       }
     }
 
@@ -16716,6 +16734,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         </span>
                       </div>
                     );
+                  }
+
+                  if (!AuthUser.isLoggedIn()) {
+                    return null;
                   }
 
                   const silver = AuthUser.getSilverTokens();

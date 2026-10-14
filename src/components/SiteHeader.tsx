@@ -106,8 +106,16 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
     return AdminStore.isPageEnabled(l.to);
   });
 
+  const isHeaderSticky = floating || (uiSettings.structure?.headerSticky ?? true);
+  const containerMaxWidthClass =
+    uiSettings.structure?.containerMaxWidth === "boxed"
+      ? "max-w-[1280px] mx-auto"
+      : uiSettings.structure?.containerMaxWidth === "wide"
+      ? "max-w-[1440px] mx-auto"
+      : "w-full";
+
   return (
-    <header className={floating ? "fixed inset-x-0 top-0 z-50 bg-background/90 backdrop-blur-md" : "relative z-50 border-b border-border bg-background"}>
+    <header className={isHeaderSticky ? "sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border transition-all" : "relative z-50 border-b border-border bg-background transition-all"}>
       {/* Top Announcement Bar if enabled in Pro Settings */}
       {uiSettings.announcementEnabled && uiSettings.announcementText && (
         <div
@@ -126,7 +134,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
         </div>
       )}
 
-      <div className="flex items-center justify-between px-4 sm:px-6 py-2 md:px-12 md:py-3">
+      <div className={`flex items-center justify-between px-4 sm:px-6 py-2 md:px-12 md:py-3 ${containerMaxWidthClass}`}>
         {/* Mobile Hamburger Menu Toggle */}
         <button
           type="button"

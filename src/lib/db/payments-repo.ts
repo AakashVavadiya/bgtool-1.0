@@ -262,4 +262,15 @@ export const paymentsRepo = {
       `)
       .all(userId, limit) as DbPayment[];
   },
+
+  /**
+   * Delete payment order record (e.g. unpaid / cancelled order)
+   */
+  deleteOrder(orderIdOrPaymentId: string): boolean {
+    const db = getDb();
+    const result = db
+      .prepare("DELETE FROM payments WHERE order_id = ? OR payment_id = ? OR id = ?")
+      .run(orderIdOrPaymentId, orderIdOrPaymentId, orderIdOrPaymentId);
+    return result.changes > 0;
+  },
 };

@@ -507,105 +507,110 @@ vite-error-overlay,
 }
 
 /* ==========================================================================
-   WOBBLY SPRING & JELLY SWITCH ANIMATION SYSTEM
+   SILKY SMOOTH SWITCH & TAB ANIMATION SYSTEM (ZERO BOUNCE)
    ========================================================================== */
 
-@keyframes wobble-spring {
+/* Modern smooth fade and micro-settle (NO bounce, NO squash/stretch) */
+@keyframes smooth-tab-settle {
   0% {
-    transform: scale(0.92, 1.12);
-  }
-  25% {
-    transform: scale(1.14, 0.88) translateY(-2px);
-  }
-  50% {
-    transform: scale(0.95, 1.06) translateY(1px);
-  }
-  75% {
-    transform: scale(1.03, 0.98) translateY(-0.5px);
+    opacity: 0.88;
+    transform: scale(0.985);
   }
   100% {
-    transform: scale(1, 1) translateY(0);
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-@keyframes jelly-bounce {
-  0% {
-    transform: scale(1, 1);
-  }
-  20% {
-    transform: scale(1.16, 0.84);
-  }
-  40% {
-    transform: scale(0.88, 1.12);
-  }
-  60% {
-    transform: scale(1.08, 0.94);
-  }
-  80% {
-    transform: scale(0.97, 1.02);
-  }
-  100% {
-    transform: scale(1, 1);
-  }
-}
-
-@keyframes wobbly-tilt {
-  0% {
-    transform: scale(1, 1) rotate(0deg);
-  }
-  25% {
-    transform: scale(1.1, 0.9) rotate(-3deg);
-  }
-  50% {
-    transform: scale(0.92, 1.08) rotate(2deg);
-  }
-  75% {
-    transform: scale(1.04, 0.96) rotate(-1deg);
-  }
-  100% {
-    transform: scale(1, 1) rotate(0deg);
-  }
-}
-
-/* Universal Wobbly Interactive Classes */
+/* Universal Smooth Interactive Classes for All Tool Settings, Tabs & Switches */
 .wobbly-switch,
-.wobbly-tab-group {
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+.wobbly-tab-group,
+.tool-switch-group,
+.tool-tab-group,
+[role="tablist"] {
+  transition: background-color 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .wobbly-btn,
 .wobbly-tab,
 .wobbly-pill,
-.wobbly-switch button {
+.wobbly-switch button,
+.tool-tab-btn,
+[role="tab"],
+button[role="switch"] {
   transition:
-    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color 0.25s ease,
-    color 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-  will-change: transform;
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease !important;
+  will-change: transform, background-color, color, box-shadow;
 }
 
 .wobbly-btn:hover,
 .wobbly-tab:hover,
 .wobbly-pill:hover,
 .wobbly-switch button:hover {
-  transform: translateY(-2px) scale(1.03);
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .wobbly-btn:active,
 .wobbly-tab:active,
 .wobbly-pill:active,
 .wobbly-switch button:active {
-  transform: scale(0.9, 0.88) translateY(1.5px) !important;
+  transform: scale(0.98) !important;
   transition-duration: 0.1s !important;
 }
 
-/* Applied when a switch / tab becomes active */
+/* Applied when a switch / tab becomes active - ZERO BOUNCE, SILKY SMOOTH */
 .wobbly-active,
 .wobbly-switch button[data-active="true"],
-.wobbly-tab[data-active="true"] {
-  animation: wobble-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+.wobbly-tab[data-active="true"],
+[role="tab"][data-state="active"],
+button[role="tab"][aria-selected="true"] {
+  animation: smooth-tab-settle 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform: scale(1) !important;
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Radix Switch smooth sliding without bounce */
+[data-radix-switch-thumb],
+button[role="switch"] > span {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform;
+}
+button[role="switch"] {
+  transition: background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Universal Smooth Transitions for all Tool Workspace Segmented Controls & Tabs */
+.grid[class*="grid-cols-"] > button,
+div[class*="rounded-"][class*="p-1"] > button,
+div[class*="rounded-"][class*="p-1.5"] > button {
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease;
+  will-change: transform, background-color, color, box-shadow;
+}
+
+.grid[class*="grid-cols-"] > button:active,
+div[class*="rounded-"][class*="p-1"] > button:active,
+div[class*="rounded-"][class*="p-1.5"] > button:active {
+  transform: scale(0.98);
 }
 
 /* ── Top Dynamic Island Floating Action Bar (Black OLED Pill + Silky Smooth Morphing) ── */

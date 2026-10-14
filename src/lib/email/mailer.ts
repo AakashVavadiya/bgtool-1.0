@@ -1,4 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import fs from "fs";
+import path from "path";
 
 export interface SendEmailResult {
   success: boolean;
@@ -152,6 +154,40 @@ function getMandalaDataUri(): string {
 }
 
 /**
+ * Locates the official logo.png on disk for inline CID attachment
+ */
+function getLogoAttachment(): {
+  filename: string;
+  path: string;
+  cid: string;
+  contentDisposition: "inline";
+} | null {
+  const possiblePaths = [
+    path.join(process.cwd(), "public", "images", "logo.png"),
+    path.join(process.cwd(), "public", "logo.png"),
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return {
+        filename: "logo.png",
+        path: p,
+        cid: "bgtoolslogo",
+        contentDisposition: "inline",
+      };
+    }
+  }
+  return null;
+}
+
+function getLogoInfo(appBaseUrl: string): { src: string } {
+  const attachment = getLogoAttachment();
+  return {
+    src: attachment ? "cid:bgtoolslogo" : `${appBaseUrl}/images/logo.png`,
+  };
+}
+
+/**
  * Promotional Festive / Latest Offer Box for all transactional emails
  */
 function getLatestOfferHtml(appBaseUrl: string): string {
@@ -223,6 +259,7 @@ export const mailer = {
     const subject = `Your bg.tools verification code is ${params.otp}`;
     const mandalaDataUri = getMandalaDataUri();
     const latestOfferHtml = getLatestOfferHtml(config.appBaseUrl);
+    const logoInfo = getLogoInfo(config.appBaseUrl);
 
     const textContent = `
 Hello ${displayName},
@@ -295,15 +332,14 @@ ${config.appBaseUrl}
       padding: 40px 36px 36px 36px;
     }
     .brand-logo {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      color: #000000;
-      text-decoration: none;
       display: inline-block;
+      text-decoration: none;
+      line-height: 1;
     }
-    .brand-logo span {
-      color: #FF6B00;
+    .brand-logo img {
+      display: block;
+      border: 0;
+      outline: none;
     }
     .badge-pill {
       display: inline-block;
@@ -400,8 +436,8 @@ ${config.appBaseUrl}
       <div class="top-accent-bar"></div>
       
       <div class="content-body">
-        <a href="${config.appBaseUrl}" class="brand-logo">
-          bg<span>.tools</span>
+        <a href="${config.appBaseUrl}" target="_blank" class="brand-logo" style="text-decoration: none; display: inline-block;">
+          <img src="${logoInfo.src}" alt="bg.tools" width="150" height="44" style="display: block; border: 0; outline: none; text-decoration: none; width: 150px; height: 44px; max-width: 160px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: 900; color: #0F172A;" />
         </a>
         
         <div>
@@ -470,6 +506,7 @@ ${config.appBaseUrl}
     const subject = `Reset your bg.tools password`;
     const mandalaDataUri = getMandalaDataUri();
     const latestOfferHtml = getLatestOfferHtml(config.appBaseUrl);
+    const logoInfo = getLogoInfo(config.appBaseUrl);
 
     const textContent = `
 Hello ${displayName},
@@ -540,15 +577,14 @@ ${config.appBaseUrl}
       padding: 40px 36px 36px 36px;
     }
     .brand-logo {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      color: #000000;
-      text-decoration: none;
       display: inline-block;
+      text-decoration: none;
+      line-height: 1;
     }
-    .brand-logo span {
-      color: #FF6B00;
+    .brand-logo img {
+      display: block;
+      border: 0;
+      outline: none;
     }
     .badge-pill {
       display: inline-block;
@@ -638,8 +674,8 @@ ${config.appBaseUrl}
       <div class="top-accent-bar"></div>
       
       <div class="content-body">
-        <a href="${config.appBaseUrl}" class="brand-logo">
-          bg<span>.tools</span>
+        <a href="${config.appBaseUrl}" target="_blank" class="brand-logo" style="text-decoration: none; display: inline-block;">
+          <img src="${logoInfo.src}" alt="bg.tools" width="150" height="44" style="display: block; border: 0; outline: none; text-decoration: none; width: 150px; height: 44px; max-width: 160px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: 900; color: #0F172A;" />
         </a>
         
         <div>
@@ -722,6 +758,9 @@ ${config.appBaseUrl}
       return { success: false, error: "Email delivery service unavailable." };
     }
 
+    const logoAttachment = getLogoAttachment();
+    const attachments = logoAttachment ? [logoAttachment] : [];
+
     try {
       const info = await transporter.sendMail({
         from: config.from,
@@ -729,6 +768,7 @@ ${config.appBaseUrl}
         subject: params.subject,
         text: params.text,
         html: params.html,
+        attachments,
       });
 
       return { success: true, messageId: info.messageId };

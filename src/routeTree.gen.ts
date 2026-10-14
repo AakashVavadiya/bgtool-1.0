@@ -33,6 +33,8 @@ import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as ApiPlansConfigRouteImport } from './routes/api/plans-config'
 import { Route as ApiRemoveBgRouteImport } from './routes/api/remove-bg'
 import { Route as ApiRemoveWatermarkRouteImport } from './routes/api/remove-watermark'
+import { Route as ApiTelemetryRouteImport } from './routes/api/telemetry'
+import { Route as ApiToolGearRouteImport } from './routes/api/tool-gear'
 import { Route as ApiToolsConfigRouteImport } from './routes/api/tools-config'
 import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
@@ -160,6 +162,16 @@ const ApiRemoveWatermarkRoute = ApiRemoveWatermarkRouteImport.update({
   path: '/api/remove-watermark',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTelemetryRoute = ApiTelemetryRouteImport.update({
+  id: '/api/telemetry',
+  path: '/api/telemetry',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiToolGearRoute = ApiToolGearRouteImport.update({
+  id: '/api/tool-gear',
+  path: '/api/tool-gear',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiToolsConfigRoute = ApiToolsConfigRouteImport.update({
   id: '/api/tools-config',
   path: '/api/tools-config',
@@ -216,6 +228,8 @@ export interface FileRoutesByFullPath {
   '/api/plans-config': typeof ApiPlansConfigRoute
   '/api/remove-bg': typeof ApiRemoveBgRoute
   '/api/remove-watermark': typeof ApiRemoveWatermarkRoute
+  '/api/telemetry': typeof ApiTelemetryRoute
+  '/api/tool-gear': typeof ApiToolGearRoute
   '/api/tools-config': typeof ApiToolsConfigRoute
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
@@ -247,6 +261,8 @@ export interface FileRoutesByTo {
   '/api/plans-config': typeof ApiPlansConfigRoute
   '/api/remove-bg': typeof ApiRemoveBgRoute
   '/api/remove-watermark': typeof ApiRemoveWatermarkRoute
+  '/api/telemetry': typeof ApiTelemetryRoute
+  '/api/tool-gear': typeof ApiToolGearRoute
   '/api/tools-config': typeof ApiToolsConfigRoute
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
@@ -280,6 +296,8 @@ export interface FileRoutesById {
   '/api/plans-config': typeof ApiPlansConfigRoute
   '/api/remove-bg': typeof ApiRemoveBgRoute
   '/api/remove-watermark': typeof ApiRemoveWatermarkRoute
+  '/api/telemetry': typeof ApiTelemetryRoute
+  '/api/tool-gear': typeof ApiToolGearRoute
   '/api/tools-config': typeof ApiToolsConfigRoute
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
@@ -314,6 +332,8 @@ export interface FileRouteTypes {
     | '/api/plans-config'
     | '/api/remove-bg'
     | '/api/remove-watermark'
+    | '/api/telemetry'
+    | '/api/tool-gear'
     | '/api/tools-config'
     | '/api/users'
     | '/chat/$threadId'
@@ -345,6 +365,8 @@ export interface FileRouteTypes {
     | '/api/plans-config'
     | '/api/remove-bg'
     | '/api/remove-watermark'
+    | '/api/telemetry'
+    | '/api/tool-gear'
     | '/api/tools-config'
     | '/api/users'
     | '/chat/$threadId'
@@ -377,6 +399,8 @@ export interface FileRouteTypes {
     | '/api/plans-config'
     | '/api/remove-bg'
     | '/api/remove-watermark'
+    | '/api/telemetry'
+    | '/api/tool-gear'
     | '/api/tools-config'
     | '/api/users'
     | '/chat/$threadId'
@@ -410,6 +434,8 @@ export interface RootRouteChildren {
   ApiPlansConfigRoute: typeof ApiPlansConfigRoute
   ApiRemoveBgRoute: typeof ApiRemoveBgRoute
   ApiRemoveWatermarkRoute: typeof ApiRemoveWatermarkRoute
+  ApiTelemetryRoute: typeof ApiTelemetryRoute
+  ApiToolGearRoute: typeof ApiToolGearRoute
   ApiToolsConfigRoute: typeof ApiToolsConfigRoute
   ApiUsersRoute: typeof ApiUsersRoute
   ToolsSlugRoute: typeof ToolsSlugRoute
@@ -586,6 +612,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRemoveWatermarkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/telemetry': {
+      id: '/api/telemetry'
+      path: '/api/telemetry'
+      fullPath: '/api/telemetry'
+      preLoaderRoute: typeof ApiTelemetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tool-gear': {
+      id: '/api/tool-gear'
+      path: '/api/tool-gear'
+      fullPath: '/api/tool-gear'
+      preLoaderRoute: typeof ApiToolGearRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tools-config': {
       id: '/api/tools-config'
       path: '/api/tools-config'
@@ -668,6 +708,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPlansConfigRoute: ApiPlansConfigRoute,
   ApiRemoveBgRoute: ApiRemoveBgRoute,
   ApiRemoveWatermarkRoute: ApiRemoveWatermarkRoute,
+  ApiTelemetryRoute: ApiTelemetryRoute,
+  ApiToolGearRoute: ApiToolGearRoute,
   ApiToolsConfigRoute: ApiToolsConfigRoute,
   ApiUsersRoute: ApiUsersRoute,
   ToolsSlugRoute: ToolsSlugRoute,

@@ -1,6 +1,8 @@
 import { tools, type ToolCategory } from "@/lib/tools";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { getAdminAuthHeaders } from "./admin-auth";
+import { resolveGeo } from "@/lib/geo";
+import type { ToolGearReport } from "@/lib/db/tool-usage-repo";
 
 export interface LoggedUser {
   id: string;
@@ -23,6 +25,8 @@ export interface LoggedUser {
 
 export interface PurchaseTransaction {
   id: string;
+  orderId?: string | undefined;
+  paymentId?: string | null | undefined;
   userId: string;
   userName: string;
   userEmail: string;
@@ -31,8 +35,8 @@ export interface PurchaseTransaction {
   creditsPurchased: number;
   amountINR: number;
   currency: string;
-  status: "completed" | "refunded" | "failed";
-  paymentMethod: "UPI" | "Credit Card" | "Net Banking" | "PayPal";
+  status: "completed" | "created" | "pending" | "refunded" | "failed";
+  paymentMethod: "UPI" | "Credit Card" | "Net Banking" | "PayPal" | "Razorpay";
   date: string;
   invoiceUrl?: string;
 }
@@ -461,7 +465,74 @@ export interface UiEditSettings {
 
   // Custom Page Route Overrides (e.g. { "/chat": false, "/models": false, "/pricing": true })
   pageRoutes: Record<string, boolean>;
+
+  // Site Dialog & Announcement Modal
+  siteDialog: SiteDialogSettings;
+
+  // Website Layout & Structure
+  structure: WebsiteStructureSettings;
 }
+
+export type SiteDialogType = "info" | "alert" | "warning" | "offer";
+export type SiteDialogDisplayMode = "modal" | "bottom-sheet" | "floating-card";
+export type SiteDialogFrequency = "always" | "session" | "once";
+export type SiteDialogTargetPages = "all" | "home" | "pricing" | "tools";
+
+export interface SiteDialogSettings {
+  enabled: boolean;
+  type: SiteDialogType;
+  title: string;
+  badgeText: string;
+  message: string;
+  couponCode?: string;
+  ctaText: string;
+  ctaLink: string;
+  secondaryText?: string;
+  displayMode: SiteDialogDisplayMode;
+  frequency: SiteDialogFrequency;
+  targetPages: SiteDialogTargetPages;
+  showIcon: boolean;
+  autoOpenDelaySeconds: number;
+}
+
+export interface WebsiteStructureSettings {
+  containerMaxWidth: "boxed" | "wide" | "full";
+  heroLayout: "split" | "centered" | "minimal";
+  headerSticky: boolean;
+  showBreadcrumbs: boolean;
+  showFooterNewsletter: boolean;
+  showFooterBadges: boolean;
+  footerColumnsCount: 3 | 4 | 5;
+  enableSmoothTransitions: boolean;
+}
+
+export const DEFAULT_SITE_DIALOG: SiteDialogSettings = {
+  enabled: true,
+  type: "offer",
+  title: "Limited Festival Creator Offer! 🎉",
+  badgeText: "🔥 60% OFF SPECIAL OFFER",
+  message: "Unlock 650 high-definition processing credits, unlimited 4K batch background removal, and priority GPU inference. Use discount coupon at checkout!",
+  couponCode: "FESTIVE50",
+  ctaText: "Claim Festival Offer",
+  ctaLink: "/pricing",
+  secondaryText: "Maybe Later",
+  displayMode: "modal",
+  frequency: "session",
+  targetPages: "all",
+  showIcon: true,
+  autoOpenDelaySeconds: 1,
+};
+
+export const DEFAULT_WEBSITE_STRUCTURE: WebsiteStructureSettings = {
+  containerMaxWidth: "wide",
+  heroLayout: "split",
+  headerSticky: true,
+  showBreadcrumbs: true,
+  showFooterNewsletter: true,
+  showFooterBadges: true,
+  footerColumnsCount: 4,
+  enableSmoothTransitions: true,
+};
 
 export const DEFAULT_UI_SETTINGS: UiEditSettings = {
   aiMasterEnabled: true,
@@ -482,6 +553,8 @@ export const DEFAULT_UI_SETTINGS: UiEditSettings = {
   announcementText: "🚀 Welcome to bg.tools — Unlimited Free Background Removal & 130+ Image Tools!",
   announcementBgColor: "amber",
   announcementLink: "/tools",
+  siteDialog: DEFAULT_SITE_DIALOG,
+  structure: DEFAULT_WEBSITE_STRUCTURE,
   pageRoutes: {
     "/": true,
     "/chat": false,
@@ -650,6 +723,8 @@ export function ensureUserDailyCredits(u: LoggedUser): boolean {
   return changed;
 }
 
+const trafficServerCache: Record<number, { data: TrafficAnalytics; fetchedAt: number }> = {};
+
 export const AdminStore = {
   // Users (Real registered accounts only)
   getUsers(): LoggedUser[] {
@@ -692,13 +767,33 @@ export const AdminStore = {
       });
       if (res.ok) {
         const data = await res.json();
-        const usersList = Array.isArray(data) ? data : data.users;
-        if (Array.isArray(usersList) && usersList.length > 0) {
-          for (const u of usersList) {
+        const usersList = Array.isArray(data) ? data : data?.users;
+        if (Array.isArray(usersList)) {
+          const mapped: LoggedUser[] = usersList.map((u: any) => ({
+            id: String(u.id || ""),
+            name: String(u.name || "User"),
+            email: String(u.email || ""),
+            plan: u.plan === "enterprise" || u.plan === "pro" || u.plan === "lite" ? u.plan : "free",
+            credits: typeof u.credits === "number" ? u.credits : 10,
+            freeCredits: typeof u.freeCredits === "number" ? u.freeCredits : 10,
+            paidCredits: typeof u.paidCredits === "number" ? u.paidCredits : 0,
+            totalProcessed: typeof u.totalProcessed === "number" ? u.totalProcessed : 0,
+            status: u.status === "restricted" || u.status === "banned" ? u.status : "active",
+            location: u.location || "Localhost / India",
+            ip: u.ip || "127.0.0.1",
+            registeredAt: u.registeredAt ? String(u.registeredAt).replace("T", " ").slice(0, 16) : new Date().toISOString().slice(0, 10),
+            lastActive: u.lastActive ? String(u.lastActive).replace("T", " ").slice(0, 16) : "Just now",
+          }));
+          for (const u of mapped) {
             ensureUserDailyCredits(u);
           }
-          saveToStorage(STORAGE_KEYS.USERS, usersList);
-          return usersList;
+          saveToStorage(STORAGE_KEYS.USERS, mapped);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "admin_users_updated", count: mapped.length } })
+            );
+          }
+          return mapped;
         }
       }
     } catch {
@@ -761,21 +856,34 @@ export const AdminStore = {
       });
       if (res.ok) {
         const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) {
-          const mapped: PurchaseTransaction[] = rows.map((r: any) => ({
-            id: r.payment_id || r.order_id,
-            userId: r.user_id || "guest",
-            userName: r.user_name || "Customer",
-            userEmail: r.user_email || "Customer",
-            type: r.plan_type === "subscription" ? "subscription" : "pack",
-            planName: r.plan_name,
-            creditsPurchased: r.credits,
-            amountINR: r.amount_inr,
-            currency: r.currency || "INR",
-            status: r.status === "completed" ? "completed" : r.status === "failed" ? "failed" : "completed",
-            paymentMethod: (r.payment_method || "Razorpay") as any,
-            date: r.created_at,
-          }));
+        if (Array.isArray(rows)) {
+          const mapped: PurchaseTransaction[] = rows.map((r: any) => {
+            const isPaid = r.status === "completed" && Boolean(r.payment_id);
+            const status: PurchaseTransaction["status"] = isPaid
+              ? "completed"
+              : r.status === "failed"
+              ? "failed"
+              : r.status === "refunded"
+              ? "refunded"
+              : "created";
+
+            return {
+              id: r.payment_id || r.order_id,
+              orderId: r.order_id,
+              paymentId: r.payment_id,
+              userId: r.user_id || "guest",
+              userName: r.user_name || "Customer",
+              userEmail: r.user_email || "Customer",
+              type: r.plan_type === "subscription" ? "subscription" : "pack",
+              planName: r.plan_name,
+              creditsPurchased: r.credits,
+              amountINR: r.amount_inr,
+              currency: r.currency || "INR",
+              status,
+              paymentMethod: (r.payment_method || "Razorpay") as any,
+              date: r.created_at,
+            };
+          });
           saveToStorage(STORAGE_KEYS.PURCHASES, mapped);
           return mapped;
         }
@@ -784,6 +892,22 @@ export const AdminStore = {
       /* ignore */
     }
     return this.getPurchases();
+  },
+  async deletePurchaseOrder(orderIdOrPaymentId: string): Promise<boolean> {
+    const purchases = this.getPurchases().filter(
+      (p) => p.id !== orderIdOrPaymentId && p.orderId !== orderIdOrPaymentId
+    );
+    this.savePurchases(purchases);
+    try {
+      await fetch(`/api/payments/orders?id=${encodeURIComponent(orderIdOrPaymentId)}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+      });
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   // Purchase Plans & Festival Offers
@@ -1398,6 +1522,10 @@ export const AdminStore = {
 
   // Dynamic Real-Time Traffic Analytics calculated from actual events
   getTraffic(daysCount: number = 7): TrafficAnalytics {
+    if (trafficServerCache[daysCount]) {
+      return trafficServerCache[daysCount].data;
+    }
+
     if (typeof window === "undefined") {
       return {
         totalPageViews: 1,
@@ -1459,40 +1587,28 @@ export const AdminStore = {
         conversionRate: `${Math.min(100, Math.round((rawToolEvents.length / Math.max(1, count)) * 100))}%`,
       }));
 
-      // Timezone / Geo aggregation
-      const tzMap: Record<string, number> = {};
+      // Timezone / Geo aggregation using comprehensive resolver
+      const countryMap: Record<string, { country: string; flag: string; count: number }> = {};
       rawViews.forEach((v) => {
         const tz = v.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Client";
-        tzMap[tz] = (tzMap[tz] || 0) + 1;
+        const geo = resolveGeo(null, { timezone: tz, language: v.language });
+        const existing = countryMap[geo.country];
+        if (existing) {
+          existing.count++;
+        } else {
+          countryMap[geo.country] = { country: geo.country, flag: geo.flag, count: 1 };
+        }
       });
-      if (Object.keys(tzMap).length === 0) {
-        tzMap[Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Client"] = 1;
+      if (Object.keys(countryMap).length === 0) {
+        countryMap["India"] = { country: "India", flag: "🇮🇳", count: 1 };
       }
 
-      const countryBreakdown = Object.entries(tzMap).map(([tz, count]) => {
-        let flag = "🌐";
-        let country = tz.replace("_", " ");
-        if (tz.includes("Kolkata") || tz.includes("Calcutta") || tz.includes("India")) {
-          flag = "🇮🇳";
-          country = "India";
-        } else if (tz.includes("New_York") || tz.includes("Los_Angeles") || tz.includes("America")) {
-          flag = "🇺🇸";
-          country = "United States";
-        } else if (tz.includes("London") || tz.includes("Europe/London")) {
-          flag = "🇬🇧";
-          country = "United Kingdom";
-        } else if (tz.includes("Berlin") || tz.includes("Paris") || tz.includes("Europe")) {
-          flag = "🇪🇺";
-          country = "Europe";
-        }
-
-        return {
-          country,
-          flag,
-          count,
-          percentage: Math.round((count / totalPageViews) * 100) || 100,
-        };
-      });
+      const countryBreakdown = Object.values(countryMap).map((c) => ({
+        country: c.country,
+        flag: c.flag,
+        count: c.count,
+        percentage: Math.round((c.count / totalPageViews) * 100) || 100,
+      }));
 
       // Daily Traffic (Group requested timeframe days)
       const daySlots: {
@@ -1578,12 +1694,41 @@ export const AdminStore = {
     }
   },
 
+  async fetchTrafficFromServer(daysCount: number = 7): Promise<TrafficAnalytics> {
+    try {
+      const res = await fetch(`/api/telemetry?days=${daysCount}`, {
+        headers: getAdminAuthHeaders(),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success && json?.data) {
+          trafficServerCache[daysCount] = {
+            data: json.data,
+            fetchedAt: Date.now(),
+          };
+          return json.data;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return this.getTraffic(daysCount);
+  },
+
   // ─── Pro Settings, Live UI Customizer & Page Tree Toggles ─────────────────
   getUiSettings(): UiEditSettings {
     const stored = loadFromStorage<Partial<UiEditSettings>>(STORAGE_KEYS.UI_SETTINGS, {});
     return {
       ...DEFAULT_UI_SETTINGS,
       ...stored,
+      siteDialog: {
+        ...DEFAULT_SITE_DIALOG,
+        ...(stored?.siteDialog || {}),
+      },
+      structure: {
+        ...DEFAULT_WEBSITE_STRUCTURE,
+        ...(stored?.structure || {}),
+      },
       pageRoutes: {
         ...DEFAULT_UI_SETTINGS.pageRoutes,
         ...(stored?.pageRoutes || {}),
@@ -1596,6 +1741,14 @@ export const AdminStore = {
     const updated: UiEditSettings = {
       ...current,
       ...partial,
+      siteDialog: {
+        ...current.siteDialog,
+        ...(partial.siteDialog || {}),
+      },
+      structure: {
+        ...current.structure,
+        ...(partial.structure || {}),
+      },
       pageRoutes: {
         ...current.pageRoutes,
         ...(partial.pageRoutes || {}),
@@ -1717,4 +1870,29 @@ export const AdminStore = {
     }
     return DEFAULT_UI_SETTINGS;
   },
+
+  async fetchToolGearReport(timeframe: "1d" | "yesterday" | "7d" | "30d" = "1d"): Promise<ToolGearReport | null> {
+    try {
+      const res = await fetch(`/api/tool-gear?timeframe=${timeframe}`, {
+        headers: getAdminAuthHeaders(),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success && json?.data) {
+          return json.data as ToolGearReport;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  },
 };
+
+export type {
+  ToolGearReport,
+  ToolExecutionStat,
+  ToolTimeSeriesPoint,
+  MemoryDiagnostics,
+  ToolRecentLog,
+} from "@/lib/db/tool-usage-repo";

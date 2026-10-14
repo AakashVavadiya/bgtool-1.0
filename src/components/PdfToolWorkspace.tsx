@@ -34,7 +34,9 @@ import {
   GripVertical,
   Split,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { type Tool } from "@/lib/tools";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
@@ -711,20 +713,36 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     const cost = AdminStore.getToolCreditCost(tool.slug);
     const isFree = cost === 0;
 
-    if (!isFree && !AuthUser.hasCredits(cost)) {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("bg:show_add_credits_dialog", {
-            detail: {
-              toolName: tool.name,
-              toolSlug: tool.slug,
-              creditCost: cost,
-              currentCredits: AuthUser.getCredits(),
-            },
-          })
-        );
+    if (!isFree) {
+      if (!AuthUser.isLoggedIn()) {
+        if (AuthUser.getGuestRemainingUses() <= 0) {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("bg:show_guest_login_dialog", {
+                detail: {
+                  toolName: tool.name,
+                  toolSlug: tool.slug,
+                },
+              })
+            );
+          }
+          return;
+        }
+      } else if (!AuthUser.hasCredits(cost)) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("bg:show_add_credits_dialog", {
+              detail: {
+                toolName: tool.name,
+                toolSlug: tool.slug,
+                creditCost: cost,
+                currentCredits: AuthUser.getCredits(),
+              },
+            })
+          );
+        }
+        return;
       }
-      return;
     }
 
     setProcessing(true);
@@ -2293,6 +2311,10 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
 
               const silver = AuthUser.getSilverTokens();
               const gold = AuthUser.getGoldTokens();
+
+              if (!AuthUser.isLoggedIn()) {
+                return null;
+              }
 
               return (
                 <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">

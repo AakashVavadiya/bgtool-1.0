@@ -1,8 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
-import { AdminStore, type UiEditSettings, CORE_PAGE_ROUTES } from "@/admin/lib/admin-store";
+import {
+  AdminStore,
+  type UiEditSettings,
+  type SiteDialogSettings,
+  type SiteDialogType,
+  type SiteDialogDisplayMode,
+  type SiteDialogFrequency,
+  type SiteDialogTargetPages,
+  type WebsiteStructureSettings,
+  CORE_PAGE_ROUTES,
+} from "@/admin/lib/admin-store";
 import { tools, TOOL_CATEGORIES, type ToolCategory } from "@/lib/tools";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { toast } from "sonner";
+import { GlobalSiteDialog } from "@/components/GlobalSiteDialog";
 import {
   Sliders,
   Power,
@@ -27,11 +38,25 @@ import {
   Sun,
   Coins,
   Link as LinkIcon,
+  LayoutTemplate,
+  Smartphone,
+  Monitor,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  Gift,
+  Copy,
+  Eye,
+  Settings2,
+  ArrowRight,
 } from "lucide-react";
 
 export function ProSettingsView() {
   const [settings, setSettings] = useState<UiEditSettings>(() => AdminStore.getUiSettings());
-  const [activeTab, setActiveTab] = useState<"tree" | "ui-edit" | "ai-control">("ai-control");
+  const [activeTab, setActiveTab] = useState<"tree" | "ui-edit" | "ai-control" | "dialog" | "structure">("dialog");
+  const [dialogPreviewViewport, setDialogPreviewViewport] = useState<"mobile" | "desktop">("mobile");
+  const [isLivePreviewOpen, setIsLivePreviewOpen] = useState(false);
+  const [copiedPreviewCode, setCopiedPreviewCode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
@@ -56,6 +81,118 @@ export function ProSettingsView() {
     setSettings(updated);
     if (message) {
       toast.success(message);
+    }
+  };
+
+  const handleUpdateDialog = (partial: Partial<SiteDialogSettings>, message?: string) => {
+    const current = settings.siteDialog;
+    const updated = AdminStore.saveUiSettings({
+      siteDialog: {
+        ...current,
+        ...partial,
+      },
+    });
+    setSettings(updated);
+    if (message) {
+      toast.success(message);
+    }
+  };
+
+  const handleUpdateStructure = (partial: Partial<WebsiteStructureSettings>, message?: string) => {
+    const current = settings.structure;
+    const updated = AdminStore.saveUiSettings({
+      structure: {
+        ...current,
+        ...partial,
+      },
+    });
+    setSettings(updated);
+    if (message) {
+      toast.success(message);
+    }
+  };
+
+  const applyDialogPreset = (preset: "offer" | "maintenance" | "feature" | "security") => {
+    if (preset === "offer") {
+      handleUpdateDialog(
+        {
+          enabled: true,
+          type: "offer",
+          title: "Limited Festival Creator Offer! 🎉",
+          badgeText: "🔥 60% OFF SPECIAL OFFER",
+          message:
+            "Unlock 650 high-definition processing credits, unlimited 4K batch background removal, and priority GPU inference. Use coupon at checkout!",
+          couponCode: "FESTIVE50",
+          ctaText: "Claim 60% Off Now",
+          ctaLink: "/pricing",
+          secondaryText: "Maybe Later",
+          displayMode: "modal",
+          frequency: "session",
+          targetPages: "all",
+          showIcon: true,
+        },
+        "Applied Festival Promo Offer template!"
+      );
+    } else if (preset === "maintenance") {
+      handleUpdateDialog(
+        {
+          enabled: true,
+          type: "warning",
+          title: "Scheduled Cloud Upgrades Tonight ⚙️",
+          badgeText: "⚠️ SYSTEM NOTICE",
+          message:
+            "We are upgrading our high-speed neural rendering clusters between 02:00 AM - 03:00 AM UTC. Some AI batch tools might take a few extra seconds to process.",
+          couponCode: "",
+          ctaText: "View System Status",
+          ctaLink: "/admin#health",
+          secondaryText: "Understood",
+          displayMode: "bottom-sheet",
+          frequency: "always",
+          targetPages: "all",
+          showIcon: true,
+        },
+        "Applied Maintenance Warning template!"
+      );
+    } else if (preset === "feature") {
+      handleUpdateDialog(
+        {
+          enabled: true,
+          type: "info",
+          title: "New Ultra-HD 4K AI Upscaler is Live! 🚀",
+          badgeText: "✨ NEW RELEASE",
+          message:
+            "Enhance and restore any low-resolution photograph or illustration up to 4K resolution with crystal-clear edges and zero quality loss.",
+          couponCode: "",
+          ctaText: "Try 4K Upscaler Free",
+          ctaLink: "/tools",
+          secondaryText: "Dismiss",
+          displayMode: "modal",
+          frequency: "session",
+          targetPages: "home",
+          showIcon: true,
+        },
+        "Applied New Feature template!"
+      );
+    } else if (preset === "security") {
+      handleUpdateDialog(
+        {
+          enabled: true,
+          type: "alert",
+          title: "Zero-Data Retention Privacy Active 🛡️",
+          badgeText: "🚨 PRIVACY GUARANTEE",
+          message:
+            "All customer photographs and PDF files are processed directly in browser memory and strictly deleted immediately after download.",
+          couponCode: "",
+          ctaText: "Read Privacy Policy",
+          ctaLink: "/privacy",
+          secondaryText: "Close",
+          displayMode: "floating-card",
+          frequency: "once",
+          targetPages: "all",
+          showIcon: true,
+        },
+        "Applied Privacy & Security notice template!"
+      );
     }
   };
 
@@ -268,6 +405,35 @@ export function ProSettingsView() {
           <span className="rounded-full bg-accent/20 text-accent px-1.5 py-0.2 text-[10px] font-mono">
             {CORE_PAGE_ROUTES.length + tools.length}
           </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("dialog")}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "dialog"
+              ? "bg-foreground text-background shadow-xs font-extrabold"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <Megaphone className="h-4 w-4 text-accent" />
+          <span>Site Dialogs & Banners</span>
+          {settings.siteDialog?.enabled && (
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("structure")}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "structure"
+              ? "bg-foreground text-background shadow-xs font-extrabold"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <LayoutTemplate className="h-4 w-4 text-blue-500" />
+          <span>Website Structure</span>
         </button>
 
         <button
@@ -964,6 +1130,672 @@ export function ProSettingsView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── TAB 4: SITE DIALOGS & ANNOUNCEMENT MODAL ───────────────────────── */}
+      {activeTab === "dialog" && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Top Banner & Quick Controls */}
+          <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                  settings.siteDialog.enabled
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <Megaphone className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display text-lg font-bold text-foreground">
+                    Site-Wide Announcement & Popup Dialog Box
+                  </h3>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
+                      settings.siteDialog.enabled
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        settings.siteDialog.enabled ? "bg-emerald-500 animate-ping" : "bg-muted-foreground"
+                      }`}
+                    />
+                    {settings.siteDialog.enabled ? "Active on Website" : "Turned OFF"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Broadcast promotional offers, urgent system alerts, maintenance warnings, or feature news with 100% mobile-friendly responsive modals.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsLivePreviewOpen(true)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2.5 text-xs font-bold text-foreground shadow-xs hover:bg-muted transition-all cursor-pointer"
+              >
+                <Eye className="h-3.5 w-3.5 text-accent" />
+                <span>Test Live Popup</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  handleUpdateDialog(
+                    { enabled: !settings.siteDialog.enabled },
+                    settings.siteDialog.enabled ? "Site Dialog deactivated" : "Site Dialog is now live on the website!"
+                  )
+                }
+                className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black shadow-md transition-all cursor-pointer ${
+                  settings.siteDialog.enabled
+                    ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                }`}
+              >
+                <Power className="h-3.5 w-3.5" />
+                <span>{settings.siteDialog.enabled ? "Deactivate Dialog" : "Activate Dialog"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Preset Templates Bar */}
+          <div className="rounded-2xl border border-border bg-muted/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              <span>1-Click Preset Templates:</span>
+            </span>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => applyDialogPreset("offer")}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer"
+              >
+                <Gift className="h-3 w-3" />
+                <span>Festive 60% Off Offer</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyDialogPreset("maintenance")}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer"
+              >
+                <AlertTriangle className="h-3 w-3" />
+                <span>Maintenance Notice</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyDialogPreset("feature")}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
+              >
+                <Sparkles className="h-3 w-3" />
+                <span>New 4K Upscaler Feature</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyDialogPreset("security")}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer"
+              >
+                <Shield className="h-3 w-3" />
+                <span>Privacy & Security Notice</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main 2-Column Editor & Live Responsive Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Dialog Configuration Form */}
+            <div className="lg:col-span-7 space-y-5">
+              {/* 1. Dialog Type Selection */}
+              <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+                <label className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  1. Select Dialog Type & Purpose
+                </label>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {(
+                    [
+                      { id: "offer", label: "New Offer", icon: Gift, color: "text-rose-500", desc: "Promo & Discounts" },
+                      { id: "info", label: "Information", icon: Info, color: "text-blue-500", desc: "General News" },
+                      { id: "alert", label: "Alert", icon: AlertCircle, color: "text-amber-500", desc: "Important Notice" },
+                      { id: "warning", label: "Warning", icon: AlertTriangle, color: "text-rose-600", desc: "Maintenance" },
+                    ] as const
+                  ).map((t) => {
+                    const Icon = t.icon;
+                    const isSelected = settings.siteDialog.type === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleUpdateDialog({ type: t.id as SiteDialogType })}
+                        className={`rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-foreground bg-muted/60 shadow-sm ring-1 ring-foreground"
+                            : "border-border bg-card hover:bg-muted/30"
+                        }`}
+                      >
+                        <Icon className={`h-5 w-5 ${t.color}`} />
+                        <p className="font-extrabold text-xs text-foreground mt-2">{t.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{t.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Dialog Content Form */}
+              <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+                <label className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  2. Dialog Header & Body Message
+                </label>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Dialog Title</label>
+                    <input
+                      type="text"
+                      value={settings.siteDialog.title}
+                      onChange={(e) => handleUpdateDialog({ title: e.target.value })}
+                      placeholder="e.g. Special Festival Creator Offer! 🎉"
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-xs font-bold text-foreground focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Top Badge Text</label>
+                    <input
+                      type="text"
+                      value={settings.siteDialog.badgeText}
+                      onChange={(e) => handleUpdateDialog({ badgeText: e.target.value })}
+                      placeholder="e.g. 🔥 60% OFF SPECIAL OFFER"
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-xs font-semibold text-foreground focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Announcement Message Content</label>
+                    <textarea
+                      rows={3}
+                      value={settings.siteDialog.message}
+                      onChange={(e) => handleUpdateDialog({ message: e.target.value })}
+                      placeholder="Write your announcement details here..."
+                      className="mt-1 w-full rounded-2xl border border-input bg-background p-3.5 text-xs text-foreground leading-relaxed focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  {settings.siteDialog.type === "offer" && (
+                    <div>
+                      <label className="text-xs font-bold text-foreground">
+                        Discount Coupon Code (Optional - with 1-click copy)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.siteDialog.couponCode || ""}
+                        onChange={(e) => handleUpdateDialog({ couponCode: e.target.value.toUpperCase() })}
+                        placeholder="e.g. FESTIVE50"
+                        className="mt-1 w-full rounded-2xl border border-dashed border-rose-500/50 bg-rose-500/5 px-3.5 py-2.5 font-mono text-xs font-black tracking-wider text-foreground focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Action Buttons & Routing */}
+              <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+                <label className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  3. Buttons & Action Links
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Primary Action Button Text</label>
+                    <input
+                      type="text"
+                      value={settings.siteDialog.ctaText}
+                      onChange={(e) => handleUpdateDialog({ ctaText: e.target.value })}
+                      placeholder="e.g. Claim Offer Now"
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-xs font-bold text-foreground focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Primary Action Link URL</label>
+                    <input
+                      type="text"
+                      value={settings.siteDialog.ctaLink}
+                      onChange={(e) => handleUpdateDialog({ ctaLink: e.target.value })}
+                      placeholder="e.g. /pricing or /tools"
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-xs font-mono text-foreground focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-bold text-foreground">Secondary Dismiss Button Text</label>
+                    <input
+                      type="text"
+                      value={settings.siteDialog.secondaryText || ""}
+                      onChange={(e) => handleUpdateDialog({ secondaryText: e.target.value })}
+                      placeholder="e.g. Maybe Later (Leave blank to hide)"
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-xs font-semibold text-foreground focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Display Style, Targeting & Timing */}
+              <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+                <label className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  4. Layout Style, Targeting & Frequency
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Display Layout</label>
+                    <select
+                      value={settings.siteDialog.displayMode}
+                      onChange={(e) => handleUpdateDialog({ displayMode: e.target.value as SiteDialogDisplayMode })}
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3 py-2 text-xs font-semibold text-foreground focus:border-accent focus:outline-none cursor-pointer"
+                    >
+                      <option value="modal">Centered Modal (Mobile Bottom-Sheet)</option>
+                      <option value="bottom-sheet">Bottom Sheet Drawer</option>
+                      <option value="floating-card">Floating Corner Card</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Target Pages</label>
+                    <select
+                      value={settings.siteDialog.targetPages}
+                      onChange={(e) => handleUpdateDialog({ targetPages: e.target.value as SiteDialogTargetPages })}
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3 py-2 text-xs font-semibold text-foreground focus:border-accent focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">All Public Pages</option>
+                      <option value="home">Homepage Only (/)</option>
+                      <option value="pricing">Pricing Page Only (/pricing)</option>
+                      <option value="tools">Tools Directory (/tools)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-foreground">Impression Frequency</label>
+                    <select
+                      value={settings.siteDialog.frequency}
+                      onChange={(e) => handleUpdateDialog({ frequency: e.target.value as SiteDialogFrequency })}
+                      className="mt-1 w-full rounded-2xl border border-input bg-background px-3 py-2 text-xs font-semibold text-foreground focus:border-accent focus:outline-none cursor-pointer"
+                    >
+                      <option value="session">Once Per Session</option>
+                      <option value="once">Once Per Visitor (Permanent)</option>
+                      <option value="always">Always (Every Page Load)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Real-Time Interactive Live Mockup */}
+            <div className="lg:col-span-5 sticky top-20 space-y-4">
+              <div className="rounded-3xl border border-border bg-card p-5 shadow-xs">
+                {/* Viewport Switcher */}
+                <div className="flex items-center justify-between pb-3 border-b border-border">
+                  <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <Eye className="h-3.5 w-3.5 text-accent" />
+                    <span>Real-Time Live Preview</span>
+                  </span>
+
+                  <div className="inline-flex rounded-xl border border-border bg-muted/40 p-0.5 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setDialogPreviewViewport("mobile")}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
+                        dialogPreviewViewport === "mobile"
+                          ? "bg-foreground text-background shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Smartphone className="h-3.5 w-3.5" />
+                      <span>Mobile</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDialogPreviewViewport("desktop")}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
+                        dialogPreviewViewport === "desktop"
+                          ? "bg-foreground text-background shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Monitor className="h-3.5 w-3.5" />
+                      <span>Desktop</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Simulated Screen Frame */}
+                <div className="mt-4 flex justify-center">
+                  <div
+                    className={`relative rounded-3xl border-2 border-border/80 bg-background/95 p-4 shadow-xl transition-all duration-300 ${
+                      dialogPreviewViewport === "mobile"
+                        ? "w-[360px] min-h-[480px] rounded-[36px] border-4 border-foreground/20 flex flex-col justify-end"
+                        : "w-full min-h-[380px] flex items-center justify-center"
+                    }`}
+                  >
+                    {/* Simulated Phone Notch */}
+                    {dialogPreviewViewport === "mobile" && (
+                      <div className="absolute top-2 inset-x-0 flex justify-center">
+                        <div className="h-3.5 w-24 rounded-full bg-foreground/15" />
+                      </div>
+                    )}
+
+                    {/* Preview Content Inside Phone or Desktop Frame */}
+                    <div
+                      className={`w-full rounded-2xl border border-border bg-card p-5 shadow-lg relative overflow-hidden transition-all ${
+                        settings.siteDialog.type === "offer"
+                          ? "border-rose-500/30 ring-1 ring-rose-500/15"
+                          : settings.siteDialog.type === "alert"
+                          ? "border-amber-500/30"
+                          : settings.siteDialog.type === "warning"
+                          ? "border-rose-500/40"
+                          : "border-blue-500/30"
+                      }`}
+                    >
+                      {/* Swipe Handle for Mobile Preview */}
+                      {dialogPreviewViewport === "mobile" && (
+                        <div className="flex justify-center -mt-2 mb-3">
+                          <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+                        </div>
+                      )}
+
+                      <div className="flex items-start gap-3 pr-6">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                            settings.siteDialog.type === "offer"
+                              ? "bg-rose-500/10 text-rose-500"
+                              : settings.siteDialog.type === "alert"
+                              ? "bg-amber-500/10 text-amber-500"
+                              : settings.siteDialog.type === "warning"
+                              ? "bg-rose-600/10 text-rose-600"
+                              : "bg-blue-500/10 text-blue-500"
+                          }`}
+                        >
+                          {settings.siteDialog.type === "offer" ? (
+                            <Flame className="h-4 w-4" />
+                          ) : settings.siteDialog.type === "alert" ? (
+                            <AlertCircle className="h-4 w-4" />
+                          ) : settings.siteDialog.type === "warning" ? (
+                            <AlertTriangle className="h-4 w-4" />
+                          ) : (
+                            <Info className="h-4 w-4" />
+                          )}
+                        </div>
+
+                        <div>
+                          {settings.siteDialog.badgeText && (
+                            <span className="inline-block rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-extrabold uppercase text-accent tracking-wide mb-1">
+                              {settings.siteDialog.badgeText}
+                            </span>
+                          )}
+                          <h4 className="font-display text-sm font-black text-foreground leading-snug">
+                            {settings.siteDialog.title || "Announcement Title"}
+                          </h4>
+                        </div>
+                      </div>
+
+                      <p className="mt-2 text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {settings.siteDialog.message || "Your message body goes here..."}
+                      </p>
+
+                      {settings.siteDialog.type === "offer" && settings.siteDialog.couponCode && (
+                        <div className="mt-3 rounded-xl border border-dashed border-rose-500/40 bg-rose-500/5 p-2.5 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="text-[9px] font-bold uppercase text-rose-500">Coupon</span>
+                            <p className="font-mono font-black text-foreground">{settings.siteDialog.couponCode}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCopiedPreviewCode(true);
+                              setTimeout(() => setCopiedPreviewCode(false), 2000);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg bg-card border border-border px-2 py-1 text-[11px] font-bold text-foreground"
+                          >
+                            {copiedPreviewCode ? (
+                              <Check className="h-3 w-3 text-emerald-500" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-muted-foreground" />
+                            )}
+                            <span>{copiedPreviewCode ? "Copied" : "Copy"}</span>
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex flex-col gap-2">
+                        {settings.siteDialog.ctaText && (
+                          <div className="rounded-xl bg-foreground text-background px-4 py-2 text-center text-xs font-black shadow-xs">
+                            {settings.siteDialog.ctaText}
+                          </div>
+                        )}
+                        {settings.siteDialog.secondaryText && (
+                          <div className="rounded-xl border border-border bg-card px-3 py-1.5 text-center text-[11px] font-bold text-muted-foreground">
+                            {settings.siteDialog.secondaryText}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Target: <strong className="text-foreground">{settings.siteDialog.targetPages}</strong></span>
+                  <span>Frequency: <strong className="text-foreground">{settings.siteDialog.frequency}</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: WEBSITE STRUCTURE & LAYOUT ──────────────────────────────── */}
+      {activeTab === "structure" && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Banner */}
+          <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/20">
+                <LayoutTemplate className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-bold text-foreground">
+                  Website Layout & Container Structure
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure responsive page max-width, hero showcase layouts, navbar stickiness, and footer grid columns.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 1. Container Width */}
+            <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+              <div>
+                <h4 className="font-bold text-sm text-foreground">Container Max Width</h4>
+                <p className="text-xs text-muted-foreground">Defines edge margins across all public tools and landing pages.</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                {(
+                  [
+                    { id: "boxed", label: "Boxed (1280px)", desc: "Standard compact" },
+                    { id: "wide", label: "Wide (1440px)", desc: "Modern spacious" },
+                    { id: "full", label: "Full (1600px)", desc: "Maximum canvas" },
+                  ] as const
+                ).map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    onClick={() => handleUpdateStructure({ containerMaxWidth: w.id })}
+                    className={`rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
+                      settings.structure.containerMaxWidth === w.id
+                        ? "border-foreground bg-muted/60 shadow-sm ring-1 ring-foreground"
+                        : "border-border bg-card hover:bg-muted/30"
+                    }`}
+                  >
+                    <p className="font-bold text-xs text-foreground">{w.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{w.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Hero Section Layout */}
+            <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+              <div>
+                <h4 className="font-bold text-sm text-foreground">Home Hero Showcase Layout</h4>
+                <p className="text-xs text-muted-foreground">Select how the primary background removal drag-and-drop zone renders.</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                {(
+                  [
+                    { id: "split", label: "Split Hero", desc: "Text left, Upload right" },
+                    { id: "centered", label: "Centered Hero", desc: "Large central dropzone" },
+                    { id: "minimal", label: "Minimalist", desc: "Speed focused" },
+                  ] as const
+                ).map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => handleUpdateStructure({ heroLayout: h.id })}
+                    className={`rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
+                      settings.structure.heroLayout === h.id
+                        ? "border-foreground bg-muted/60 shadow-sm ring-1 ring-foreground"
+                        : "border-border bg-card hover:bg-muted/30"
+                    }`}
+                  >
+                    <p className="font-bold text-xs text-foreground">{h.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{h.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Header & Navigation Behavior */}
+            <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+              <div>
+                <h4 className="font-bold text-sm text-foreground">Header & Navigation Behavior</h4>
+                <p className="text-xs text-muted-foreground">Stickiness, blur intensity, and breadcrumbs navigation.</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-border p-3.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Sticky Header with Backdrop Blur</p>
+                    <p className="text-[11px] text-muted-foreground">Header stays fixed at top of screen while scrolling</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStructure({ headerSticky: !settings.structure.headerSticky })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      settings.structure.headerSticky ? "bg-emerald-500" : "bg-muted-foreground/30"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                        settings.structure.headerSticky ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="rounded-2xl border border-border p-3.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Show Breadcrumbs Path</p>
+                    <p className="text-[11px] text-muted-foreground">Displays Home &gt; Tools &gt; Tool Name navigation on workspaces</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStructure({ showBreadcrumbs: !settings.structure.showBreadcrumbs })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      settings.structure.showBreadcrumbs ? "bg-emerald-500" : "bg-muted-foreground/30"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                        settings.structure.showBreadcrumbs ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Footer Columns & Trust Elements */}
+            <div className="rounded-3xl border border-border bg-card p-6 space-y-4 shadow-xs">
+              <div>
+                <h4 className="font-bold text-sm text-foreground">Footer Grid & Trust Badges</h4>
+                <p className="text-xs text-muted-foreground">Configure columns count, newsletter box, and security seals.</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-border p-3.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Newsletter Subscription Bar</p>
+                    <p className="text-[11px] text-muted-foreground">Includes email capture in website footer</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStructure({ showFooterNewsletter: !settings.structure.showFooterNewsletter })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      settings.structure.showFooterNewsletter ? "bg-emerald-500" : "bg-muted-foreground/30"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                        settings.structure.showFooterNewsletter ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="rounded-2xl border border-border p-3.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Security & 100% Privacy Badges</p>
+                    <p className="text-[11px] text-muted-foreground">Zero-data retention and SSL encryption indicators</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStructure({ showFooterBadges: !settings.structure.showFooterBadges })}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      settings.structure.showFooterBadges ? "bg-emerald-500" : "bg-muted-foreground/30"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                        settings.structure.showFooterBadges ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Preview Modal Popup */}
+      {isLivePreviewOpen && (
+        <GlobalSiteDialog
+          previewMode={true}
+          previewSettings={settings.siteDialog}
+          onPreviewClose={() => setIsLivePreviewOpen(false)}
+        />
       )}
     </div>
   );

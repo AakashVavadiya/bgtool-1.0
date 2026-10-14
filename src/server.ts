@@ -38,6 +38,7 @@ import {
   handleCreatePaymentOrder,
   handleVerifyPayment,
   handleListPayments,
+  handleDeletePaymentOrder,
 } from "./lib/security";
 import {
   usersRepo,
@@ -47,6 +48,7 @@ import {
   toolUsageRepo,
   rateLimitsRepo,
   paymentsRepo,
+  telemetryRepo,
 } from "./lib/db";
 
 validateAdminEnvironment();
@@ -683,8 +685,13 @@ export default {
       return handleVerifyPayment(request, clientIp);
     }
 
-    if (url.pathname === "/api/payments/orders" && request.method === "GET") {
-      return handleListPayments(request);
+    if (url.pathname === "/api/payments/orders") {
+      if (request.method === "GET") {
+        return handleListPayments(request);
+      }
+      if (request.method === "DELETE") {
+        return handleDeletePaymentOrder(request);
+      }
     }
 
     // 7. /api/contact
@@ -928,7 +935,142 @@ export default {
     }
 
 
-    // 10. Fallthrough to TanStack Start SSR & App Routes
+    // 11. /api/telemetry (hit, heartbeat, analytics)
+    if (url.pathname.startsWith("/api/telemetry")) {
+      if (request.method === "GET") {
+        try {
+          const daysParam = parseInt(url.searchParams.get("days") || "7", 10);
+          const days = isNaN(daysParam) || daysParam <= 0 ? 7 : Math.min(daysParam, 90);
+          const analytics = telemetryRepo.getAnalytics(days);
+
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, data: analytics }), {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store, max-age=0",
+              },
+            })
+          );
+        } catch {
+          return applySecurityHeaders(
+            createSafeErrorResponse(500, "Failed to retrieve telemetry analytics.")
+          );
+        }
+      }
+
+      if (request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const isHeartbeat = url.pathname.endsWith("/heartbeat") || body?.action === "heartbeat";
+
+          if (isHeartbeat) {
+            telemetryRepo.recordHeartbeat({
+              sessionId: body?.sessionId || "sess_unknown",
+              path: body?.path,
+              device: body?.device,
+              timezone: body?.timezone,
+              language: body?.language,
+              ip: clientIp,
+              headers: request.headers,
+            });
+            return applySecurityHeaders(
+              new Response(JSON.stringify({ success: true }), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          }
+
+          // Hit
+          const result = telemetryRepo.recordHit({
+            sessionId: body?.sessionId,
+            path: body?.path || "/",
+            title: body?.title,
+            device: body?.device,
+            os: body?.os,
+            browser: body?.browser,
+            referrer: body?.referrer,
+            timezone: body?.timezone,
+            language: body?.language,
+            ip: clientIp,
+            headers: request.headers,
+          });
+
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, geo: result.geo }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        } catch {
+          return applySecurityHeaders(
+            createSafeErrorResponse(400, "Failed to process telemetry event.")
+          );
+        }
+      }
+    }
+
+    // 12. /api/tool-gear (Tool execution tracking & memory diagnostics)
+    if (url.pathname === "/api/tool-gear") {
+      if (request.method === "GET") {
+        try {
+          const rawTimeframe = (url.searchParams.get("timeframe") || "1d").toLowerCase();
+          const validTimeframes = ["1d", "yesterday", "7d", "30d"] as const;
+          const timeframe = validTimeframes.includes(rawTimeframe as any)
+            ? (rawTimeframe as "1d" | "yesterday" | "7d" | "30d")
+            : "1d";
+
+          const report = toolUsageRepo.getDetailedReport(timeframe);
+
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, data: report }), {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store, max-age=0",
+              },
+            })
+          );
+        } catch {
+          return applySecurityHeaders(
+            createSafeErrorResponse(500, "Failed to generate tool report.")
+          );
+        }
+      }
+
+      if (request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const toolSlug = body?.toolSlug;
+          if (!toolSlug) {
+            return applySecurityHeaders(createSafeErrorResponse(400, "Missing toolSlug"));
+          }
+
+          const record = toolUsageRepo.record({
+            toolSlug,
+            toolName: body?.toolName,
+            userId: body?.userId,
+            ip: clientIp,
+            success: body?.success !== false,
+            durationMs: body?.durationMs,
+            fileSizeBytes: body?.fileSizeBytes,
+            memoryBytes: body?.memoryBytes,
+          });
+
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, recordId: record.id }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        } catch {
+          return applySecurityHeaders(createSafeErrorResponse(400, "Failed to record tool execution."));
+        }
+      }
+    }
+
+    // 13. Fallthrough to TanStack Start SSR & App Routes
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
