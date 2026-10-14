@@ -15,6 +15,14 @@ import {
   Wand2,
   Shield,
   RefreshCw,
+  User,
+  X,
+  Zap,
+  Calendar,
+  BadgeCheck,
+  FileText,
+  Mail,
+  ExternalLink,
 } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
@@ -25,6 +33,7 @@ export function UsersManagement() {
   const [customCreditUser, setCustomCreditUser] = useState<string | null>(null);
   const [customCreditAmount, setCustomCreditAmount] = useState<number>(50);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [inspectingUser, setInspectingUser] = useState<LoggedUser | null>(null);
 
   const fetchLatest = async (showToast = false) => {
     setIsSyncing(true);
@@ -260,6 +269,14 @@ export function UsersManagement() {
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         type="button"
+                        onClick={() => setInspectingUser(u)}
+                        title="View Full Profile"
+                        className="rounded-lg border border-slate-200 dark:border-zinc-800 p-1.5 text-orange-600 hover:bg-orange-500/10 hover:border-orange-500/40 transition-colors cursor-pointer"
+                      >
+                        <User className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleAdjustCredits(u.id, 10)}
                         title="Add 10 Credits"
                         className="rounded-lg border border-border p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
@@ -294,6 +311,170 @@ export function UsersManagement() {
           </table>
         )}
       </div>
+
+      {/* ─── User Profile Inspect Modal (White, Black & Orange Design) ────── */}
+      {inspectingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-zinc-800 pb-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950 text-white font-display text-2xl font-black shadow-md ring-4 ring-orange-500/10">
+                  {inspectingUser.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display text-xl font-black text-slate-950 dark:text-white">
+                      {inspectingUser.name}
+                    </h3>
+                    <span className="rounded-full bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/60 px-2.5 py-0.5 text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase">
+                      {inspectingUser.plan}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">
+                    {inspectingUser.email}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInspectingUser(null)}
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Token Quotas / Available Balances (White, Black & Orange Split Gauge) */}
+            <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-850 p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Coins className="h-4 w-4 text-orange-500" />
+                  <span>Token Allowance & Quotas</span>
+                </span>
+                <span className="text-slate-950 dark:text-white font-black font-mono">
+                  {inspectingUser.credits} Total
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-slate-600 dark:text-zinc-400">Daily Silver</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">
+                      {inspectingUser.freeCredits ?? 10} / 10
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                    <div
+                      style={{ width: `${Math.min(100, ((inspectingUser.freeCredits ?? 10) / 10) * 100)}%` }}
+                      className="h-full bg-slate-900 dark:bg-white rounded-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-orange-500/30 bg-orange-50/40 dark:bg-orange-950/20 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-orange-800 dark:text-orange-300">Paid Gold</span>
+                    <span className="font-mono font-black text-orange-600 dark:text-orange-400">
+                      {inspectingUser.paidCredits ?? 0}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-orange-200 dark:bg-orange-950 overflow-hidden">
+                    <div
+                      style={{ width: `${Math.min(100, ((inspectingUser.paidCredits ?? 0) / 50) * 100)}%` }}
+                      className="h-full bg-orange-500 rounded-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Specializations & Tools */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Tools & Capabilities
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "AI Background Remover",
+                  "4K Super-Res Upscaler",
+                  "PDF to JPG Transcoder",
+                  "Face Blur Privacy",
+                  "Smart Image Compress",
+                ].map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-zinc-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Account Details Grid */}
+            <div className="grid grid-cols-2 gap-4 text-xs pt-2 border-t border-slate-100 dark:border-zinc-800">
+              <div className="space-y-1">
+                <span className="text-slate-400">Detected Location</span>
+                <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-orange-500" />
+                  <span>{inspectingUser.location}</span>
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-slate-400">Total Processed Images</span>
+                <p className="font-mono font-bold text-slate-900 dark:text-white">
+                  {inspectingUser.totalProcessed.toLocaleString()} jobs
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-slate-400">Account Status</span>
+                <p className={`font-bold flex items-center gap-1.5 ${
+                  inspectingUser.status === "active" ? "text-emerald-600" : "text-rose-600"
+                }`}>
+                  <span className={`h-2 w-2 rounded-full ${inspectingUser.status === "active" ? "bg-emerald-500" : "bg-rose-500"}`} />
+                  <span className="capitalize">{inspectingUser.status}</span>
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-slate-400">Last Active Ping</span>
+                <p className="font-mono text-slate-600 dark:text-zinc-400">
+                  {inspectingUser.lastActive}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Actions Footer */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleAdjustCredits(inspectingUser.id, 50);
+                    setInspectingUser({ ...inspectingUser, credits: inspectingUser.credits + 50 });
+                  }}
+                  className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors"
+                >
+                  + Add 50 Credits
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInspectingUser(null)}
+                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold px-5 py-2 text-xs shadow-sm shadow-orange-500/20 cursor-pointer"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
