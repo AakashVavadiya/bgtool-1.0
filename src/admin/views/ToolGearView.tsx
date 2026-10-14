@@ -218,9 +218,15 @@ export function ToolGearView() {
             <p className="font-display text-3xl font-extrabold text-foreground">
               {report?.totalExecutions.toLocaleString() || "0"}
             </p>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              {report?.overallSuccessRate || 100}% Success
-            </span>
+            {report && report.totalExecutions > 0 ? (
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                {report.overallSuccessRate}% Success
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-muted-foreground">
+                0 runs
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {report?.successfulExecutions || 0} passed • {report?.failedExecutions || 0} failed
@@ -263,9 +269,15 @@ export function ToolGearView() {
               {report?.avgLatencyMs || 0}
               <span className="text-sm font-normal text-muted-foreground">ms</span>
             </p>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              Ultra Fast
-            </span>
+            {report && report.totalExecutions > 0 ? (
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                {report.avgLatencyMs < 1000 ? "Ultra Fast" : `${report.avgLatencyMs}ms avg`}
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-muted-foreground">
+                No runs yet
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Processed data: {formatBytes(report?.totalBytesProcessed || 0)}
@@ -326,8 +338,16 @@ export function ToolGearView() {
             <div className="rounded-2xl border border-border bg-background px-3 py-1.5 font-mono text-muted-foreground">
               Uptime: <strong className="text-foreground">{formatUptime(report?.memory.processUptimeSec || 0)}</strong>
             </div>
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 font-bold text-emerald-600 dark:text-emerald-400">
-              Heap: {report?.memory.heapUsagePercent || 0}% Utilized
+            <div
+              className={`rounded-2xl border px-3 py-1.5 font-bold ${
+                report?.memory.status === "Optimal"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : report?.memory.status === "Moderate"
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  : "border-destructive/30 bg-destructive/10 text-destructive"
+              }`}
+            >
+              V8 Engine: {report?.memory.status || "Optimal"} ({report?.memory.heapUsagePercent || 0}% Heap)
             </div>
           </div>
         </div>
@@ -337,41 +357,57 @@ export function ToolGearView() {
           <div className="flex justify-between text-xs font-semibold text-muted-foreground">
             <span>Heap Used: {report?.memory.heapUsedMb || 0} MB</span>
             <span>Heap Allocated: {report?.memory.heapTotalMb || 0} MB</span>
-            <span>Total RSS: {report?.memory.rssMb || 0} MB</span>
+            <span>Total Physical RSS: {report?.memory.rssMb || 0} MB</span>
           </div>
           <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
             <div
-              style={{ width: `${Math.min(100, report?.memory.heapUsagePercent || 25)}%` }}
-              className="h-full bg-accent transition-all duration-700"
+              style={{ width: `${Math.max(2, Math.min(100, report?.memory.heapUsagePercent || 2))}%` }}
+              className={`h-full transition-all duration-700 ${
+                report?.memory.status === "Critical"
+                  ? "bg-destructive"
+                  : report?.memory.status === "High"
+                  ? "bg-rose-500"
+                  : report?.memory.status === "Moderate"
+                  ? "bg-amber-500"
+                  : "bg-emerald-500"
+              }`}
               title="Active Heap Memory"
             />
             <div
               style={{
                 width: `${Math.min(
-                  30,
+                  25,
                   Math.round(
-                    (((report?.memory.heapTotalMb || 200) - (report?.memory.heapUsedMb || 100)) /
-                      Math.max(1, report?.memory.rssMb || 300)) *
+                    (((report?.memory.heapTotalMb || 60) - (report?.memory.heapUsedMb || 50)) /
+                      Math.max(1, report?.memory.rssMb || 150)) *
                       100
                   )
                 )}%`,
               }}
-              className="h-full bg-blue-500/40 transition-all duration-700"
+              className="h-full bg-blue-500/30 transition-all duration-700"
               title="Reserved Heap"
             />
           </div>
           <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-accent" />
-              <span>Active Heap ({report?.memory.heapUsedMb} MB)</span>
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  report?.memory.status === "Critical"
+                    ? "bg-destructive"
+                    : report?.memory.status === "Moderate"
+                    ? "bg-amber-500"
+                    : "bg-emerald-500"
+                }`}
+              />
+              <span>Active Heap ({report?.memory.heapUsedMb || 0} MB)</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-blue-500/40" />
+              <span className="h-2 w-2 rounded-full bg-blue-500/30" />
               <span>Reserved Heap Space</span>
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
-              <span>External C++ / Buffer Overhead ({report?.memory.externalMb} MB)</span>
+              <span>External C++ / Buffer Overhead ({report?.memory.externalMb || 0} MB)</span>
             </span>
           </div>
         </div>
@@ -435,7 +471,14 @@ export function ToolGearView() {
         </div>
 
         {/* Recharts Chart Area */}
-        <div className="mt-6 h-[320px] w-full">
+        <div className="mt-6 h-[320px] w-full relative">
+          {report?.totalExecutions === 0 && graphMode !== "memory" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/70 backdrop-blur-[1px] z-10 rounded-2xl border border-dashed border-border/80">
+              <BarChart3 className="h-8 w-8 text-muted-foreground/30 mb-2" />
+              <p className="text-sm font-bold text-foreground">Zero tool executions in this timeframe</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Real tool activity will appear automatically as tools are run.</p>
+            </div>
+          )}
           {graphMode === "volume" && (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={report?.timeSeries || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -685,8 +728,20 @@ export function ToolGearView() {
 
               {filteredTools.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                    No tools match your search criteria.
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-1.5">
+                      <Cog className="h-6 w-6 text-muted-foreground/40 mb-1" />
+                      <p className="font-bold text-foreground text-xs">
+                        {search || categoryFilter !== "All"
+                          ? "No tools match your filter criteria."
+                          : "No tool runs recorded yet for this timeframe."}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground max-w-sm">
+                        {search || categoryFilter !== "All"
+                          ? "Try clearing the search query or selecting a different category."
+                          : "Runs will be tracked accurately in real time when visitors or tests execute processing tools."}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}

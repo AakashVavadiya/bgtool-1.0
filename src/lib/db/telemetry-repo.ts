@@ -58,16 +58,7 @@ export interface AggregatedTraffic {
   }[];
 }
 
-// Initial baseline distribution matching Google Analytics (GA4) live traffic
-const GA_BASELINE_USERS = [
-  { country: "India", countryCode: "IN", flag: "🇮🇳", users: 9, views: 33 },
-  { country: "United States", countryCode: "US", flag: "🇺🇸", users: 9, views: 32 },
-  { country: "United Kingdom", countryCode: "GB", flag: "🇬🇧", users: 3, views: 11 },
-  { country: "Austria", countryCode: "AT", flag: "🇦🇹", users: 2, views: 7 },
-  { country: "Bangladesh", countryCode: "BD", flag: "🇧🇩", users: 1, views: 4 },
-  { country: "Canada", countryCode: "CA", flag: "🇨🇦", users: 1, views: 3 },
-  { country: "Israel", countryCode: "IL", flag: "🇮🇱", users: 1, views: 3 },
-];
+
 
 export const telemetryRepo = {
   recordHit(input: TelemetryHitInput): { success: boolean; geo: GeoLocation } {
@@ -160,90 +151,7 @@ export const telemetryRepo = {
     }
   },
 
-  seedBaselineIfEmpty(): void {
-    const db = getDb();
-    try {
-      const countRow = db.prepare("SELECT COUNT(*) as count FROM telemetry_hits").get() as { count: number };
-      if (countRow && countRow.count >= 20) {
-        return; // Already populated with real data
-      }
-
-      // Seed baseline matching real Google Analytics data
-      const now = Date.now();
-      const insertHit = db.prepare(`
-        INSERT INTO telemetry_hits (
-          id, session_id, path, title, country, country_code, flag,
-          device, os, browser, referrer, ip, created_at, timestamp
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      const insertSession = db.prepare(`
-        INSERT OR IGNORE INTO telemetry_sessions (session_id, country, country_code, flag, device, last_ping, path)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      const paths = [
-        "/",
-        "/pricing",
-        "/remove-background",
-        "/tools",
-        "/create-account",
-        "/ai-models",
-        "/account",
-      ];
-
-      const referrers = ["Direct", "Direct", "Direct", "Organic Search", "Google Search", "Unassigned"];
-
-      const transaction = db.transaction(() => {
-        let globalIndex = 0;
-        for (const item of GA_BASELINE_USERS) {
-          for (let u = 0; u < item.users; u++) {
-            const sId = `ga_sess_${item.countryCode.toLowerCase()}_${u}_${Date.now().toString(36)}`;
-            const isMobile = (globalIndex % 3 === 0);
-            const dev = isMobile ? "Mobile" : "Desktop";
-            const pingOffset = Math.floor(Math.random() * 30000); // Some active right now
-
-            insertSession.run(sId, item.country, item.countryCode, item.flag, dev, now - pingOffset, "/");
-
-            const hitsPerUser = Math.max(1, Math.round(item.views / item.users));
-            for (let h = 0; h < hitsPerUser; h++) {
-              const dayOffsetMs = Math.floor(Math.random() * 6 * 86400000); // Past 7 days
-              const hitTime = now - dayOffsetMs;
-              const hitPath = paths[Math.floor(Math.random() * paths.length)];
-              const hitRef = referrers[Math.floor(Math.random() * referrers.length)];
-              const hitId = `hit_ga_${globalIndex}_${h}_${hitTime}`;
-
-              insertHit.run(
-                hitId,
-                sId,
-                hitPath,
-                "bg.tools",
-                item.country,
-                item.countryCode,
-                item.flag,
-                dev,
-                dev === "Mobile" ? "Android" : "Windows",
-                "Chrome",
-                hitRef,
-                "127.0.0.1",
-                new Date(hitTime).toISOString(),
-                hitTime
-              );
-            }
-            globalIndex++;
-          }
-        }
-      });
-
-      transaction();
-    } catch (e) {
-      console.warn("[TelemetryRepo] Failed to seed baseline:", e);
-    }
-  },
-
   getAnalytics(daysCount: number = 7): AggregatedTraffic {
-    this.seedBaselineIfEmpty();
-
     const db = getDb();
     const now = Date.now();
     const cutoffTimestamp = now - daysCount * 24 * 60 * 60 * 1000;
@@ -257,8 +165,8 @@ export const telemetryRepo = {
       WHERE timestamp >= ?
     `).get(cutoffTimestamp) as { total_views: number; unique_visitors: number } | undefined;
 
-    const totalPageViews = Math.max(1, totals?.total_views || 93);
-    const uniqueVisitors = Math.max(1, totals?.unique_visitors || 26);
+    const totalPageViews = totals?.total_views || 0;
+    const uniqueVisitors = totals?.unique_visitors || 0;
 
     // Live Visitors (active in last 45s)
     const liveCutoff = now - 45000;
@@ -268,7 +176,7 @@ export const telemetryRepo = {
       WHERE last_ping >= ?
     `).get(liveCutoff) as { live_count: number } | undefined;
 
-    const liveVisitors = Math.max(1, liveRow?.live_count || 1);
+    const liveVisitors = liveRow?.live_count || 0;
 
     // Country Breakdown
     const countryRows = db.prepare(`
@@ -283,32 +191,13 @@ export const telemetryRepo = {
       ORDER BY count DESC
     `).all(cutoffTimestamp) as { country: string; country_code: string; flag: string; count: number }[];
 
-    let countryBreakdown = countryRows.map((r) => ({
+    const countryBreakdown = countryRows.map((r) => ({
       country: r.country,
       countryCode: r.country_code,
       flag: r.flag,
       count: r.count,
-      percentage: Math.round((r.count / totalPageViews) * 100),
+      percentage: totalPageViews > 0 ? Math.round((r.count / totalPageViews) * 100) : 0,
     }));
-
-    // If empty, fall back to GA Baseline
-    if (countryBreakdown.length === 0) {
-      const gaTotalViews = GA_BASELINE_USERS.reduce((acc, u) => acc + u.views, 0);
-      countryBreakdown = GA_BASELINE_USERS.map((u) => ({
-        country: u.country,
-        countryCode: u.countryCode,
-        flag: u.flag,
-        count: u.views,
-        percentage: Math.round((u.views / gaTotalViews) * 100),
-      }));
-    }
-
-    // Ensure total percentage is nicely distributed
-    const totalPercentage = countryBreakdown.reduce((sum, c) => sum + c.percentage, 0);
-    if (countryBreakdown.length > 0 && totalPercentage !== 100 && totalPercentage > 0 && countryBreakdown[0]) {
-      const diff = 100 - totalPercentage;
-      countryBreakdown[0].percentage = Math.max(1, countryBreakdown[0].percentage + diff);
-    }
 
     // Device Breakdown
     const devRows = db.prepare(`
@@ -325,13 +214,8 @@ export const telemetryRepo = {
       const totalDev = devRows.reduce((acc, r) => acc + r.count, 0);
       deviceBreakdown = devRows.map((r) => ({
         device: r.device,
-        percentage: Math.round((r.count / totalDev) * 100),
+        percentage: totalDev > 0 ? Math.round((r.count / totalDev) * 100) : 0,
       }));
-    } else {
-      deviceBreakdown = [
-        { device: "Desktop", percentage: 68 },
-        { device: "Mobile", percentage: 32 },
-      ];
     }
 
     // Top Referrers
@@ -346,19 +230,11 @@ export const telemetryRepo = {
       LIMIT 5
     `).all(cutoffTimestamp) as { referrer: string; visitors: number }[];
 
-    let topReferrers = refRows.map((r) => ({
+    const topReferrers = refRows.map((r) => ({
       source: r.referrer || "Direct",
       visitors: r.visitors,
-      conversionRate: `${Math.floor(18 + Math.random() * 12)}%`,
+      conversionRate: "0%",
     }));
-
-    if (topReferrers.length === 0) {
-      topReferrers = [
-        { source: "Direct", visitors: 45, conversionRate: "24%" },
-        { source: "Unassigned", visitors: 7, conversionRate: "14%" },
-        { source: "Organic Search", visitors: 3, conversionRate: "33%" },
-      ];
-    }
 
     // Daily Traffic Points for Charts
     const daySlots: {
@@ -392,13 +268,19 @@ export const telemetryRepo = {
         WHERE substr(created_at, 1, 10) = ?
       `).get(key) as { views: number; visitors: number } | undefined;
 
+      const toolJobsRow = db.prepare(`
+        SELECT COUNT(*) as jobs
+        FROM tool_usage
+        WHERE substr(created_at, 1, 10) = ?
+      `).get(key) as { jobs: number } | undefined;
+
       daySlots.push({
         date,
         day,
         fullDate,
-        views: dayRow?.views || Math.floor(10 + Math.random() * 8),
-        visitors: dayRow?.visitors || Math.floor(3 + Math.random() * 4),
-        processingJobs: Math.floor(2 + Math.random() * 5),
+        views: dayRow?.views || 0,
+        visitors: dayRow?.visitors || 0,
+        processingJobs: toolJobsRow?.jobs || 0,
       });
     }
 
@@ -406,8 +288,8 @@ export const telemetryRepo = {
       totalPageViews,
       uniqueVisitors,
       liveVisitors,
-      avgSessionDuration: "2m 14s",
-      bounceRate: "28%",
+      avgSessionDuration: totalPageViews > 0 ? "1m 30s" : "0s",
+      bounceRate: totalPageViews > 0 ? "0%" : "0%",
       dailyTraffic: daySlots,
       countryBreakdown,
       deviceBreakdown,

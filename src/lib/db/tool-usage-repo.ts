@@ -192,87 +192,7 @@ export const toolUsageRepo = {
     return result;
   },
 
-  seedBaselineIfEmpty(): void {
-    const db = getDb();
-    try {
-      const countRow = db.prepare("SELECT COUNT(*) as count FROM tool_usage").get() as { count: number };
-      if (countRow && countRow.count >= 25) {
-        return; // Already populated with real tool activity
-      }
-
-      const toolsToSeed = [
-        { slug: "remove-background", runs: 58, minMs: 420, maxMs: 1450, memoryMb: 340 },
-        { slug: "pdf-to-jpg", runs: 42, minMs: 180, maxMs: 650, memoryMb: 145 },
-        { slug: "jpg-to-pdf", runs: 28, minMs: 120, maxMs: 480, memoryMb: 110 },
-        { slug: "compress-image", runs: 33, minMs: 95, maxMs: 310, memoryMb: 65 },
-        { slug: "blur-face", runs: 22, minMs: 350, maxMs: 980, memoryMb: 280 },
-        { slug: "chat", runs: 36, minMs: 250, maxMs: 820, memoryMb: 190 },
-        { slug: "remove-watermark", runs: 19, minMs: 480, maxMs: 1350, memoryMb: 310 },
-        { slug: "image-upscaler", runs: 16, minMs: 680, maxMs: 1900, memoryMb: 390 },
-        { slug: "merge-pdf", runs: 14, minMs: 110, maxMs: 420, memoryMb: 95 },
-        { slug: "resize-image", runs: 18, minMs: 80, maxMs: 260, memoryMb: 55 },
-      ];
-
-      const now = Date.now();
-      const insert = db.prepare(`
-        INSERT INTO tool_usage (
-          id, tool_slug, tool_name, user_id, ip, success, duration_ms, file_size_bytes, memory_bytes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      const tx = db.transaction(() => {
-        let runIndex = 0;
-        for (const t of toolsToSeed) {
-          const name = getToolName(t.slug);
-          for (let i = 0; i < t.runs; i++) {
-            // Distribute across last 7 days, with heavy cluster today and yesterday
-            const rand = Math.random();
-            let offsetMs = 0;
-            if (rand < 0.45) {
-              // Today (0 to 24 hours ago)
-              offsetMs = Math.floor(Math.random() * 24 * 3600 * 1000);
-            } else if (rand < 0.75) {
-              // Yesterday (24 to 48 hours ago)
-              offsetMs = 24 * 3600 * 1000 + Math.floor(Math.random() * 24 * 3600 * 1000);
-            } else {
-              // Past 7 days
-              offsetMs = Math.floor(Math.random() * 7 * 24 * 3600 * 1000);
-            }
-
-            const runTime = now - offsetMs;
-            const id = `use_seed_${runIndex}_${runTime}`;
-            const success = Math.random() > 0.03 ? 1 : 0; // ~97% success
-            const duration = Math.floor(t.minMs + Math.random() * (t.maxMs - t.minMs));
-            const fileBytes = Math.floor(180_000 + Math.random() * 2_500_000);
-            const memBytes = Math.floor((t.memoryMb + Math.random() * 40 - 20) * 1024 * 1024);
-            const iso = new Date(runTime).toISOString();
-
-            insert.run(
-              id,
-              t.slug,
-              name,
-              null,
-              "127.0.0.1",
-              success,
-              duration,
-              fileBytes,
-              memBytes,
-              iso
-            );
-            runIndex++;
-          }
-        }
-      });
-
-      tx();
-    } catch (e) {
-      console.warn("[toolUsageRepo.seedBaseline warning]", e);
-    }
-  },
-
   getDetailedReport(timeframe: "1d" | "yesterday" | "7d" | "30d" = "1d"): ToolGearReport {
-    this.seedBaselineIfEmpty();
-
     const db = getDb();
     const now = new Date();
 
@@ -322,7 +242,7 @@ export const toolUsageRepo = {
     const overallSuccessRate = totalExecutions > 0
       ? Math.round((successfulExecutions / totalExecutions) * 1000) / 10
       : 100;
-    const avgLatencyMs = Math.round(totalsRow?.avg_latency || 0);
+    const avgLatencyMs = totalExecutions > 0 ? Math.round(totalsRow?.avg_latency || 0) : 0;
     const totalBytesProcessed = totalsRow?.total_bytes || 0;
     const activeToolsCount = totalsRow?.active_tools || 0;
 
@@ -358,11 +278,11 @@ export const toolUsageRepo = {
 
       const avgMemoryMb = r.avg_memory > 0
         ? Math.round((r.avg_memory / (1024 * 1024)) * 10) / 10
-        : getToolTypicalMemory(slug);
+        : 0;
 
       const peakMemoryMb = r.peak_memory > 0
         ? Math.round((r.peak_memory / (1024 * 1024)) * 10) / 10
-        : Math.round(avgMemoryMb * 1.3);
+        : 0;
 
       return {
         slug,
@@ -406,9 +326,9 @@ export const toolUsageRepo = {
 
         const runs = slotRow?.runs || 0;
         const avgMemBytes = slotRow?.avg_mem || 0;
-        const memMb = avgMemBytes > 0
+        const memMb = runs > 0 && avgMemBytes > 0
           ? Math.round(avgMemBytes / (1024 * 1024))
-          : Math.floor(180 + Math.random() * 60);
+          : 0;
 
         timeSeries.push({
           timeLabel,
@@ -416,7 +336,7 @@ export const toolUsageRepo = {
           runs,
           successes: slotRow?.successes || 0,
           failures: slotRow?.failures || 0,
-          avgDurationMs: Math.round(slotRow?.avg_duration || 280),
+          avgDurationMs: runs > 0 ? Math.round(slotRow?.avg_duration || 0) : 0,
           memoryMb: memMb,
         });
       }
@@ -441,9 +361,9 @@ export const toolUsageRepo = {
 
         const runs = dayRow?.runs || 0;
         const avgMemBytes = dayRow?.avg_mem || 0;
-        const memMb = avgMemBytes > 0
+        const memMb = runs > 0 && avgMemBytes > 0
           ? Math.round(avgMemBytes / (1024 * 1024))
-          : Math.floor(190 + Math.random() * 80);
+          : 0;
 
         timeSeries.push({
           timeLabel,
@@ -451,18 +371,19 @@ export const toolUsageRepo = {
           runs,
           successes: dayRow?.successes || 0,
           failures: dayRow?.failures || 0,
-          avgDurationMs: Math.round(dayRow?.avg_duration || 320),
+          avgDurationMs: runs > 0 ? Math.round(dayRow?.avg_duration || 0) : 0,
           memoryMb: memMb,
         });
       }
     }
 
-    // 4. Memory Diagnostics Snapshot (Live Process Metrics)
-    let heapUsedMb = 142;
-    let heapTotalMb = 256;
-    let rssMb = 312;
-    let externalMb = 48;
-    let uptimeSec = 3600;
+    // 4. Memory Diagnostics Snapshot (Real Node.js Process Metrics)
+    let heapUsedMb = 0;
+    let heapTotalMb = 0;
+    let rssMb = 0;
+    let externalMb = 0;
+    let uptimeSec = 0;
+    let maxHeapLimitMb = 2048;
 
     if (typeof process !== "undefined" && typeof process.memoryUsage === "function") {
       const mem = process.memoryUsage();
@@ -471,13 +392,28 @@ export const toolUsageRepo = {
       rssMb = Math.round((mem.rss / (1024 * 1024)) * 10) / 10;
       externalMb = Math.round((mem.external / (1024 * 1024)) * 10) / 10;
       uptimeSec = Math.floor(process.uptime());
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const v8 = require("v8");
+        const stats = v8.getHeapStatistics?.();
+        if (stats?.heap_size_limit) {
+          maxHeapLimitMb = Math.round(stats.heap_size_limit / (1024 * 1024));
+        }
+      } catch {}
     }
 
-    const heapUsagePercent = Math.round((heapUsedMb / Math.max(1, heapTotalMb)) * 100);
+    // Measure percentage against available limit (or heapTotal if limit unavailable)
+    const heapUsagePercent = maxHeapLimitMb > 0
+      ? Math.round((heapUsedMb / maxHeapLimitMb) * 100)
+      : Math.round((heapUsedMb / Math.max(1, heapTotalMb)) * 100);
+
+    // Realistic server memory health statuses
     let status: "Optimal" | "Moderate" | "High" | "Critical" = "Optimal";
-    if (heapUsagePercent > 88 || rssMb > 1500) status = "Critical";
-    else if (heapUsagePercent > 75 || rssMb > 1000) status = "High";
-    else if (heapUsagePercent > 60) status = "Moderate";
+    if (heapUsedMb > 1600 || rssMb > 2000) status = "Critical";
+    else if (heapUsedMb > 1100 || rssMb > 1400) status = "High";
+    else if (heapUsedMb > 600 || rssMb > 900) status = "Moderate";
+    else status = "Optimal";
 
     const memory: MemoryDiagnostics = {
       heapUsedMb,

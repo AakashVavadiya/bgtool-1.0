@@ -1021,6 +1021,12 @@ export default {
             ? (rawTimeframe as "1d" | "yesterday" | "7d" | "30d")
             : "1d";
 
+          const { getDb } = await import("@/lib/db/client");
+          const db = getDb();
+          db.prepare("DELETE FROM tool_usage WHERE id LIKE 'use_seed_%'").run();
+          db.prepare("DELETE FROM telemetry_hits WHERE id LIKE 'hit_ga_%'").run();
+          db.prepare("DELETE FROM telemetry_sessions WHERE session_id LIKE 'ga_sess_%'").run();
+
           const report = toolUsageRepo.getDetailedReport(timeframe);
 
           return applySecurityHeaders(
