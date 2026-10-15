@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { LanguageTranslator } from "@/components/LanguageTranslator";
+import { CurrencySwitcher } from "@/components/CurrencySwitcher";
+import { ProductHuntBadge } from "@/components/ProductHuntBadge";
 import { AdminStore, type UiEditSettings } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import {
@@ -100,6 +102,9 @@ export function SiteFooter() {
             <p className="mt-4 text-sm leading-relaxed font-medium text-muted-foreground">
               Ultra-fast online AI image toolkit. Sub-pixel alpha matting background removal, 4K upscaling, and object cleaning.
             </p>
+            <div className="mt-5">
+              <ProductHuntBadge variant="compact" />
+            </div>
           </div>
 
           {/* Tools & Shortcuts */}
@@ -295,9 +300,10 @@ export function SiteFooter() {
       {/* Bottom Bar */}
       <div className="border-t border-border bg-background px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-6 sm:py-8">
         <div className="w-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-xs md:text-sm font-semibold text-muted-foreground">
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
             <span>© {new Date().getFullYear()} bg Inc. All rights reserved.</span>
             <LanguageTranslator variant="footer" />
+            <CurrencySwitcher variant="footer" />
           </div>
 
           <div className="flex flex-wrap items-center gap-3.5 sm:gap-6">

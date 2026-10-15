@@ -55,9 +55,9 @@ function LoginPage() {
     setErrorMsg("");
     setUnverifiedEmail(null);
 
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes("@")) {
-      setErrorMsg("Please enter a valid email address.");
+    const cleanInput = email.trim();
+    if (!cleanInput) {
+      setErrorMsg("Please enter your email address or mobile number.");
       return;
     }
 
@@ -69,13 +69,13 @@ function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await AuthUser.login(cleanEmail, password);
+      const res = await AuthUser.login(cleanInput, password);
       if (!res.success) {
         if (res.requireVerification) {
-          setUnverifiedEmail(res.email || cleanEmail);
-          setErrorMsg(res.error || "Your email address has not been verified yet.");
+          setUnverifiedEmail(res.email || cleanInput);
+          setErrorMsg(res.error || "Your account email has not been verified yet.");
         } else {
-          setErrorMsg(res.error || "Invalid email or password.");
+          setErrorMsg(res.error || "Invalid email/mobile number or password.");
           toast.error(res.error || "Login failed.");
         }
         setIsLoading(false);
@@ -212,23 +212,23 @@ function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-              {/* Email Address */}
+              {/* Email or Mobile Number */}
               <div className="space-y-1.5">
                 <Label
                   htmlFor="login-email"
                   className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
                 >
-                  Email Address
+                  Email or Mobile Number
                 </Label>
                 <div className="relative">
                   <Input
                     id="login-email"
-                    type="email"
+                    type="text"
                     required
-                    autoComplete="email"
+                    autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@domain.com"
+                    placeholder="you@domain.com or +91 9876543210"
                     disabled={isLoading}
                     className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-11 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
                   />

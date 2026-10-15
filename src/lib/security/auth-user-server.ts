@@ -102,6 +102,10 @@ export async function handleSignup(request: Request, clientIp: string): Promise<
       );
     }
 
+    const cleanPhone = body.phone ? String(body.phone).replace(/[\s\-()]/g, "").trim() : null;
+    const cleanCountryCode = body.countryCode ? String(body.countryCode).trim() : null;
+    const cleanCountry = body.country ? String(body.country).trim() : null;
+
     if (!password || password.length < 8) {
       return applySecurityHeaders(
         createSafeErrorResponse(400, "Password must be at least 8 characters long.")
@@ -114,7 +118,7 @@ export async function handleSignup(request: Request, clientIp: string): Promise<
       );
     }
 
-    // Check existing accounts
+    // Check existing accounts by email or phone
     const existing = usersRepo.findByEmail(email);
     let userId: string;
 
@@ -147,6 +151,9 @@ export async function handleSignup(request: Request, clientIp: string): Promise<
         paidCredits: 0,
         status: "active",
         emailVerified: false,
+        phone: cleanPhone,
+        countryCode: cleanCountryCode,
+        country: cleanCountry,
       });
       userId = newUser.id;
     }
@@ -414,11 +421,15 @@ export async function handleLogin(request: Request, clientIp: string): Promise<R
 
   try {
     const body = (await request.json()) as any;
-    const email = normalizeEmail(String(body.email || ""));
+    const identifier = String(body.email || body.phone || body.identifier || "").trim();
     const password = String(body.password || "");
 
-    // Lockout check: 5 failed attempts per IP+username -> 15 min lockout
-    const lockoutState = userLockout.isLocked(clientIp, email);
+    // Find user by email or mobile phone
+    const user = usersRepo.findByEmailOrPhone(identifier);
+    const lockKey = user ? user.email : identifier.toLowerCase();
+
+    // Lockout check: 5 failed attempts per IP+identifier -> 15 min lockout
+    const lockoutState = userLockout.isLocked(clientIp, lockKey);
     if (lockoutState.locked) {
       return applySecurityHeaders(
         createSafeErrorResponse(
@@ -428,22 +439,22 @@ export async function handleLogin(request: Request, clientIp: string): Promise<R
       );
     }
 
-    if (!email || !password) {
-      userLockout.recordFailedAttempt(clientIp, email);
-      return applySecurityHeaders(createSafeErrorResponse(401, "Invalid email or password."));
+    if (!identifier || !password) {
+      userLockout.recordFailedAttempt(clientIp, lockKey);
+      return applySecurityHeaders(createSafeErrorResponse(401, "Please provide your email or mobile number and password."));
     }
 
-    const user = usersRepo.findByEmail(email);
     if (!user) {
-      userLockout.recordFailedAttempt(clientIp, email);
+      userLockout.recordFailedAttempt(clientIp, lockKey);
       // Constant-time dummy verify to prevent timing oracle
       verifyPassword(
         password,
         "scrypt$16384$8$1$0000000000000000$0000000000000000000000000000000000000000000000000000000000000000"
       );
-      return applySecurityHeaders(createSafeErrorResponse(401, "Invalid email or password."));
+      return applySecurityHeaders(createSafeErrorResponse(401, "Invalid credentials. Please verify your details or sign up."));
     }
 
+    const email = user.email;
     const passwordMatches = verifyPassword(password, user.password_hash);
     if (!passwordMatches) {
       const failRec = userLockout.recordFailedAttempt(clientIp, email);

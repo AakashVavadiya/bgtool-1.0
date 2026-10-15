@@ -101,6 +101,28 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  // Lock body scroll on mobile and handle Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    if (window.innerWidth < 640) {
+      document.body.style.overflow = "hidden";
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
   const handleSelectLanguage = (code: string) => {
     setWebsiteLanguage(code, true);
     setCurrentLang(code);
@@ -160,17 +182,33 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
         />
       </button>
 
-      {/* ── Dropdown / Modal Popover ───────────────────────────────────── */}
+      {/* ── Mobile Backdrop Overlay ─────────────────────────────────────── */}
       {isOpen && (
         <div
-          className={`absolute z-50 w-[calc(100vw-2rem)] max-w-[380px] sm:w-[390px] rounded-3xl border border-border/80 bg-card/98 p-4 text-foreground shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[520px] ${
+          className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-xs sm:hidden animate-in fade-in duration-200"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* ── Dropdown / Mobile Bottom Sheet ─────────────────────────────── */}
+      {isOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className={`fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-4 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh] pb-8 sm:fixed sm:inset-auto sm:z-50 sm:w-[390px] sm:rounded-3xl sm:border sm:border-border/80 sm:p-4 sm:pb-4 sm:max-h-[520px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 ${
             variant === "footer"
-              ? "bottom-full mb-3 right-0 sm:right-0"
-              : "top-full mt-2.5 right-0"
+              ? "sm:bottom-full sm:mb-3 sm:left-0 sm:right-auto"
+              : "sm:top-full sm:mt-2.5 sm:right-0 sm:left-auto"
           }`}
         >
+          {/* Mobile Pull Handle */}
+          <div className="pt-0.5 pb-2.5 sm:hidden flex justify-center shrink-0">
+            <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+          </div>
+
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border/70 pb-3">
+          <div className="flex items-center justify-between border-b border-border/70 pb-3 shrink-0">
             <div className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/15 text-accent border border-accent/25 font-bold shadow-xs">
                 <Globe className="h-4 w-4" />
@@ -222,7 +260,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
           )}
 
           {/* Category Tabs (No scrollbar) */}
-          <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-border/60 text-[11px] font-bold scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-border/60 text-[11px] font-bold scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] shrink-0">
             {(
               [
                 { id: "popular", label: "Popular" },
@@ -251,7 +289,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
           </div>
 
           {/* Search Filter Input */}
-          <div className="mt-3 relative">
+          <div className="mt-3 relative shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
             <input
               type="text"
@@ -276,7 +314,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
           </div>
 
           {/* Languages Grid / List */}
-          <div className="mt-2.5 flex-1 overflow-y-auto space-y-1 pr-1 max-h-64 scrollbar-none [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2.5 flex-1 overflow-y-auto space-y-1 pr-1 max-h-[50vh] sm:max-h-64 scrollbar-none [&::-webkit-scrollbar]:hidden">
             {filteredLanguages.map((l) => {
               const isSelected = currentLang === l.code;
               return (

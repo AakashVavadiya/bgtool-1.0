@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import {
   Check,
@@ -78,9 +79,9 @@ export const removeBackgroundClientCanvas = (imageSrc: string): Promise<string> 
       bgG = Math.round(bgG / Math.max(1, samples));
       bgB = Math.round(bgB / Math.max(1, samples));
 
-      // Alpha matting with edge feathering and precision color distance
-      const threshold = 38;
-      const softBand = 28;
+      // Alpha matting with smooth edge feathering and precision color distance
+      const threshold = 36;
+      const softBand = 30;
 
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i] ?? 0;
@@ -95,8 +96,10 @@ export const removeBackgroundClientCanvas = (imageSrc: string): Promise<string> 
         if (dist < threshold) {
           data[i + 3] = 0; // Transparent cutout
         } else if (dist < threshold + softBand) {
-          const alphaRatio = (dist - threshold) / softBand;
-          data[i + 3] = Math.round(alphaRatio * 255);
+          const t = Math.max(0, Math.min(1, (dist - threshold) / softBand));
+          // S-curve smoothstep for continuous corner curvature
+          const smoothRatio = t * t * (3 - 2 * t);
+          data[i + 3] = Math.round(smoothRatio * 255);
         }
       }
 
@@ -122,15 +125,124 @@ export function RemovalProcess() {
   const [bgType, setBgType] = useState<"checker" | "white" | "black">("checker");
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showDynamicIsland, setShowDynamicIsland] = useState<boolean>(false);
+  const [hasScrolledOnce, setHasScrolledOnce] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
   const [showCutoutEditor, setShowCutoutEditor] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
   const [guestRemaining, setGuestRemaining] = useState<number>(() => AuthUser.getGuestRemainingUses());
 
+  const [sliderPos, setSliderPos] = useState<number>(50);
+  const [imageAspect, setImageAspect] = useState<number | null>(null);
+  const [isDraggingSlider, setIsDraggingSlider] = useState<boolean>(false);
+  const isDraggingSliderRef = useRef<boolean>(false);
+  const sliderContainerRef = useRef<HTMLDivElement>(null);
+  const animFrameRef = useRef<number | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Smooth right-to-left reveal animation returning back to center (50%)
+  const runRevealAnimation = useCallback(() => {
+    if (isDraggingSliderRef.current) return;
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+
+    const startTime = performance.now();
+    const phase1Duration = 850; // 100% -> 0% (Right to Left background removal sweep)
+    const pauseDuration = 100;  // Brief pause at 0% to appreciate full transparent cutout
+    const phase2Duration = 600; // 0% -> 50% (Glide back to center)
+    const totalDuration = phase1Duration + pauseDuration + phase2Duration;
+
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const frame = (now: number) => {
+      if (isDraggingSliderRef.current) return;
+      const elapsed = now - startTime;
+
+      if (elapsed < phase1Duration) {
+        // Right to Left: 100% down to 0%
+        const progress = elapsed / phase1Duration;
+        const current = 100 - easeInOut(progress) * 100;
+        setSliderPos(Number(current.toFixed(1)));
+        animFrameRef.current = requestAnimationFrame(frame);
+      } else if (elapsed < phase1Duration + pauseDuration) {
+        // Pause at 0%
+        setSliderPos(0);
+        animFrameRef.current = requestAnimationFrame(frame);
+      } else if (elapsed < totalDuration) {
+        // Return back to center: 0% up to 50%
+        const progress = (elapsed - phase1Duration - pauseDuration) / phase2Duration;
+        const current = easeOut(progress) * 50;
+        setSliderPos(Number(current.toFixed(1)));
+        animFrameRef.current = requestAnimationFrame(frame);
+      } else {
+        setSliderPos(50);
+        animFrameRef.current = null;
+      }
+    };
+
+    setSliderPos(100);
+    animFrameRef.current = requestAnimationFrame(frame);
+  }, []);
+
+  const updateSliderFromClientX = useCallback((clientX: number) => {
+    const container = sliderContainerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const x = clientX - rect.left;
+    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPos(Number(pct.toFixed(1)));
+  }, []);
+
+  const handleSliderPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    isDraggingSliderRef.current = true;
+    setIsDraggingSlider(true);
+    updateSliderFromClientX(e.clientX);
+  }, [updateSliderFromClientX]);
+
+  const handleSliderPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingSliderRef.current) return;
+    updateSliderFromClientX(e.clientX);
+  }, [updateSliderFromClientX]);
+
+  const handleSliderPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    isDraggingSliderRef.current = false;
+    setIsDraggingSlider(false);
+  }, []);
+
+  const handleSliderWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      e.preventDefault();
+      setSliderPos((prev) => Math.max(0, Math.min(100, Number((prev + (e.deltaX > 0 ? 2.5 : -2.5)).toFixed(1)))));
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
+  }, []);
+
   // Sync auth and guest limits
   useEffect(() => {
+    setMounted(true);
     const handleSync = () => {
       setCurrentUser(AuthUser.getCurrentUser());
       setGuestRemaining(AuthUser.getGuestRemainingUses());
@@ -154,9 +266,13 @@ export function RemovalProcess() {
     const handleScroll = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setShowDynamicIsland(rect.bottom < 100);
+        const shouldShow = rect.bottom < 100;
+        setShowDynamicIsland(shouldShow);
+        if (shouldShow) setHasScrolledOnce(true);
       } else {
-        setShowDynamicIsland(window.scrollY > 480);
+        const shouldShow = window.scrollY > 480;
+        setShowDynamicIsland(shouldShow);
+        if (shouldShow) setHasScrolledOnce(true);
       }
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -186,6 +302,13 @@ export function RemovalProcess() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const b64 = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+          setImageAspect(img.naturalWidth / img.naturalHeight);
+        }
+      };
+      img.src = b64;
       setBeforeImage(b64);
       setAfterImage(null);
       setFileName(file.name);
@@ -262,14 +385,15 @@ export function RemovalProcess() {
 
     const startTime = performance.now();
 
-    // Advance steps asynchronously in the background while fetch is in-flight
+    // Advance steps with ~1.1-second intervals so user experiences steady, active progress
+    // and is not kept waiting on the last "Exporting PNG" step while server processes.
     let currentStep = 0;
     const stepTimer = setInterval(() => {
-      currentStep++;
-      if (currentStep < steps.length) {
+      if (currentStep < steps.length - 1) {
+        currentStep++;
         setStep(currentStep);
       }
-    }, 250);
+    }, 1100);
 
     let outputResult = "";
 
@@ -280,7 +404,7 @@ export function RemovalProcess() {
         body: JSON.stringify({
           base64Image: beforeImage,
           model,
-          smoothEdge: 0.0,
+          smoothEdge: 0.6,
         }),
       });
       clearInterval(stepTimer);
@@ -316,6 +440,17 @@ export function RemovalProcess() {
       } else {
         throw new Error(data.error || "AI background removal failed. Please check server.");
       }
+
+      // Smoothly advance through any remaining steps if server responded faster
+      while (currentStep < steps.length - 1) {
+        currentStep++;
+        setStep(currentStep);
+        await new Promise((r) => setTimeout(r, 250));
+      }
+
+      // Briefly display 100% completion before concluding
+      setStep(steps.length);
+      await new Promise((r) => setTimeout(r, 350));
     } catch (err: any) {
       clearInterval(stepTimer);
       console.error("AI removal error:", err);
@@ -332,6 +467,11 @@ export function RemovalProcess() {
     setStep(steps.length);
     setProcessing(false);
     setHasProcessed(true);
+
+    // Trigger right-to-left reveal animation then glide back to center
+    setTimeout(() => {
+      runRevealAnimation();
+    }, 60);
 
     // Telemetry & credit deduction tracking
     import("@/lib/telemetry").then(({ Telemetry }) => {
@@ -389,6 +529,7 @@ export function RemovalProcess() {
   const handleReset = () => {
     setBeforeImage(null);
     setAfterImage(null);
+    setImageAspect(null);
     setFileName("");
     setHasProcessed(false);
     setProcessing(false);
@@ -399,12 +540,16 @@ export function RemovalProcess() {
   return (
     <div ref={containerRef} className="w-full">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll) ─────── */}
-      {hasProcessed && !showCutoutEditor && (
-        <div className="fixed top-3 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
+      {mounted && typeof document !== "undefined" && hasProcessed && !showCutoutEditor && createPortal(
+        <div className="fixed top-[66px] sm:top-[74px] md:top-[80px] inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
           <aside
             aria-label="Quick download dynamic island"
             className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
-              showDynamicIsland ? "island-enter" : "island-exit"
+              showDynamicIsland
+                ? "island-enter"
+                : hasScrolledOnce
+                ? "island-exit"
+                : "opacity-0 -translate-y-20 pointer-events-none"
             }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
@@ -464,7 +609,8 @@ export function RemovalProcess() {
               <FolderUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
           </aside>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Hidden File Input */}
@@ -527,7 +673,7 @@ export function RemovalProcess() {
         </div>
       ) : (
         /* Active Workspace: Image Preview (Left) + Settings Panel (Right) */
-        <div className="grid items-start gap-8 lg:grid-cols-[1.8fr_1fr] w-full">
+        <div className={`w-full transition-all duration-300 ${hasProcessed ? "max-w-5xl mx-auto" : "grid items-start gap-8 lg:grid-cols-[1.8fr_1fr]"}`}>
           {/* Left Column: Canvas Preview Area */}
           <div className="flex flex-col gap-3 w-full">
             {/* Top Canvas Header Bar */}
@@ -587,6 +733,15 @@ export function RemovalProcess() {
                     >
                       <Pencil className="h-3.5 w-3.5 text-primary" /> Edit Cutout
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => runRevealAnimation()}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 sm:px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-all shrink-0 cursor-pointer"
+                      title="Replay reveal slider animation"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Replay
+                    </button>
                   </>
                 )}
 
@@ -605,23 +760,102 @@ export function RemovalProcess() {
               className="group relative flex h-[440px] xs:h-[500px] sm:h-[620px] md:h-[680px] lg:h-[720px] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-border bg-card transition-all shadow-xl select-none"
               style={hasProcessed && bgType === "checker" ? checkerStyle : { backgroundColor: bgType === "black" ? "#0a0a0c" : bgType === "white" ? "#ffffff" : undefined }}
             >
-              {/* Loaded Image Display */}
-              {beforeImage && (!hasProcessed || showOriginal) ? (
-                <img
-                  src={beforeImage}
-                  alt="Original uploaded"
-                  className="max-h-full max-w-full object-contain p-4 sm:p-6 md:p-8 transition-opacity duration-300"
-                />
-              ) : null}
+              {/* If processed with beforeImage & afterImage, render interactive Before/After Comparison Slider */}
+              {hasProcessed && afterImage && beforeImage ? (
+                <div
+                  ref={sliderContainerRef}
+                  onPointerDown={handleSliderPointerDown}
+                  onPointerMove={handleSliderPointerMove}
+                  onPointerUp={handleSliderPointerUp}
+                  onPointerCancel={handleSliderPointerUp}
+                  onWheel={handleSliderWheel}
+                  className="relative flex items-center justify-center w-full h-full p-2 sm:p-4 cursor-ew-resize touch-none select-none overflow-hidden"
+                >
+                  <div
+                    className="relative flex items-center justify-center max-w-[96%] max-h-[92%] h-full w-auto"
+                    style={{
+                      aspectRatio: imageAspect ? `${imageAspect}` : undefined,
+                    }}
+                  >
+                    {/* BASE LAYER (Underneath): Cutout PNG over transparent/chosen background */}
+                    <img
+                      src={afterImage}
+                      alt="Cutout PNG"
+                      draggable={false}
+                      onLoad={(e) => {
+                        const w = e.currentTarget.naturalWidth;
+                        const h = e.currentTarget.naturalHeight;
+                        if (w > 0 && h > 0) setImageAspect(w / h);
+                      }}
+                      className="w-full h-full object-contain pointer-events-none select-none block"
+                    />
 
-              {/* Background Removed Cutout Display */}
-              {hasProcessed && afterImage && !showOriginal ? (
-                <img
-                  src={afterImage}
-                  alt="Cutout PNG"
-                  className="max-h-full max-w-full object-contain p-4 sm:p-6 md:p-8 transition-opacity duration-300 pb-16 sm:pb-8"
-                />
-              ) : null}
+                    {/* OVERLAY LAYER (Left): Original Photo with background, clipped to slider position */}
+                    <div
+                      className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none will-change-[clip-path]"
+                      style={{
+                        clipPath: `polygon(0 0, ${sliderPos}% 0, ${sliderPos}% 100%, 0 100%)`,
+                      }}
+                    >
+                      <img
+                        src={beforeImage}
+                        alt="Original photo"
+                        draggable={false}
+                        className="w-full h-full object-contain pointer-events-none select-none block"
+                      />
+                    </div>
+
+                    {/* Vertical Divider Line with Glow */}
+                    <div
+                      className="pointer-events-none absolute top-0 bottom-0 z-20 w-1 bg-white shadow-[0_0_15px_rgba(0,0,0,0.8)] will-change-[left]"
+                      style={{ left: `${sliderPos}%` }}
+                    >
+                      {/* Handle Button with ↔ Arrows */}
+                      <button
+                        type="button"
+                        aria-label="Drag before and after slider"
+                        className={`pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-foreground text-background shadow-2xl transition-transform hover:scale-110 active:scale-95 border-2 border-background/25 ${
+                          isDraggingSlider ? "cursor-grabbing scale-110" : "cursor-grab"
+                        }`}
+                      >
+                        <svg
+                          className="h-4 w-4 sm:h-5 sm:w-5 stroke-current pointer-events-none"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="m9 18-6-6 6-6" />
+                          <path d="m15 6 6 6-6 6" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Badges: Left = Before, Right = After */}
+                    <div className="pointer-events-none select-none absolute bottom-3 left-3 z-20 rounded-full bg-background/90 backdrop-blur-md px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-extrabold text-foreground shadow-md border border-border">
+                      Original
+                    </div>
+                    <div className="pointer-events-none select-none absolute bottom-3 right-3 z-20 rounded-full bg-foreground/90 backdrop-blur-md px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-extrabold text-background shadow-md border border-foreground/20">
+                      Removed
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Unprocessed / Uploaded View */
+                beforeImage && (
+                  <img
+                    src={beforeImage}
+                    alt="Original uploaded"
+                    onLoad={(e) => {
+                      const w = e.currentTarget.naturalWidth;
+                      const h = e.currentTarget.naturalHeight;
+                      if (w > 0 && h > 0) setImageAspect(w / h);
+                    }}
+                    className="max-h-[92%] max-w-[96%] w-auto h-auto object-contain transition-opacity duration-300"
+                  />
+                )
+              )}
 
               {/* Scanning Laser Sweep Animation during processing */}
               {processing ? (
@@ -631,56 +865,57 @@ export function RemovalProcess() {
                 </>
               ) : null}
 
-              {/* Status / Duration Pill: Top-left on mobile to prevent collision, bottom-left on desktop */}
-              <div className="absolute top-3 left-3 sm:top-auto sm:bottom-6 sm:left-6 flex items-center gap-2 sm:gap-2.5 rounded-full bg-card/95 px-3.5 sm:px-5 py-1.5 sm:py-2.5 text-xs md:text-sm font-bold backdrop-blur shadow-md border border-border z-20 max-w-[calc(100%-24px)]">
-                {processing ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin text-amber-500 shrink-0" />
-                    <span className="truncate">{steps[step]?.label || "Processing"}…</span>
-                  </>
-                ) : hasProcessed ? (
-                  <>
-                    <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 shrink-0" />
-                    <span className="truncate">Background removed · {duration || 0.8}s</span>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
-                    <span className="truncate">Image ready</span>
-                  </>
-                )}
-              </div>
-
-              {/* Bottom Actions on Canvas (Edit + Download) */}
-              {hasProcessed && afterImage && !processing ? (
-                <div className="absolute bottom-3 inset-x-3 sm:inset-x-auto sm:bottom-6 sm:right-6 flex items-center justify-end gap-2 sm:gap-2.5 z-20">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowCutoutEditor(true);
-                    }}
-                    className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full border-2 border-foreground/30 bg-background/90 backdrop-blur-md px-3.5 sm:px-5 py-2.5 sm:py-3 text-xs md:text-sm font-extrabold text-foreground shadow-xl transition-all hover:scale-105 hover:bg-foreground hover:text-background cursor-pointer shrink-0"
-                  >
-                    <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>Edit<span className="hidden xs:inline"> Cutout</span></span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload();
-                    }}
-                    className="inline-flex items-center justify-center flex-1 sm:flex-none gap-1.5 sm:gap-2 rounded-full bg-foreground px-4 sm:px-6 py-2.5 sm:py-3 text-xs md:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
-                  >
-                    <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 sm:text-inherit shrink-0" /> <span>Download PNG →</span>
-                  </button>
+              {/* Status / Progress Pill (only shown while image is preparing or processing) */}
+              {!hasProcessed ? (
+                <div className="absolute top-3 left-3 sm:top-auto sm:bottom-6 sm:left-6 flex items-center gap-2 sm:gap-2.5 rounded-full bg-card/95 px-3.5 sm:px-5 py-1.5 sm:py-2.5 text-xs md:text-sm font-bold backdrop-blur shadow-md border border-border z-20 max-w-[calc(100%-24px)]">
+                  {processing ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin text-amber-500 shrink-0" />
+                      <span className="truncate">{steps[step]?.label || "Processing"}…</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate">Image ready</span>
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
+
+            {/* Quick Action Bar under Canvas when Cutout is ready */}
+            {hasProcessed && afterImage && !processing && (
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 px-1">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setShowCutoutEditor(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-foreground bg-background px-5 py-3 text-xs sm:text-sm font-extrabold text-foreground shadow-md transition-all hover:scale-105 hover:bg-foreground hover:text-background cursor-pointer"
+                  >
+                    <Pencil className="h-4 w-4" /> Edit Cutout
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-xs sm:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer"
+                  >
+                    <Download className="h-4 w-4 text-amber-400" /> Download PNG
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-border bg-card px-4 py-3 text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground transition-all hover:scale-105 cursor-pointer"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Another Image
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Right Column: Pipeline & Settings Control Panel */}
-          <div className="rounded-3xl border-2 border-border bg-card p-5 sm:p-6 md:p-8 shadow-md flex flex-col justify-between min-h-0 sm:min-h-[620px] md:min-h-[680px] lg:min-h-[720px] lg:sticky lg:top-6">
+          {/* Right Column: Pipeline & Settings Control Panel (Only shown while preparing or actively processing, hidden once image is processed) */}
+          {!hasProcessed && (
+            <div className="rounded-3xl border-2 border-border bg-card p-5 sm:p-6 md:p-8 shadow-md flex flex-col justify-between min-h-0 sm:min-h-[620px] md:min-h-[680px] lg:min-h-[720px] lg:sticky lg:top-6">
             <div>
               <div className="flex items-center justify-between text-xs md:text-sm font-bold text-foreground">
                 <span>Pipeline Status</span>
@@ -806,6 +1041,7 @@ export function RemovalProcess() {
               </div>
             </div>
           </div>
+          )}
         </div>
       )}
 

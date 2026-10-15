@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminStore, type PurchasePlanConfig, type UiEditSettings } from "@/admin/lib/admin-store";
@@ -48,9 +49,11 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     const update = () => {
       setUiSettings(AdminStore.getUiSettings());
       setActiveOffer(AdminStore.getActiveFestivalOffer());
@@ -76,6 +79,17 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
       window.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileMenuOpen]);
 
   const handleLogout = () => {
     AuthUser.logout();
@@ -134,12 +148,12 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
         </div>
       )}
 
-      <div className={`flex items-center justify-between px-4 sm:px-6 py-2 md:px-12 md:py-3 ${containerMaxWidthClass}`}>
+      <div className={`relative flex items-center justify-between px-4 sm:px-6 py-2 md:px-12 md:py-3 ${containerMaxWidthClass}`}>
         {/* Mobile Hamburger Menu Toggle */}
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 -ml-2 rounded-xl text-foreground hover:bg-muted/80 md:hidden transition-colors cursor-pointer"
+          className="relative z-30 p-2 -ml-2 rounded-xl text-foreground hover:bg-muted/80 md:hidden transition-colors cursor-pointer"
           aria-label="Toggle navigation menu"
         >
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -164,9 +178,10 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
           )}
         </nav>
 
+        {/* Center-Aligned Brand Logo */}
         <Link
           to="/"
-          className="notranslate py-4 font-display text-3xl font-bold tracking-tight md:absolute md:left-1/2 md:-translate-x-1/2 md:text-4xl z-20 shrink-0 select-none"
+          className="notranslate py-3 sm:py-4 font-display text-3xl font-bold tracking-tight absolute left-1/2 -translate-x-1/2 text-center md:text-4xl z-20 shrink-0 select-none"
         >
           {(() => {
             const brand = uiSettings.headerBrandText || "bg.";
@@ -182,8 +197,12 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
           })()}
         </Link>
 
-        <div className="flex items-center gap-2.5 sm:gap-3 py-4">
-          {uiSettings.showThemeToggle && <ThemeToggle />}
+        <div className="relative z-30 flex items-center gap-1.5 sm:gap-2.5 py-4">
+          {uiSettings.showThemeToggle && (
+            <div className="hidden md:flex">
+              <ThemeToggle />
+            </div>
+          )}
 
           {/* User Logged In State vs Logged Out State */}
           {currentUser ? (
@@ -326,7 +345,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 sm:gap-4">
+            <div className="hidden md:flex items-center gap-2.5 sm:gap-4">
               <Link to="/login" className="text-base font-medium transition-opacity hover:opacity-60 hidden sm:inline">
                 Log in
               </Link>
@@ -341,53 +360,132 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
         </div>
       </div>
 
-      {/* Mobile Navigation Dropdown Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-card/98 backdrop-blur-xl px-5 py-4 shadow-xl space-y-3 animate-fade-in">
-          <nav className="flex flex-col gap-1">
-            {visibleLinks.map((l) =>
-              "hash" in l ? (
-                <Link
-                  key={l.label}
-                  to={l.to}
-                  hash={l.hash}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 text-sm font-bold text-foreground hover:bg-muted transition-colors"
-                >
-                  {renderTabLabel(l.label)}
-                </Link>
-              ) : (
-                <Link
-                  key={l.label}
-                  to={l.to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 text-sm font-bold text-foreground hover:bg-muted transition-colors"
-                >
-                  {renderTabLabel(l.label)}
-                </Link>
-              ),
-            )}
-          </nav>
+      {/* Mobile Navigation Bottom Sheet Drawer (Portaled to document.body to escape header backdrop-filter containing block) */}
+      {mobileMenuOpen && mounted && typeof document !== "undefined" && createPortal(
+        <div className="md:hidden">
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
 
-          {!currentUser && (
-            <div className="pt-3 border-t border-border flex flex-col gap-2">
-              <Link
-                to="/auth"
+          {/* Bottom Sheet Drawer */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation Menu"
+            className="fixed inset-x-0 bottom-0 z-[100000] rounded-t-[32px] border-t border-border bg-card p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 pb-9 text-foreground"
+          >
+            {/* Pull handle indicator */}
+            <div className="mx-auto -mt-1.5 mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+
+            {/* Top Bar inside Drawer: Title & Close Button */}
+            <div className="flex items-center justify-between pb-2 border-b border-border/60">
+              <span className="font-display text-lg font-black tracking-tight text-foreground">
+                Navigation
+              </span>
+              <button
+                type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center rounded-xl border border-border bg-muted/40 py-2.5 text-xs font-bold text-foreground"
+                aria-label="Close navigation menu"
+                className="rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
-                Log in
-              </Link>
-              <Link
-                to="/auth"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center rounded-xl bg-foreground py-2.5 text-xs font-bold text-background"
-              >
-                Sign up
-              </Link>
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          )}
-        </div>
+
+            {/* Navigation links */}
+            <nav className="flex flex-col gap-1">
+              {visibleLinks.map((l) =>
+                "hash" in l ? (
+                  <Link
+                    key={l.label}
+                    to={l.to}
+                    hash={l.hash}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-foreground hover:bg-muted/70 transition-colors"
+                  >
+                    <span>{renderTabLabel(l.label)}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                ) : (
+                  <Link
+                    key={l.label}
+                    to={l.to}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-foreground hover:bg-muted/70 transition-colors"
+                  >
+                    <span>{renderTabLabel(l.label)}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                ),
+              )}
+            </nav>
+
+            {/* Theme Toggle row inside drawer */}
+            {uiSettings.showThemeToggle && (
+              <div className="pt-2 border-t border-border/60 flex items-center justify-between px-3 py-2 rounded-2xl bg-muted/30">
+                <span className="text-sm font-semibold text-foreground">Theme Mode</span>
+                <ThemeToggle />
+              </div>
+            )}
+
+            {/* Auth / Account State inside Drawer */}
+            {currentUser ? (
+              <div className="pt-3 border-t border-border/60 space-y-3">
+                {/* User Info Card */}
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/40 border border-border/60">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background font-bold text-sm">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="font-bold text-sm text-foreground truncate">{currentUser.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground truncate">{currentUser.email}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to="/account"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center rounded-2xl border border-border bg-card py-3 text-sm font-bold text-foreground hover:bg-muted/60 transition-colors"
+                  >
+                    Account
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-center rounded-2xl border border-rose-500/30 bg-rose-500/10 py-3 text-sm font-bold text-rose-500 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                  >
+                    Log out
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="pt-3 border-t border-border/60 flex flex-col gap-2.5">
+                <Link
+                  to="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center rounded-2xl bg-foreground py-3.5 text-sm font-bold text-background shadow-md transition-all active:scale-[0.98]"
+                >
+                  Sign up
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center rounded-2xl border border-border bg-card hover:bg-muted/60 py-3 text-sm font-bold text-foreground transition-all"
+                >
+                  Log in
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </header>
   );

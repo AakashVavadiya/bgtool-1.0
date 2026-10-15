@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { execSync, spawn } from "child_process";
 import path from "path";
+import fs from "fs";
 import {
   validateBase64Payload,
   TOOL_PROFILES,
@@ -12,7 +13,15 @@ import {
 } from "@/lib/security";
 
 function getPythonCommand(): string {
-  if (process.env["PYTHON_PATH"]) return process.env["PYTHON_PATH"];
+  const pythonPath = process.env["PYTHON_PATH"];
+  if (pythonPath) {
+    try {
+      if (fs.existsSync(pythonPath)) {
+        execSync(`"${pythonPath}" --version`, { stdio: "ignore" });
+        return pythonPath;
+      }
+    } catch {}
+  }
   const commands = ["python", "python3", "py"];
   for (const cmd of commands) {
     try {
@@ -53,6 +62,9 @@ async function ensureFaceServerRunning(): Promise<boolean> {
     const child = spawn(pyCmd, [serverScript, "5001"], {
       detached: true,
       stdio: "ignore",
+    });
+    child.on("error", (err) => {
+      console.warn("[Auto-Spawn] Face blur server spawn error:", err.message);
     });
     child.unref();
 

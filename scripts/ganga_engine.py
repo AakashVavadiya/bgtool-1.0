@@ -129,9 +129,11 @@ class GangaEngine:
             print(f"[Ganga AI] Warmup notice: {e}")
 
     @classmethod
-    def remove_background(cls, image_input, model_name: str = "ganga") -> dict:
+    def remove_background(cls, image_input, model_name: str = "ganga", smooth_edge: float = 0.6) -> dict:
         """
-        Executes ultra-high precision Ganga AI neural background removal on an image.
+        Executes ultra-high precision Ganga AI neural background removal on an image
+        with sub-pixel bicubic contour interpolation, adaptive corner smoothing,
+        and edge color defringing.
         Returns:
             {
                 "success": bool,
@@ -217,25 +219,69 @@ class GangaEngine:
                 else:
                     norm_mask = np.zeros_like(raw_out)
 
-            # 5. Full-Resolution Alpha Upscaling via High-Precision Interpolation
-            mask_full = cv2.resize(norm_mask, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+            # 5. Full-Resolution Alpha Upscaling with Sub-Pixel Bicubic Interpolation
+            # INTER_CUBIC produces continuous spline curves along silhouette corners instead of faceted polygons
+            mask_full = cv2.resize(norm_mask, (orig_w, orig_h), interpolation=cv2.INTER_CUBIC)
+            mask_full = np.clip(mask_full, 0.0, 1.0)
 
-            # Clean background noise floor and solidify opaque interior with smooth transition
-            low = 0.03
-            high = 0.97
-            mask_clean = np.where(mask_full <= low, 0.0, np.where(mask_full >= high, 1.0, (mask_full - low) / (high - low)))
+            # Adaptive Corner & Contour Anti-Aliasing
+            # Kernel scales gently with resolution so smoothing is perceptually identical on any resolution
+            max_dim = max(orig_w, orig_h)
+            ksize = 3 if max_dim < 1600 else (5 if max_dim < 3200 else 7)
+            sigma = 0.7 if ksize == 3 else (1.0 if ksize == 5 else 1.35)
+            mask_blur = cv2.GaussianBlur(mask_full, (ksize, ksize), sigma)
 
-            # Sub-pixel edge anti-aliasing (smooths transitions without pixelated staircase jaggies)
-            transition_mask = (mask_clean > 0.0) & (mask_clean < 1.0)
-            if np.any(transition_mask):
-                mask_smooth = cv2.GaussianBlur(mask_clean, (3, 3), 0.5)
-                mask_clean[transition_mask] = mask_smooth[transition_mask]
+            # Parabolic edge weight: peaks smoothly at transition contour (0.5), fades to 0 at solid interior & exterior
+            # This ensures 100% of fine interior textures (hair, knit patterns, skin) remain ultra-sharp
+            edge_w = 4.0 * mask_full * (1.0 - mask_full)
+            edge_w = np.clip(edge_w, 0.0, 1.0)
+
+            # Refined blend: eliminates staircase steps on rounded corners while preserving crisp cutout fidelity
+            smooth_intensity = max(0.2, min(0.9, float(smooth_edge)))
+            mask_blended = (1.0 - edge_w * smooth_intensity) * mask_full + (edge_w * smooth_intensity) * mask_blur
+
+            # Clean background noise floor while preserving smooth sub-pixel roll-off
+            low = 0.02
+            high = 0.98
+            mask_clean = np.where(
+                mask_blended <= low,
+                0.0,
+                np.where(mask_blended >= high, 1.0, (mask_blended - low) / (high - low)),
+            )
+
+            # S-curve Hermite smoothstep along transition zone for continuous derivatives (no cliff edges)
+            transition_zone = (mask_clean > 0.0) & (mask_clean < 1.0)
+            if np.any(transition_zone):
+                t = mask_clean[transition_zone]
+                mask_clean[transition_zone] = t * t * (3.0 - 2.0 * t)
 
             alpha_uint8 = (np.clip(mask_clean, 0.0, 1.0) * 255.0).astype(np.uint8)
+
+            # 6. Edge Color Decontamination (Defringing)
+            # Removes faint light/dark halos from original background along semi-transparent boundaries
+            semi_trans = (mask_clean > 0.03) & (mask_clean < 0.90)
+            solid_fg = mask_clean >= 0.90
+            if np.any(semi_trans) and np.any(solid_fg):
+                rgb_np = np.array(img, dtype=np.uint8)
+                dilate_k = 3 if max_dim < 2000 else 5
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_k, dilate_k))
+                dilated_rgb = cv2.dilate(rgb_np, kernel)
+
+                bleed_factor = (1.0 - mask_clean[semi_trans, np.newaxis]) * 0.40
+                rgb_decontaminated = rgb_np.copy()
+                rgb_decontaminated[semi_trans] = np.clip(
+                    rgb_np[semi_trans] * (1.0 - bleed_factor) + dilated_rgb[semi_trans] * bleed_factor,
+                    0,
+                    255,
+                ).astype(np.uint8)
+                img_for_cutout = Image.fromarray(rgb_decontaminated, mode="RGB")
+            else:
+                img_for_cutout = img
+
             alpha_mask = Image.fromarray(alpha_uint8, mode="L")
 
-            # 6. Lossless RGBA Composite
-            r, g, b = img.split()
+            # Lossless RGBA Composite
+            r, g, b = img_for_cutout.split()
             cutout_img = Image.merge("RGBA", (r, g, b, alpha_mask))
 
             # Fast lossless PNG export (compress_level=4 is 5x faster than optimize=True with identical lossless fidelity)

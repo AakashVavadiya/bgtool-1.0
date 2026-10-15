@@ -20,6 +20,9 @@ export interface SafeUser {
   lastCreditReset?: string | undefined;
   location?: string | undefined;
   ip?: string | undefined;
+  phone?: string | null | undefined;
+  countryCode?: string | null | undefined;
+  country?: string | null | undefined;
 }
 
 export interface AdminSessionPayload {

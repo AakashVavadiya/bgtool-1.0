@@ -8,7 +8,14 @@ import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { Wand2, Gift, Zap, ShieldCheck, Lock, Check, X, Sparkles, Minus } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
+import { ProductHuntBadge } from "@/components/ProductHuntBadge";
 import { initiateRazorpayCheckout } from "@/lib/razorpay";
+import {
+  getCurrentCurrency,
+  formatCurrency,
+  CURRENCY_CHANGED_EVENT,
+  type CurrencyCode,
+} from "@/lib/currency";
 import {
   Select,
   SelectContent,
@@ -83,8 +90,6 @@ export const Route = createFileRoute("/pricing")({
   component: Pricing,
 });
 
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-
 // ─── CENTRALIZED PLAN CONFIGURATION ──────────────────────────────────────────
 
 export interface PaygPack {
@@ -97,6 +102,7 @@ export const PAYG_PACKS: PaygPack[] = [
   { credits: 5, price: 199, label: "5 Gold Tokens" },
   { credits: 10, price: 399, label: "10 Gold Tokens" },
   { credits: 75, price: 2499, label: "75 Gold Tokens" },
+  { credits: 100, price: 999, label: "100 Gold Tokens" },
   { credits: 200, price: 5599, label: "200 Gold Tokens" },
   { credits: 500, price: 9999, label: "500 Gold Tokens" },
   { credits: 1200, price: 19999, label: "1,200 Gold Tokens" },
@@ -130,8 +136,9 @@ export const PRICING_CONFIG = {
     yearlyPrice: 4990, // 2 months free (₹4,990 vs ₹5,988)
     tokenType: "silver" as const,
     tokenQuota: "40 Silver Tokens per month",
-    costPerTokenMonthly: "~₹12.5",
-    costPerTokenYearly: "~₹10.4",
+    costPerTokenMonthly: 12.5,
+    costPerTokenYearly: 10.4,
+    badge: "Starter",
     features: [
       "40 Silver Tokens per month",
       "Silver Tokens expire in month",
@@ -144,20 +151,43 @@ export const PRICING_CONFIG = {
     ],
     buttonText: "Subscribe",
   },
+  medium: {
+    name: "Medium",
+    monthlyPrice: 999,
+    yearlyPrice: 9990, // 2 months free
+    tokenType: "silver" as const,
+    tokenQuota: "100 Silver Tokens per month",
+    costPerTokenMonthly: 10.0,
+    costPerTokenYearly: 8.3,
+    badge: "Most Popular",
+    features: [
+      "100 Silver Tokens per month",
+      "Silver Tokens expire in month",
+      "AI photo editor & background removal",
+      "AI generative background models",
+      "Erase & restore brush tools",
+      "Bulk editing up to 20 images",
+      "Priority GPU processing pipeline",
+      "Max quality 4K exports",
+    ],
+    buttonText: "Subscribe",
+  },
   pro: {
     name: "Pro",
     monthlyPrice: 1999,
     yearlyPrice: 19990, // 2 months free (₹19,990 vs ₹23,988)
     tokenType: "silver" as const,
     tokenQuota: "200 Silver Tokens per month",
-    costPerTokenMonthly: "~₹10",
-    costPerTokenYearly: "~₹8.3",
+    costPerTokenMonthly: 10.0,
+    costPerTokenYearly: 8.3,
+    badge: "Studio Pro",
     features: [
       "200 Silver Tokens per month",
       "Silver Tokens expire in month",
-      "Everything in Lite",
+      "Priority GPU processing pipeline",
       "Bulk editing & queue priority",
-      "Best value per token",
+      "All AI models and 4K ultra downloads",
+      "24/7 dedicated support",
     ],
     buttonText: "Subscribe",
   },
@@ -184,26 +214,29 @@ export interface ComparisonRow {
   feature: string;
   free: string | boolean;
   lite: string | boolean;
+  medium: string | boolean;
   pro: string | boolean;
   payg: string | boolean;
 }
 
 export const COMPARISON_TABLE: ComparisonRow[] = [
-  { feature: "Remove background", free: true, lite: true, pro: true, payg: true },
-  { feature: "All conversion tools", free: true, lite: true, pro: true, payg: true },
-  { feature: "High-speed AI processing", free: true, lite: true, pro: true, payg: true },
-  { feature: "Export quality", free: "Standard", lite: "Max", pro: "Max", payg: "Max" },
-  { feature: "AI photo editor", free: false, lite: true, pro: true, payg: true },
-  { feature: "AI background", free: false, lite: true, pro: true, payg: true },
-  { feature: "Erase & restore", free: false, lite: true, pro: true, payg: true },
-  { feature: "Bulk editing", free: false, lite: true, pro: true, payg: true },
-  { feature: "Token type", free: "Bronze", lite: "Silver", pro: "Silver", payg: "Gold" },
-  { feature: "Token expiry", free: "Expire every day", lite: "Expire in month", pro: "Expire in month", payg: "Never expire" },
+  { feature: "Remove background", free: true, lite: true, medium: true, pro: true, payg: true },
+  { feature: "All conversion tools", free: true, lite: true, medium: true, pro: true, payg: true },
+  { feature: "High-speed AI processing", free: true, lite: true, medium: true, pro: true, payg: true },
+  { feature: "Export quality", free: "Standard", lite: "Max", medium: "Max (4K)", pro: "Max (4K)", payg: "Max" },
+  { feature: "AI photo editor", free: false, lite: true, medium: true, pro: true, payg: true },
+  { feature: "AI background", free: false, lite: true, medium: true, pro: true, payg: true },
+  { feature: "Erase & restore", free: false, lite: true, medium: true, pro: true, payg: true },
+  { feature: "Bulk editing queue", free: false, lite: false, medium: true, pro: true, payg: true },
+  { feature: "Token type", free: "Bronze", lite: "Silver", medium: "Silver", pro: "Silver", payg: "Gold" },
+  { feature: "Token allowance", free: "10 / day", lite: "40 / mo", medium: "100 / mo", pro: "200 / mo", payg: "Custom Pack" },
+  { feature: "Token expiry", free: "Expire every day", lite: "Expire in month", medium: "Expire in month", pro: "Expire in month", payg: "Never expire" },
 ];
 
 function Pricing() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [paygPackCredits, setPaygPackCredits] = useState<string>("5");
+  const [currentCurrency, setCurrentCurrency] = useState<CurrencyCode>(() => getCurrentCurrency());
   const [activeOffer, setActiveOffer] = useState<PurchasePlanConfig | null>(() =>
     AdminStore.getActiveFestivalOffer()
   );
@@ -218,8 +251,16 @@ function Pricing() {
       setActiveOffer(AdminStore.getActiveFestivalOffer());
       setCurrentUser(AuthUser.getCurrentUser());
     };
+    const handleCurrency = (e: any) => {
+      if (e.detail?.currency) {
+        setCurrentCurrency(e.detail.currency);
+      }
+    };
+
     window.addEventListener(REALTIME_EVENT_NAME, update);
     window.addEventListener("storage", update);
+    window.addEventListener(CURRENCY_CHANGED_EVENT, handleCurrency);
+
     AdminStore.fetchPlansFromServer().then(() => {
       setActiveOffer(AdminStore.getActiveFestivalOffer());
       setCurrentUser(AuthUser.getCurrentUser());
@@ -227,8 +268,11 @@ function Pricing() {
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, update);
       window.removeEventListener("storage", update);
+      window.removeEventListener(CURRENCY_CHANGED_EVENT, handleCurrency);
     };
   }, []);
+
+  const formatPrice = (amountINR: number) => formatCurrency(amountINR, currentCurrency);
 
   const selectedPaygPack: PaygPack =
     PAYG_PACKS.find((p) => String(p.credits) === paygPackCredits) ?? {
@@ -237,19 +281,20 @@ function Pricing() {
       label: "5 Gold Tokens",
     };
 
-  const paygCostPerToken = `~₹${(selectedPaygPack.price / selectedPaygPack.credits).toFixed(1)}`;
+  const paygCostPerToken = `~${formatPrice(Math.round((selectedPaygPack.price / selectedPaygPack.credits) * 10) / 10)}`;
 
   const handleBuy = (
     credits: number,
     name: string,
-    price: number,
+    priceINR: number,
     planType: "pack" | "subscription" | "festival" = "pack"
   ) => {
     initiateRazorpayCheckout({
       planName: name,
       planType,
       credits,
-      amountINR: price,
+      amountINR: priceINR,
+      currency: currentCurrency,
     });
   };
 
@@ -299,6 +344,11 @@ function Pricing() {
             </span>
           </button>
         </div>
+
+        {/* Product Hunt Social Proof */}
+        <div className="mt-8 flex justify-center">
+          <ProductHuntBadge variant="compact" />
+        </div>
       </section>
 
       {/* Main Pricing Cards Container */}
@@ -339,11 +389,11 @@ function Pricing() {
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <span className="font-mono text-2xl sm:text-3xl font-black text-foreground">
-                      {inr(activeOffer.priceINR)}
+                      {formatPrice(activeOffer.priceINR)}
                     </span>
                     {activeOffer.originalPriceINR && (
                       <span className="font-mono text-sm text-muted-foreground line-through">
-                        {inr(activeOffer.originalPriceINR)}
+                        {formatPrice(activeOffer.originalPriceINR)}
                       </span>
                     )}
                     <span className="rounded-lg bg-amber-500/20 px-2.5 py-1 font-mono text-xs font-bold text-amber-500 flex items-center gap-1">
@@ -368,17 +418,17 @@ function Pricing() {
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-7 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-amber-500/25 hover:bg-amber-400 hover:scale-[1.02] transition-all cursor-pointer"
                 >
                   <Gift className="h-4 w-4" />
-                  <span>Claim Offer ({inr(activeOffer.priceINR)})</span>
+                  <span>Claim Offer ({formatPrice(activeOffer.priceINR)})</span>
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* 4 Responsive Plan Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+        {/* 5 Responsive Plan Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 items-stretch">
           {/* Card 1: Free */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 md:p-7 shadow-xs">
+          <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 md:p-6 shadow-xs">
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-2xl font-medium">{PRICING_CONFIG.free.name}</h3>
@@ -389,46 +439,46 @@ function Pricing() {
               </p>
 
               <div className="mt-6">
-                <p className="font-display text-4xl font-medium">
-                  {PRICING_CONFIG.free.priceText}{" "}
-                  <span className="text-base text-muted-foreground font-normal">
+                <p className="font-display text-3xl sm:text-4xl font-medium">
+                  {formatPrice(0)}{" "}
+                  <span className="text-sm sm:text-base text-muted-foreground font-normal">
                     {PRICING_CONFIG.free.periodText}
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground font-mono">
-                  {currentUser ? "Always 100% free • Active Plan" : "Always 100% free • Login required"}
+                  {currentUser ? "Always free • Active Plan" : "Always free • Login required"}
                 </p>
               </div>
 
               {currentUser ? (
                 currentUser.plan === "free" ? (
-                  <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-border bg-muted/80 px-6 py-3 text-sm font-semibold text-foreground select-none cursor-default shadow-xs">
-                    <Check className="h-4 w-4 text-emerald-500" />
-                    <span>Your Current Plan</span>
+                  <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-border bg-muted/80 px-4 py-2.5 text-xs font-semibold text-foreground select-none cursor-default shadow-xs">
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Current Plan</span>
                   </div>
                 ) : (
-                  <div className="mt-6 w-full inline-flex justify-center items-center rounded-full border border-border/60 bg-muted/30 px-6 py-3 text-sm font-medium text-muted-foreground select-none cursor-default">
+                  <div className="mt-6 w-full inline-flex justify-center items-center rounded-full border border-border/60 bg-muted/30 px-4 py-2.5 text-xs font-medium text-muted-foreground select-none cursor-default">
                     Included
                   </div>
                 )
               ) : (
                 <Link
                   to={PRICING_CONFIG.free.buttonHref}
-                  className="mt-6 w-full inline-flex justify-center items-center rounded-full border border-border bg-transparent px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-full border border-border bg-transparent px-4 py-2.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
                 >
                   {PRICING_CONFIG.free.buttonText}
                 </Link>
               )}
 
-              <ul className="mt-7 space-y-2.5 border-t border-border pt-6 text-sm text-muted-foreground">
+              <ul className="mt-6 space-y-2 border-t border-border pt-5 text-xs text-muted-foreground">
                 {PRICING_CONFIG.free.features.map((f) => {
                   const label =
                     currentUser && f.includes("Need to login")
                       ? "10 free daily credits active"
                       : f;
                   return (
-                    <li key={f} className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <li key={f} className="flex items-start gap-1.5">
+                      <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                       <span>{label}</span>
                     </li>
                   );
@@ -438,7 +488,7 @@ function Pricing() {
           </div>
 
           {/* Card 2: Lite */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 md:p-7 shadow-xs">
+          <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 md:p-6 shadow-xs">
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-2xl font-medium">{PRICING_CONFIG.lite.name}</h3>
@@ -449,21 +499,21 @@ function Pricing() {
               </p>
 
               <div className="mt-6">
-                <p className="font-display text-4xl font-medium">
-                  {inr(isYearly ? PRICING_CONFIG.lite.yearlyPrice : PRICING_CONFIG.lite.monthlyPrice)}{" "}
-                  <span className="text-base text-muted-foreground font-normal">
-                    {isYearly ? "/ year" : "/ month"}
+                <p className="font-display text-3xl sm:text-4xl font-medium">
+                  {formatPrice(isYearly ? PRICING_CONFIG.lite.yearlyPrice : PRICING_CONFIG.lite.monthlyPrice)}{" "}
+                  <span className="text-sm sm:text-base text-muted-foreground font-normal">
+                    {isYearly ? "/ yr" : "/ mo"}
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 font-mono font-medium">
-                  {isYearly ? PRICING_CONFIG.lite.costPerTokenYearly : PRICING_CONFIG.lite.costPerTokenMonthly} / Silver Token
+                  ~{formatPrice(isYearly ? PRICING_CONFIG.lite.costPerTokenYearly : PRICING_CONFIG.lite.costPerTokenMonthly)} / Token
                 </p>
               </div>
 
               {currentUser?.plan === "lite" ? (
-                <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-border bg-muted/80 px-6 py-3 text-sm font-semibold text-foreground select-none cursor-default shadow-xs">
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  <span>Your Current Plan</span>
+                <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-border bg-muted/80 px-4 py-2.5 text-xs font-semibold text-foreground select-none cursor-default shadow-xs">
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Current Plan</span>
                 </div>
               ) : (
                 <button
@@ -476,16 +526,16 @@ function Pricing() {
                       "subscription"
                     )
                   }
-                  className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer"
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer"
                 >
                   {PRICING_CONFIG.lite.buttonText}
                 </button>
               )}
 
-              <ul className="mt-7 space-y-2.5 border-t border-border pt-6 text-sm text-muted-foreground">
+              <ul className="mt-6 space-y-2 border-t border-border pt-5 text-xs text-muted-foreground">
                 {PRICING_CONFIG.lite.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-foreground shrink-0 mt-0.5" />
+                  <li key={f} className="flex items-start gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-foreground shrink-0 mt-0.5" />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -493,16 +543,79 @@ function Pricing() {
             </div>
           </div>
 
-          {/* Card 3: Pro (Orange Border + Most Popular Badge) */}
-          <div className="relative flex flex-col justify-between rounded-2xl border-2 border-amber-500 bg-card p-6 md:p-7 shadow-xl shadow-amber-500/10">
+          {/* Card 3: Medium (100 Tokens, ₹999/mo, MOST POPULAR) */}
+          <div className="relative flex flex-col justify-between rounded-2xl border-2 border-amber-500 bg-card p-5 md:p-6 shadow-xl shadow-amber-500/10">
             {/* Most Popular Badge */}
-            <span className="absolute -top-3.5 right-6 rounded-full bg-amber-500 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-950 shadow-sm">
+            <span className="absolute -top-3 right-5 rounded-full bg-amber-500 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-950 shadow-sm animate-pulse">
               Most Popular
             </span>
 
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-2xl font-medium">{PRICING_CONFIG.pro.name}</h3>
+                <h3 className="font-display text-2xl font-medium text-amber-500">{PRICING_CONFIG.medium.name}</h3>
+                <TokenCoin type="silver" size="sm" showGlow />
+              </div>
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
+                {PRICING_CONFIG.medium.tokenQuota}
+              </p>
+
+              <div className="mt-6">
+                <p className="font-display text-3xl sm:text-4xl font-medium">
+                  {formatPrice(isYearly ? PRICING_CONFIG.medium.yearlyPrice : PRICING_CONFIG.medium.monthlyPrice)}{" "}
+                  <span className="text-sm sm:text-base text-muted-foreground font-normal">
+                    {isYearly ? "/ yr" : "/ mo"}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-mono font-medium">
+                  ~{formatPrice(isYearly ? PRICING_CONFIG.medium.costPerTokenYearly : PRICING_CONFIG.medium.costPerTokenMonthly)} / Token
+                </p>
+              </div>
+
+              {currentUser?.plan === ("medium" as any) ? (
+                <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-xs font-semibold text-amber-500 select-none cursor-default shadow-xs">
+                  <Check className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Current Plan</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleBuy(
+                      100,
+                      isYearly ? "Medium Yearly Plan (Silver Tokens)" : "Medium Monthly Plan (Silver Tokens)",
+                      isYearly ? PRICING_CONFIG.medium.yearlyPrice : PRICING_CONFIG.medium.monthlyPrice,
+                      "subscription"
+                    )
+                  }
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-amber-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/25 hover:bg-amber-400 hover:scale-[1.02] transition-all cursor-pointer"
+                >
+                  {PRICING_CONFIG.medium.buttonText}
+                </button>
+              )}
+
+              <ul className="mt-6 space-y-2 border-t border-border pt-5 text-xs text-muted-foreground">
+                {PRICING_CONFIG.medium.features.map((f) => (
+                  <li key={f} className="flex items-start gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                    <span className={f.includes("AI photo") || f.includes("GPU") ? "font-bold text-foreground" : ""}>
+                      {f}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Card 4: Pro */}
+          <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 md:p-6 shadow-xs">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display text-2xl font-medium">{PRICING_CONFIG.pro.name}</h3>
+                  <span className="rounded-full bg-muted border border-border px-2 py-0.5 text-[9px] font-bold text-muted-foreground uppercase">
+                    Studio Pro
+                  </span>
+                </div>
                 <TokenCoin type="silver" size="sm" showGlow />
               </div>
               <p className="mt-2 text-xs font-medium text-muted-foreground">
@@ -510,21 +623,21 @@ function Pricing() {
               </p>
 
               <div className="mt-6">
-                <p className="font-display text-4xl font-medium">
-                  {inr(isYearly ? PRICING_CONFIG.pro.yearlyPrice : PRICING_CONFIG.pro.monthlyPrice)}{" "}
-                  <span className="text-base text-muted-foreground font-normal">
-                    {isYearly ? "/ year" : "/ month"}
+                <p className="font-display text-3xl sm:text-4xl font-medium">
+                  {formatPrice(isYearly ? PRICING_CONFIG.pro.yearlyPrice : PRICING_CONFIG.pro.monthlyPrice)}{" "}
+                  <span className="text-sm sm:text-base text-muted-foreground font-normal">
+                    {isYearly ? "/ yr" : "/ mo"}
                   </span>
                 </p>
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-mono font-medium">
-                  {isYearly ? PRICING_CONFIG.pro.costPerTokenYearly : PRICING_CONFIG.pro.costPerTokenMonthly} / Silver Token
+                <p className="mt-1 text-xs text-muted-foreground font-mono font-medium">
+                  ~{formatPrice(isYearly ? PRICING_CONFIG.pro.costPerTokenYearly : PRICING_CONFIG.pro.costPerTokenMonthly)} / Token
                 </p>
               </div>
 
               {currentUser?.plan === "pro" ? (
-                <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/15 px-6 py-3 text-sm font-semibold text-amber-500 select-none cursor-default shadow-xs">
-                  <Check className="h-4 w-4 text-amber-500" />
-                  <span>Your Current Plan</span>
+                <div className="mt-6 w-full inline-flex justify-center items-center gap-2 rounded-full border border-border bg-muted/80 px-4 py-2.5 text-xs font-semibold text-foreground select-none cursor-default shadow-xs">
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Current Plan</span>
                 </div>
               ) : (
                 <button
@@ -537,27 +650,25 @@ function Pricing() {
                       "subscription"
                     )
                   }
-                  className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer shadow-md"
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer shadow-md"
                 >
                   {PRICING_CONFIG.pro.buttonText}
                 </button>
               )}
 
-              <ul className="mt-7 space-y-2.5 border-t border-border pt-6 text-sm text-muted-foreground">
+              <ul className="mt-6 space-y-2 border-t border-border pt-5 text-xs text-muted-foreground">
                 {PRICING_CONFIG.pro.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                    <span className={f.includes("Bulk") ? "font-bold text-foreground" : ""}>
-                      {f}
-                    </span>
+                  <li key={f} className="flex items-start gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-foreground shrink-0 mt-0.5" />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
 
-          {/* Card 4: Pay-as-you-go */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 md:p-7 shadow-xs">
+          {/* Card 5: Pay-as-you-go */}
+          <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 md:p-6 shadow-xs">
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-2xl font-medium">{PRICING_CONFIG.payg.name}</h3>
@@ -568,30 +679,30 @@ function Pricing() {
               </p>
 
               {/* Dynamic Pack Select Dropdown */}
-              <div className="mt-5">
+              <div className="mt-4">
                 <label
                   htmlFor="payg-select"
-                  className="block text-xs font-medium text-muted-foreground mb-1.5"
+                  className="block text-xs font-medium text-muted-foreground mb-1"
                 >
                   {PRICING_CONFIG.payg.dropdownLabel}
                 </label>
                 <Select value={paygPackCredits} onValueChange={setPaygPackCredits}>
-                  <SelectTrigger id="payg-select" className="w-full">
+                  <SelectTrigger id="payg-select" className="w-full text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {PAYG_PACKS.map((p) => (
                       <SelectItem key={p.credits} value={String(p.credits)}>
-                        {p.credits.toLocaleString("en-IN")} Gold Tokens — {inr(p.price)}
+                        {p.credits.toLocaleString("en-IN")} Gold Tokens — {formatPrice(p.price)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="mt-5">
-                <p className="font-display text-4xl font-medium">
-                  {inr(selectedPaygPack.price)}
+              <div className="mt-4">
+                <p className="font-display text-3xl sm:text-4xl font-medium">
+                  {formatPrice(selectedPaygPack.price)}
                 </p>
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-mono font-medium">
                   {paygCostPerToken} / Gold Token
@@ -608,18 +719,16 @@ function Pricing() {
                     "pack"
                   )
                 }
-                className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer shadow-md"
+                className="mt-6 w-full inline-flex justify-center items-center rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background transition-opacity hover:opacity-85 cursor-pointer shadow-md"
               >
                 {PRICING_CONFIG.payg.buttonText}
               </button>
 
-              <ul className="mt-7 space-y-2.5 border-t border-border pt-6 text-sm text-muted-foreground">
+              <ul className="mt-6 space-y-2 border-t border-border pt-5 text-xs text-muted-foreground">
                 {PRICING_CONFIG.payg.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                    <span className={f.includes("All Pro") ? "font-bold text-foreground" : ""}>
-                      {f}
-                    </span>
+                  <li key={f} className="flex items-start gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
@@ -639,7 +748,7 @@ function Pricing() {
           </div>
 
           <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
-            <table className="w-full min-w-[640px] text-left border-collapse">
+            <table className="w-full min-w-[720px] text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-muted/40 sticky top-0 backdrop-blur z-10">
                   <th className="py-4 px-5 text-sm font-bold text-foreground">Feature</th>
@@ -649,7 +758,10 @@ function Pricing() {
                   <th className="py-4 px-4 text-sm font-bold text-center text-foreground">
                     Lite
                   </th>
-                  <th className="py-4 px-4 text-sm font-bold text-center text-amber-600 dark:text-amber-400">
+                  <th className="py-4 px-4 text-sm font-bold text-center text-amber-600 dark:text-amber-400 bg-amber-500/5">
+                    Medium (Popular)
+                  </th>
+                  <th className="py-4 px-4 text-sm font-bold text-center text-foreground">
                     Pro
                   </th>
                   <th className="py-4 px-4 text-sm font-bold text-center text-foreground">
@@ -669,7 +781,10 @@ function Pricing() {
                     <td className="py-3.5 px-4 text-center">
                       {renderCell(row.lite)}
                     </td>
-                    <td className="py-3.5 px-4 text-center font-medium">
+                    <td className="py-3.5 px-4 text-center font-medium bg-amber-500/5">
+                      {renderCell(row.medium)}
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
                       {renderCell(row.pro)}
                     </td>
                     <td className="py-3.5 px-4 text-center">
@@ -700,7 +815,7 @@ function Pricing() {
             <ShieldCheck className="h-4 w-4 text-emerald-500 inline shrink-0" />
             <span>Cancel anytime. Secure payments via UPI, cards and net banking.</span>
           </p>
-          <div className="mt-3 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+          <div className="mt-3 flex items-center justify-center gap-4 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1 font-semibold text-foreground/90">
               <Lock className="h-3.5 w-3.5 text-amber-500" />
               Secured by Razorpay Live
@@ -708,7 +823,10 @@ function Pricing() {
             <span>•</span>
             <span>256-Bit SSL Encryption</span>
             <span>•</span>
-            <span>Zero Tracking</span>
+            <span>Zero Tracking Guarantee</span>
+          </div>
+          <div className="mt-5 pt-4 border-t border-border/50 flex justify-center">
+            <ProductHuntBadge variant="compact" />
           </div>
         </div>
       </section>

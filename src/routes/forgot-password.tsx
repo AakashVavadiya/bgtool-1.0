@@ -62,11 +62,17 @@ function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground">
-      <div className="w-full max-w-md space-y-6 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl animate-fade-in">
+    <div className="flex min-h-[100dvh] items-end sm:items-center justify-center bg-background/95 sm:bg-background text-foreground p-0 sm:px-4 sm:py-12 relative">
+      {/* Mobile Backdrop Tint */}
+      <div className="fixed inset-0 bg-black/40 sm:hidden pointer-events-none -z-0" />
+
+      <div className="relative z-10 w-full max-w-md space-y-5 sm:space-y-6 rounded-t-[32px] sm:rounded-3xl border-t border-x sm:border border-border/80 bg-card p-6 sm:p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_-20px_50px_rgba(0,0,0,0.5)] sm:shadow-2xl animate-in slide-in-from-bottom-8 duration-300 sm:animate-fade-in max-h-[92dvh] overflow-y-auto pb-8 sm:pb-8">
+        {/* Mobile Drag/Pull Indicator Handle */}
+        <div className="mx-auto -mt-2 mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/30 sm:hidden" />
+
         {/* Header */}
         <div className="text-center">
-          <Link to="/" className="font-display text-2xl font-semibold tracking-tight inline-block mb-4">
+          <Link to="/" className="font-display text-2xl font-semibold tracking-tight inline-block mb-3 sm:mb-4">
             bg<span className="text-accent">.</span>
           </Link>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 mb-4">

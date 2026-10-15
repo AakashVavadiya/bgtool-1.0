@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { paymentsRepo } from "../db/payments-repo";
+import { configRepo } from "../db/config-repo";
+import { convertInrToCurrency, type CurrencyCode, SUPPORTED_CURRENCIES } from "../currency";
 import { toSafeUser } from "../db/users-repo";
 import { getUserFromRequest } from "./auth-user-server";
 import { isAuthorizedAdmin } from "./auth-admin";
@@ -17,6 +19,34 @@ function getRazorpayCredentials() {
   const keyId = process.env["RAZORPAY_KEY_ID"] || "rzp_live_Tmz4jrhCLp8whx";
   const keySecret = process.env["RAZORPAY_KEY_SECRET"] || "N6eXMvEK15PJ5inBzzK7LI0n";
   return { keyId, keySecret };
+}
+
+/**
+ * Sanitizes input text for Razorpay's API notes and metadata fields.
+ * Razorpay rejects emojis (4-byte UTF-8 code points), surrogate pairs,
+ * control characters, and non-ASCII symbols with:
+ * "The notes field should contain valid UTF-8 encoded characters."
+ */
+export function sanitizeRazorpayNoteText(val: unknown, maxLen = 40): string {
+  if (val === null || val === undefined) return "";
+  let str = String(val);
+
+  try {
+    str = str.normalize("NFC");
+  } catch {}
+
+  str = str
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/[\u2026]/g, "...");
+
+  str = str.replace(/[\u{10000}-\u{10FFFF}]/gu, "");
+  str = str.replace(/[\uD800-\uDFFF]/g, "");
+  str = str.replace(/[^\x20-\x7E]/g, " ");
+  str = str.replace(/\s+/g, " ").trim();
+
+  return str.slice(0, maxLen);
 }
 
 /**
@@ -65,11 +95,84 @@ export async function handleCreatePaymentOrder(
       );
     }
 
-    // Convert amount in INR to Paise (1 INR = 100 Paise)
-    const amountInPaise = Math.round(numAmount * 100);
+    // Multi-currency support
+    const requestedCurrency: CurrencyCode =
+      body.currency && SUPPORTED_CURRENCIES.some((c) => c.code === body.currency)
+        ? body.currency
+        : "INR";
+
+    // SECURITY: Authoritative Price & Credits Validation
+    // Validate that amount and credits are consistent with configured plans/packs
+    const plans = configRepo.getPlansConfig<any>();
+    let expectedInrAmount = numAmount;
+    let expectedCredits = numCredits;
+
+    if (planType === "subscription" || planType === "festival") {
+      const cleanTargetName = planName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const matched = plans.find((p) => {
+        if (!p.active) return false;
+        const pClean = (p.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const idClean = (p.id || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        return (
+          pClean.includes(cleanTargetName) ||
+          cleanTargetName.includes(pClean) ||
+          idClean.includes(cleanTargetName) ||
+          (planType === "festival" && p.isFestivalOffer)
+        );
+      });
+
+      if (matched && typeof matched.priceINR === "number") {
+        expectedInrAmount = matched.priceINR;
+        expectedCredits = matched.credits + (matched.bonusCredits || 0);
+      }
+    } else {
+      // Pack matching
+      const VALID_PACKS = [
+        { credits: 5, price: 199 },
+        { credits: 10, price: 399 },
+        { credits: 75, price: 2499 },
+        { credits: 100, price: 999 },
+        { credits: 200, price: 5599 },
+        { credits: 500, price: 9999 },
+        { credits: 1200, price: 19999 },
+        { credits: 4000, price: 49999 },
+        { credits: 8000, price: 99999 },
+      ];
+      const matchedPack = VALID_PACKS.find((p) => p.credits === numCredits);
+      if (matchedPack) {
+        expectedInrAmount = matchedPack.price;
+        expectedCredits = matchedPack.credits;
+      }
+    }
+
+    const verifiedInrAmount = expectedInrAmount;
+    const verifiedCredits = expectedCredits;
+
+    // Convert amount to target currency
+    let finalAmount = verifiedInrAmount;
+    if (requestedCurrency !== "INR") {
+      finalAmount = convertInrToCurrency(verifiedInrAmount, requestedCurrency);
+    }
+
+    // Convert to smallest currency unit (paise/cents/pence/fils)
+    const amountInSubunit = Math.max(100, Math.round(finalAmount * 100)); // Minimum 1 unit in currency
     const receipt = `rcpt_${Date.now().toString(36)}_${Math.floor(100 + Math.random() * 900)}`;
 
     const authHeader = "Basic " + Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+
+    const safePlanName = sanitizeRazorpayNoteText(planName, 40) || "Token Plan";
+    const safeUserId = sanitizeRazorpayNoteText(user?.id || "guest", 40) || "guest";
+    const safeEmail = sanitizeRazorpayNoteText(user?.email || "", 60);
+
+    const safeNotes: Record<string, string> = {
+      userId: safeUserId,
+      planName: safePlanName,
+      credits: String(verifiedCredits),
+      currency: requestedCurrency,
+    };
+    if (safeEmail) {
+      safeNotes.userEmail = safeEmail;
+    }
 
     const rzpResponse = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
@@ -78,15 +181,10 @@ export async function handleCreatePaymentOrder(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: amountInPaise,
-        currency: "INR",
+        amount: amountInSubunit,
+        currency: requestedCurrency,
         receipt,
-        notes: {
-          userId: user?.id || "guest",
-          userEmail: user?.email || "",
-          planName: planName.slice(0, 40),
-          credits: String(numCredits),
-        },
+        notes: safeNotes,
       }),
     });
 
@@ -105,11 +203,11 @@ export async function handleCreatePaymentOrder(
       userId: user?.id || null,
       userName: user?.name || null,
       userEmail: user?.email || null,
-      planName,
+      planName: safePlanName,
       planType,
-      credits: numCredits,
-      amountINR: numAmount,
-      currency: rzpOrder.currency || "INR",
+      credits: verifiedCredits,
+      amountINR: verifiedInrAmount,
+      currency: rzpOrder.currency || requestedCurrency,
       receipt: rzpOrder.receipt || receipt,
     });
 

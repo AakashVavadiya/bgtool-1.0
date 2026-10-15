@@ -133,7 +133,21 @@ export function ScrollBeforeAfter() {
   return (
     <div
       ref={containerRef}
-      className="group relative h-[380px] xs:h-[440px] sm:h-[540px] md:h-[640px] w-full max-w-5xl mx-auto overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-border shadow-2xl select-none"
+      onMouseDown={(e) => {
+        setIsDragging(true);
+        updatePosFromClientX(e.clientX, true);
+      }}
+      onTouchStart={(e) => {
+        setIsDragging(true);
+        if (e.touches[0]) updatePosFromClientX(e.touches[0].clientX, true);
+      }}
+      onWheel={(e) => {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+          e.preventDefault();
+          updateTargetPos(displayPos + (e.deltaX > 0 ? 3 : -3));
+        }
+      }}
+      className="group relative h-[380px] xs:h-[440px] sm:h-[540px] md:h-[640px] w-full max-w-5xl mx-auto overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-border shadow-2xl select-none cursor-ew-resize"
       style={{
         ...cleanCheckerStyle,
         userSelect: "none",

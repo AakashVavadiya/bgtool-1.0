@@ -1,12 +1,64 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { Mail, MessageSquare, Send, CheckCircle2, Clock, MapPin } from "lucide-react";
+import {
+  Mail,
+  MessageSquare,
+  Send,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  ChevronDown,
+  Check,
+  HelpCircle,
+  CreditCard,
+  Zap,
+  Bug,
+  X,
+} from "lucide-react";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-
 import { buildPageMeta } from "@/lib/seo";
+
+interface ContactTopic {
+  id: string;
+  label: string;
+  desc: string;
+  badge?: string;
+  icon: typeof HelpCircle;
+}
+
+const CONTACT_TOPICS: ContactTopic[] = [
+  {
+    id: "General Support",
+    label: "General Support & Question",
+    desc: "Assistance with your account, features, or general inquiries",
+    icon: HelpCircle,
+    badge: "General",
+  },
+  {
+    id: "Billing & Credits",
+    label: "Billing & Credits Inquiry",
+    desc: "Invoices, subscription changes, payment or refund questions",
+    icon: CreditCard,
+    badge: "Billing",
+  },
+  {
+    id: "Enterprise API",
+    label: "Enterprise API & High-Volume Batch",
+    desc: "Custom pricing, dedicated throughput & SLA agreements",
+    icon: Zap,
+    badge: "Enterprise",
+  },
+  {
+    id: "Bug Report",
+    label: "Model Accuracy or Bug Report",
+    desc: "Report segmentation edge cases, artifacts or site glitches",
+    icon: Bug,
+    badge: "Technical",
+  },
+];
 
 export const Route = createFileRoute("/contact")({
   head: () => {
@@ -30,6 +82,47 @@ function ContactPage() {
   const [subject, setSubject] = useState("General Support");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isTopicOpen, setIsTopicOpen] = useState(false);
+  const topicRef = useRef<HTMLDivElement>(null);
+
+  // Close topic dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (topicRef.current && !topicRef.current.contains(event.target as Node)) {
+        setIsTopicOpen(false);
+      }
+    };
+
+    if (isTopicOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isTopicOpen]);
+
+  // Lock body scroll on mobile and handle Escape key
+  useEffect(() => {
+    if (!isTopicOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    if (window.innerWidth < 640) {
+      document.body.style.overflow = "hidden";
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsTopicOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isTopicOpen]);
+
+  const activeTopic =
+    CONTACT_TOPICS.find((t) => t.id === subject) || CONTACT_TOPICS[0]!;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,18 +262,137 @@ function ContactPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="relative" ref={topicRef}>
                     <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">Topic</label>
-                    <select
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold text-foreground focus:border-foreground focus:outline-none"
+                    <button
+                      type="button"
+                      onClick={() => setIsTopicOpen(!isTopicOpen)}
+                      className="w-full flex items-center justify-between rounded-2xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold text-foreground focus:border-foreground focus:outline-none transition-all hover:border-border/80 cursor-pointer shadow-xs text-left"
+                      aria-haspopup="listbox"
+                      aria-expanded={isTopicOpen}
                     >
-                      <option value="General Support">General Support & Question</option>
-                      <option value="Billing & Credits">Billing & Credits Inquiry</option>
-                      <option value="Enterprise API">Enterprise API & High-Volume Batch</option>
-                      <option value="Bug Report">Model Accuracy or Bug Report</option>
-                    </select>
+                      <div className="flex items-center gap-3 truncate">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-accent/15 text-accent shrink-0">
+                          <activeTopic.icon className="h-4 w-4" />
+                        </span>
+                        <div className="truncate">
+                          <span className="font-bold text-foreground block truncate">
+                            {activeTopic.label}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 ${
+                          isTopicOpen ? "rotate-180 text-foreground" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {/* Mobile Backdrop Overlay */}
+                    {isTopicOpen && (
+                      <div
+                        className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-xs sm:hidden animate-in fade-in duration-200"
+                        onClick={() => setIsTopicOpen(false)}
+                        aria-hidden="true"
+                      />
+                    )}
+
+                    {/* Dropdown Menu (Desktop) / Bottom Sheet Drawer (Mobile) */}
+                    {isTopicOpen && (
+                      <div
+                        role="listbox"
+                        aria-label="Select Inquiry Topic"
+                        className="fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-5 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh] pb-8 sm:fixed-none sm:absolute sm:inset-auto sm:top-full sm:mt-2 sm:left-0 sm:right-0 sm:z-50 sm:w-full sm:rounded-2xl sm:border sm:border-border/80 sm:p-2 sm:pb-2 sm:max-h-[380px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 overflow-hidden"
+                      >
+                        {/* Mobile Pull Handle */}
+                        <div className="pt-0.5 pb-3 sm:hidden flex justify-center shrink-0">
+                          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+                        </div>
+
+                        {/* Sheet Header (Mobile) */}
+                        <div className="flex items-center justify-between pb-3 border-b border-border/70 sm:hidden shrink-0">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/15 text-accent border border-accent/25">
+                              <MessageSquare className="h-4 w-4" />
+                            </span>
+                            <div>
+                              <h4 className="text-sm font-extrabold uppercase tracking-wide text-foreground">
+                                Select Inquiry Topic
+                              </h4>
+                              <p className="text-[11px] text-muted-foreground font-medium">
+                                Routes your inquiry to the dedicated specialist
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsTopicOpen(false)}
+                            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted text-sm transition-colors cursor-pointer"
+                            aria-label="Close"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {/* Options List */}
+                        <div className="space-y-1.5 pt-2 sm:pt-0 overflow-y-auto max-h-[60vh] sm:max-h-none">
+                          {CONTACT_TOPICS.map((topic) => {
+                            const isSelected = subject === topic.id;
+                            const Icon = topic.icon;
+                            return (
+                              <button
+                                key={topic.id}
+                                type="button"
+                                role="option"
+                                aria-selected={isSelected}
+                                onClick={() => {
+                                  setSubject(topic.id);
+                                  setIsTopicOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between rounded-xl p-3 sm:p-2.5 text-left transition-all cursor-pointer ${
+                                  isSelected
+                                    ? "bg-accent/15 border border-accent/40 text-foreground font-bold shadow-xs"
+                                    : "hover:bg-muted/70 text-foreground border border-transparent"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className={`flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl shrink-0 ${
+                                      isSelected
+                                        ? "bg-accent text-white"
+                                        : "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    <Icon className="h-4 w-4" />
+                                  </span>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs sm:text-sm font-bold text-foreground">
+                                        {topic.label}
+                                      </span>
+                                      {topic.badge && (
+                                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                          {topic.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                                      {topic.desc}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {isSelected && (
+                                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-white shrink-0 ml-2">
+                                    <Check className="h-3 w-3 stroke-[3]" />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>

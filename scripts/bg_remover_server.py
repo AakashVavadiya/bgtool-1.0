@@ -106,7 +106,9 @@ def handle_ganga_request(data):
             return {"success": False, "error": err}
         
         model = data.get("model", "ganga")
-        res = GangaEngine.remove_background(b64_image, model_name=model)
+        raw_smooth = data.get("smoothEdge")
+        smooth_edge = float(raw_smooth) if raw_smooth is not None and str(raw_smooth).replace(".", "", 1).isdigit() else 0.60
+        res = GangaEngine.remove_background(b64_image, model_name=model, smooth_edge=smooth_edge)
         gc.collect()
         return res
     except Exception as e:

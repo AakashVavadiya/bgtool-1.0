@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   Upload,
   FileText,
@@ -993,8 +994,8 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
   return (
     <div ref={containerRef} className="w-full flex flex-col gap-6 py-2">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll) ─────── */}
-      {hasProcessed && (
-        <div className="fixed top-3 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
+      {typeof document !== "undefined" && hasProcessed && createPortal(
+        <div className="fixed top-[66px] sm:top-[74px] md:top-[80px] inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
           <aside
             aria-label="Quick download dynamic island"
             className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
@@ -1081,7 +1082,8 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
               <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
           </aside>
-        </div>
+        </div>,
+        document.body
       )}
       {/* Hidden File Input */}
       <input

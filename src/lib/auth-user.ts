@@ -12,6 +12,9 @@ export interface CurrentUser {
   totalProcessed: number;
   status?: "active" | "restricted" | "banned";
   registeredAt: string;
+  phone?: string | null | undefined;
+  countryCode?: string | null | undefined;
+  country?: string | null | undefined;
 }
 
 export interface AuthResult {
@@ -139,7 +142,14 @@ export const AuthUser = {
     return user.status === "restricted" || user.status === "banned";
   },
 
-  async signUp(name: string, email: string, password?: string): Promise<AuthResult> {
+  async signUp(
+    name: string,
+    email: string,
+    password?: string,
+    phone?: string,
+    countryCode?: string,
+    country?: string
+  ): Promise<AuthResult> {
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim() || cleanEmail.split("@")[0] || "Creative User";
 
@@ -155,7 +165,14 @@ export const AuthUser = {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: cleanName, email: cleanEmail, password }),
+        body: JSON.stringify({
+          name: cleanName,
+          email: cleanEmail,
+          password,
+          phone: phone?.trim() || undefined,
+          countryCode: countryCode?.trim() || undefined,
+          country: country?.trim() || undefined,
+        }),
         credentials: "same-origin",
       });
 
@@ -359,10 +376,20 @@ export const AuthUser = {
     }
   },
 
-  async login(email: string, password?: string): Promise<AuthResult> {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes("@")) {
+  async login(identifier: string, password?: string): Promise<AuthResult> {
+    const raw = identifier.trim();
+    if (!raw) {
+      return { success: false, error: "Please enter your email or mobile number." };
+    }
+
+    const isEmail = raw.includes("@");
+    const cleanIdentifier = isEmail ? raw.toLowerCase() : raw.replace(/[\s-]/g, "");
+
+    if (isEmail && (!cleanIdentifier.includes(".") || cleanIdentifier.length < 5)) {
       return { success: false, error: "Please enter a valid email address." };
+    }
+    if (!isEmail && cleanIdentifier.replace(/\D/g, "").length < 6) {
+      return { success: false, error: "Please enter a valid mobile number (min 6 digits)." };
     }
 
     if (!password) {
@@ -373,7 +400,7 @@ export const AuthUser = {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cleanEmail, password }),
+        body: JSON.stringify({ email: cleanIdentifier, password }),
         credentials: "same-origin",
       });
 
@@ -383,7 +410,7 @@ export const AuthUser = {
         return {
           success: false,
           requireVerification: true,
-          email: cleanEmail,
+          email: data.email || (isEmail ? cleanIdentifier : raw),
           error: data.error || "Your email is not verified. Please verify your email.",
         };
       }
@@ -412,7 +439,8 @@ export const AuthUser = {
       );
 
       return { success: true, ...(cachedUser ? { user: cachedUser } : {}) };
-    } catch {
+    } catch (err: any) {
+      console.error("[Auth] Login exception:", err);
       return { success: false, error: "Network error during login. Please try again." };
     }
   },

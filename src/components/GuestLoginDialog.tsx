@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { Sparkles, Check, ArrowRight, X, Shield, Lock } from "lucide-react";
+import { Gift, Check, ArrowRight, X, Shield, Lock, Coins } from "lucide-react";
+import { TokenCoin } from "@/components/TokenCoins";
 
 export interface GuestLoginDialogDetail {
   toolName?: string;
@@ -64,27 +65,36 @@ export function GuestLoginDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="guest-dialog-title"
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+      className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-background/80 backdrop-blur-md transition-all duration-300 animate-in fade-in"
     >
-      <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl text-center space-y-5 animate-scale-in">
+      <div className="relative w-full sm:max-w-lg rounded-t-[32px] sm:rounded-3xl border-t sm:border border-border bg-card p-5 sm:p-8 shadow-2xl text-center space-y-4 sm:space-y-5 max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 pb-7 sm:pb-8">
+        {/* Mobile Pull Handle Indicator */}
+        <div className="mx-auto -mt-1 mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/30 sm:hidden" />
+
         {/* Close button */}
         <button
           type="button"
           onClick={handleClose}
           aria-label="Close dialog"
-          className="absolute top-4 right-4 rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* Icon & Badge */}
-        <div className="flex justify-center pt-2">
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-muted/60 text-foreground shadow-xs">
-            <Sparkles className="h-8 w-8 text-amber-500" />
+        <div className="flex justify-center pt-1 sm:pt-2">
+          <div className="relative flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-2xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-500/20 to-amber-500/5 shadow-inner">
+            <Gift className="h-8 w-8 sm:h-9 sm:w-9 text-amber-500" />
+            <span className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-black text-[11px] font-black shadow-md ring-2 ring-card">
+              10
+            </span>
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3.5 py-1 text-xs font-semibold text-muted-foreground">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
           <Lock className="h-3 w-3 text-amber-500" />
           <span>5 Free Guest Uses Completed</span>
         </div>

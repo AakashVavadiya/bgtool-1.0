@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { AdminStore, type PurchasePlanConfig } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
 import { initiateRazorpayCheckout } from "@/lib/razorpay";
+import { formatCurrency, getCurrentCurrency, CURRENCY_CHANGED_EVENT, type CurrencyCode } from "@/lib/currency";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import {
   X,
@@ -41,16 +42,24 @@ export function FestivalOffersDialog({
     return customOffer || AdminStore.getActiveFestivalOffer();
   });
   const [isClaiming, setIsClaiming] = useState(false);
+  const [currentCurrency, setCurrentCurrency] = useState<CurrencyCode>(() => getCurrentCurrency());
 
   const routerState = useRouterState();
   const currentPath = routerState?.location?.pathname || "";
   const isAdminRoute = currentPath.startsWith("/admin");
 
   useEffect(() => {
+    const handleCurr = (e: any) => {
+      if (e.detail?.currency) {
+        setCurrentCurrency(e.detail.currency);
+      }
+    };
+    window.addEventListener(CURRENCY_CHANGED_EVENT, handleCurr);
+
     if (customOffer) {
       setOffer(customOffer);
       if (forceOpen) setIsOpen(true);
-      return;
+      return () => window.removeEventListener(CURRENCY_CHANGED_EVENT, handleCurr);
     }
 
     const refreshOffer = () => {
@@ -74,12 +83,11 @@ export function FestivalOffersDialog({
     };
     window.addEventListener(OPEN_FESTIVAL_DIALOG_EVENT, handleOpenTrigger);
 
-
-
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, refreshOffer);
       window.removeEventListener("storage", refreshOffer);
       window.removeEventListener(OPEN_FESTIVAL_DIALOG_EVENT, handleOpenTrigger);
+      window.removeEventListener(CURRENCY_CHANGED_EVENT, handleCurr);
     };
   }, [customOffer, forceOpen, isAdminRoute]);
 
@@ -104,6 +112,7 @@ export function FestivalOffersDialog({
       planType: "festival",
       credits: totalCredits,
       amountINR: offer.priceINR,
+      currency: currentCurrency,
       onSuccess: () => {
         setIsClaiming(false);
         handleClose();
@@ -186,11 +195,11 @@ export function FestivalOffersDialog({
               </span>
               <div className="mt-1 flex items-baseline gap-3">
                 <span className="font-display text-3xl sm:text-4xl font-black text-foreground">
-                  ₹{offer.priceINR.toLocaleString("en-IN")}
+                  {formatCurrency(offer.priceINR, currentCurrency)}
                 </span>
                 {hasDiscount && (
                   <span className="font-mono text-base font-semibold text-muted-foreground line-through">
-                    ₹{offer.originalPriceINR!.toLocaleString("en-IN")}
+                    {formatCurrency(offer.originalPriceINR!, currentCurrency)}
                   </span>
                 )}
                 {offer.billingPeriod === "one-time" ? (
@@ -245,7 +254,7 @@ export function FestivalOffersDialog({
               className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-slate-950 shadow-lg shadow-amber-500/25 hover:bg-amber-400 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <Gift className="h-5 w-5" />
-              <span>{isClaiming ? "Adding Credits..." : `Claim Offer for ₹${offer.priceINR}`}</span>
+              <span>{isClaiming ? "Adding Credits..." : `Claim Offer (${formatCurrency(offer.priceINR, currentCurrency)})`}</span>
             </button>
 
             <Link

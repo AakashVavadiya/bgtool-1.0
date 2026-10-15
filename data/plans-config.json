@@ -1,7 +1,7 @@
 [
   {
     "id": "festival-mega-offer",
-    "name": "Festive Mega Creator Offer 🎉",
+    "name": "Festive Mega Creator Offer",
     "tagline": "Exclusive limited-time festive discount with +150 bonus credits!",
     "badge": "🔥 60% OFF FESTIVAL SPECIAL",
     "type": "festival",
@@ -73,10 +73,34 @@
     "sortOrder": 2
   },
   {
+    "id": "sub-medium",
+    "name": "Medium Monthly",
+    "tagline": "The sweet spot for growing creators and professionals",
+    "badge": "Most Popular",
+    "type": "subscription",
+    "credits": 100,
+    "bonusCredits": 0,
+    "priceINR": 999,
+    "originalPriceINR": 1499,
+    "billingPeriod": "month",
+    "features": [
+      "100 credits every month",
+      "Priority GPU processing pipeline",
+      "AI photo editor & background removal",
+      "AI generative background models",
+      "Bulk editing up to 20 images",
+      "Max 4K quality outputs"
+    ],
+    "isFestivalOffer": false,
+    "showInFestivalDialog": false,
+    "active": true,
+    "sortOrder": 3
+  },
+  {
     "id": "sub-pro",
     "name": "Pro Monthly",
     "tagline": "Maximum performance for studios & power users",
-    "badge": "Most Popular",
+    "badge": "Studio Pro",
     "type": "subscription",
     "credits": 200,
     "bonusCredits": 0,
@@ -86,13 +110,13 @@
     "features": [
       "200 credits every month",
       "Priority GPU processing pipeline",
-      "Bulk editing ⚡",
+      "Bulk editing & queue priority",
       "All AI models and 4K ultra downloads",
       "24/7 dedicated support"
     ],
     "isFestivalOffer": false,
     "showInFestivalDialog": false,
     "active": true,
-    "sortOrder": 3
+    "sortOrder": 4
   }
 ]

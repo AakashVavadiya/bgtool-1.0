@@ -78,14 +78,45 @@ export function loadRazorpayScript(): Promise<boolean> {
   return razorpayScriptPromise;
 }
 
+import { getCurrentCurrency, type CurrencyCode } from "./currency";
+
 export interface CheckoutOptions {
   planName: string;
   planType?: "pack" | "subscription" | "festival" | undefined;
   credits: number;
   amountINR: number;
+  currency?: CurrencyCode | undefined;
   onSuccess?: ((paymentId: string) => void) | undefined;
   onError?: ((error: string) => void) | undefined;
   onCancel?: (() => void) | undefined;
+}
+
+/**
+ * Sanitizes input text for Razorpay's options and metadata notes.
+ * Razorpay rejects emojis (4-byte UTF-8 sequences), surrogate pairs,
+ * control characters, and non-ASCII characters with:
+ * "The notes field should contain valid UTF-8 encoded characters."
+ */
+export function sanitizeRazorpayNoteText(val: unknown, maxLen = 40): string {
+  if (val === null || val === undefined) return "";
+  let str = String(val);
+
+  try {
+    str = str.normalize("NFC");
+  } catch {}
+
+  str = str
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/[\u2026]/g, "...");
+
+  str = str.replace(/[\u{10000}-\u{10FFFF}]/gu, "");
+  str = str.replace(/[\uD800-\uDFFF]/g, "");
+  str = str.replace(/[^\x20-\x7E]/g, " ");
+  str = str.replace(/\s+/g, " ").trim();
+
+  return str.slice(0, maxLen);
 }
 
 /**
@@ -96,6 +127,7 @@ export async function initiateRazorpayCheckout({
   planType = "pack",
   credits,
   amountINR,
+  currency,
   onSuccess,
   onError,
   onCancel,
@@ -116,6 +148,7 @@ export async function initiateRazorpayCheckout({
     return;
   }
 
+  const activeCurrency = currency || getCurrentCurrency();
   const toastId = toast.loading("Initializing secure Razorpay payment gateway...");
 
   try {
@@ -127,7 +160,7 @@ export async function initiateRazorpayCheckout({
         action: {
           label: "Retry",
           onClick: () => {
-            initiateRazorpayCheckout({ planName, planType, credits, amountINR, onSuccess, onError, onCancel });
+            initiateRazorpayCheckout({ planName, planType, credits, amountINR, currency: activeCurrency, onSuccess, onError, onCancel });
           },
         },
       });
@@ -135,16 +168,19 @@ export async function initiateRazorpayCheckout({
       return;
     }
 
+    const cleanPlanName = sanitizeRazorpayNoteText(planName, 40) || "Token Plan";
+
     // Step 1: Create Order on backend
     const createRes = await fetch("/api/payments/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       body: JSON.stringify({
-        planName,
+        planName: cleanPlanName,
         planType,
         credits,
         amount: amountINR,
+        currency: activeCurrency,
       }),
     });
 
@@ -162,24 +198,31 @@ export async function initiateRazorpayCheckout({
 
     const razorpayKey = orderData.keyId || getRazorpayKeyId();
 
+    const safeDescription = sanitizeRazorpayNoteText(
+      `${credits.toLocaleString("en-IN")} Gold Tokens - ${cleanPlanName}`,
+      120
+    );
+
+    const safeNotes: Record<string, string> = {
+      userId: sanitizeRazorpayNoteText(currentUser.id, 40) || "guest",
+      credits: String(credits),
+      planName: cleanPlanName,
+    };
+
     // Step 2: Open Razorpay Checkout modal
     const options = {
       key: razorpayKey,
       amount: orderData.amount, // in paise
       currency: orderData.currency || "INR",
       name: "bg.tools",
-      description: `${credits.toLocaleString("en-IN")} Gold Tokens — ${planName}`,
+      description: safeDescription,
       image: "https://bg.tools/favicon.ico",
       order_id: orderData.orderId,
       prefill: {
-        name: currentUser.name || "",
-        email: currentUser.email || "",
+        name: sanitizeRazorpayNoteText(currentUser.name || "", 50),
+        email: sanitizeRazorpayNoteText(currentUser.email || "", 60),
       },
-      notes: {
-        userId: currentUser.id,
-        credits: String(credits),
-        planName,
-      },
+      notes: safeNotes,
       theme: {
         color: "#f59e0b", // Gold / Amber theme for Gold Tokens
       },

@@ -69,7 +69,37 @@ export const configRepo = {
   getPlansConfig<T = unknown>(): T[] {
     const cached = this.get<T[]>("plans_config");
     if (cached && Array.isArray(cached) && cached.length > 0) {
-      return cached;
+      let needsSync = false;
+      let cleaned = (cached as any[]).map((p) => {
+        if (p && typeof p.name === "string" && /[\u{10000}-\u{10FFFF}]/u.test(p.name)) {
+          needsSync = true;
+          return {
+            ...p,
+            name: p.name.replace(/[\u{10000}-\u{10FFFF}]/gu, "").replace(/\s+/g, " ").trim(),
+          };
+        }
+        return p;
+      });
+
+      // If Medium plan is missing from SQLite cache, merge from seed
+      if (!cleaned.some((p) => p.id === "sub-medium")) {
+        try {
+          const seedPath = path.join(process.cwd(), "data", "plans-config.json");
+          if (fs.existsSync(seedPath)) {
+            const raw = fs.readFileSync(seedPath, "utf-8");
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              cleaned = parsed;
+              needsSync = true;
+            }
+          }
+        } catch {}
+      }
+
+      if (needsSync) {
+        this.set("plans_config", cleaned);
+      }
+      return cleaned as T[];
     }
 
     try {

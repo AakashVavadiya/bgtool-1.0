@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { BgModels } from "@/components/BgModels";
 import { Faq } from "@/components/Faq";
 import { ScrollBeforeAfter } from "@/components/ScrollBeforeAfter";
+import { ProductHuntBadge } from "@/components/ProductHuntBadge";
 import { AdminStore, type UiEditSettings } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { tools } from "@/lib/tools";
@@ -331,7 +332,12 @@ function Index() {
           </Link>
         </div>
 
-        <p className="mt-6 sm:mt-8 max-w-md text-center text-xs sm:text-sm text-muted-foreground px-4">
+        {/* Product Hunt Social Proof Badge */}
+        <div className="mt-8 sm:mt-10">
+          <ProductHuntBadge variant="hero" />
+        </div>
+
+        <p className="mt-6 max-w-md text-center text-xs sm:text-sm text-muted-foreground px-4">
           Free online background remover for people who care about edges.
         </p>
       </section>
@@ -485,7 +491,7 @@ function Index() {
       {/* CTA */}
       <section
         id="upload"
-        className="relative overflow-hidden px-5 py-32 text-center md:px-10 md:py-44"
+        className="relative overflow-hidden px-5 pt-36 pb-32 text-center md:px-10 md:py-44"
       >
         <img
           src={shapeTwo}
@@ -494,26 +500,28 @@ function Index() {
           loading="lazy"
           width={900}
           height={900}
-          className="spin-slow pointer-events-none absolute -right-16 top-10 w-56 opacity-90 md:w-80"
+          className="spin-slow pointer-events-none select-none absolute -right-6 sm:-right-10 md:-right-16 top-2 sm:top-4 md:top-10 w-32 sm:w-48 md:w-80 opacity-90 z-0"
         />
-        <Reveal>
-          <h2 className="mx-auto max-w-5xl font-display text-4xl leading-[0.95] font-medium md:text-8xl">
-            Drop an image.
-            <br />
-            Keep the subject<span className="text-accent">.</span>
-          </h2>
-          <p className="mx-auto mt-8 max-w-xl text-sm text-muted-foreground md:text-base">
-            Up to 4K exports, batch uploads and credits that only spend when a job succeeds.
-          </p>
-          <Link
-            to="/tools/$slug"
-            params={{ slug: "remove-background" }}
-            className="mt-12 inline-flex items-center gap-3 bg-foreground px-9 py-5 text-sm font-medium text-background transition-all hover:gap-6"
-          >
-            Remove a background
-            <span aria-hidden>→</span>
-          </Link>
-        </Reveal>
+        <div className="relative z-10">
+          <Reveal>
+            <h2 className="mx-auto max-w-5xl font-display text-4xl leading-[0.95] font-medium md:text-8xl">
+              Drop an image.
+              <br />
+              Keep the subject<span className="text-accent">.</span>
+            </h2>
+            <p className="mx-auto mt-8 max-w-xl text-sm text-muted-foreground md:text-base">
+              Up to 4K exports, batch uploads and credits that only spend when a job succeeds.
+            </p>
+            <Link
+              to="/tools/$slug"
+              params={{ slug: "remove-background" }}
+              className="mt-12 inline-flex items-center gap-3 bg-foreground px-9 py-5 text-sm font-medium text-background transition-all hover:gap-6"
+            >
+              Remove a background
+              <span aria-hidden>→</span>
+            </Link>
+          </Reveal>
+        </div>
       </section>
 
       <Faq />

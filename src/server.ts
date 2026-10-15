@@ -102,20 +102,18 @@ function getPythonCommand(): string {
   const pythonPath = process.env["PYTHON_PATH"];
   if (pythonPath) {
     try {
-      execSync(`"${pythonPath}" --version`, { stdio: "ignore" });
-      return pythonPath;
-    } catch {
-      return pythonPath;
-    }
+      if (fs.existsSync(pythonPath)) {
+        execSync(`"${pythonPath}" --version`, { stdio: "ignore" });
+        return pythonPath;
+      }
+    } catch {}
   }
   const commands = ["python", "python3", "py"];
   for (const cmd of commands) {
     try {
       execSync(`"${cmd}" --version`, { stdio: "ignore" });
       return cmd;
-    } catch {
-      // try next
-    }
+    } catch {}
   }
   return "python";
 }
@@ -148,6 +146,9 @@ async function ensurePythonServerRunning(): Promise<boolean> {
     const child = spawn(pyCmd, [serverScript, "5000"], {
       detached: true,
       stdio: "ignore",
+    });
+    child.on("error", (err) => {
+      console.warn("[Auto-Spawn] Python background remover spawn error:", err.message);
     });
     child.unref();
 
@@ -397,6 +398,9 @@ export default {
           const pyCmd = getPythonCommand();
           const serverScript = path.join(process.cwd(), "scripts", "watermark_server.py");
           const child = spawn(pyCmd, [serverScript, "5001"], { detached: true, stdio: "ignore" });
+          child.on("error", (err) => {
+            console.warn("[Server] Watermark backend spawn error:", err.message);
+          });
           child.unref();
           for (let i = 0; i < 10; i++) {
             await new Promise((r) => setTimeout(r, 800));
@@ -499,6 +503,9 @@ export default {
           const pyCmd = getPythonCommand();
           const serverScript = path.join(process.cwd(), "scripts", "watermark_server.py");
           const child = spawn(pyCmd, [serverScript, "5001"], { detached: true, stdio: "ignore" });
+          child.on("error", (err) => {
+            console.warn("[Server] Face blur backend spawn error:", err.message);
+          });
           child.unref();
           for (let i = 0; i < 10; i++) {
             await new Promise((r) => setTimeout(r, 800));
@@ -672,6 +679,26 @@ export default {
     if (url.pathname === "/api/auth/deduct-credit" && request.method === "POST") {
       const clientIp = extractClientIp(request);
       return handleDeductCredit(request, clientIp);
+    }
+
+    // 6.55 Location and Country Geolocation Endpoint
+    if (url.pathname === "/api/geo/detect") {
+      const clientIp = extractClientIp(request);
+      const cfCountry = (request.headers.get("cf-ipcountry") || request.headers.get("x-country-code") || "").toUpperCase();
+      const isLocal = clientIp === "127.0.0.1" || clientIp === "::1" || clientIp.startsWith("192.168.") || clientIp.startsWith("10.");
+      const countryCode = cfCountry || (isLocal ? "IN" : "IN");
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            ip: clientIp,
+            countryCode,
+            country: countryCode === "IN" ? "India" : countryCode,
+            currency: countryCode === "IN" ? "INR" : "USD",
+            dialCode: countryCode === "IN" ? "+91" : "+1",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
     }
 
     // 6.6 Razorpay Payments Endpoints

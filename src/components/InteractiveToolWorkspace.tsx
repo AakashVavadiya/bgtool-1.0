@@ -4932,6 +4932,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [focusedDim, setFocusedDim] = useState<"width" | "height" | null>(null);
   const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
   const [showDynamicIsland, setShowDynamicIsland] = useState(false);
+  const [hasScrolledOnce, setHasScrolledOnce] = useState(false);
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
 
   // 14. Binary & Code Research Editor Modal State
@@ -4979,9 +4980,11 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         // Only show sticky Dynamic Island when user has scrolled past the main workspace actions
         const isPastWorkspace = rect.bottom < 100;
         setShowDynamicIsland(isPastWorkspace);
+        if (isPastWorkspace) setHasScrolledOnce(true);
       } else {
         const isScrolled = window.scrollY > 480;
         setShowDynamicIsland(isScrolled);
+        if (isScrolled) setHasScrolledOnce(true);
       }
     };
 
@@ -8979,12 +8982,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   return (
     <div ref={workspaceContainerRef} className="w-full flex flex-col gap-8">
       {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Smooth Centered Animation) ─────── */}
-      {hasProcessed && !isEditingSettings && !isCodeEditorOpen && (
-        <div className="fixed top-3 sm:top-6 inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
+      {typeof document !== "undefined" && hasProcessed && !isEditingSettings && !isCodeEditorOpen && createPortal(
+        <div className="fixed top-[66px] sm:top-[74px] md:top-[80px] inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
           <aside
             aria-label="Quick download dynamic island"
             className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
-              showDynamicIsland ? "island-enter" : "island-exit"
+              showDynamicIsland
+                ? "island-enter"
+                : hasScrolledOnce
+                ? "island-exit"
+                : "opacity-0 -translate-y-20 pointer-events-none"
             }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
@@ -9088,7 +9095,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               <FolderUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
           </aside>
-        </div>
+        </div>,
+        document.body
       )}
 
       <input

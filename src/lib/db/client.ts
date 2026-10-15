@@ -60,10 +60,21 @@ function initSchema(db: Database.Database): void {
       verified_at TEXT,
       registered_at TEXT NOT NULL,
       last_active TEXT NOT NULL,
-      last_credit_reset TEXT NOT NULL
+      last_credit_reset TEXT NOT NULL,
+      phone TEXT,
+      country_code TEXT,
+      country TEXT
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  `);
+
+  // Ensure columns exist on legacy tables
+  try { db.exec("ALTER TABLE users ADD COLUMN phone TEXT;"); } catch {}
+  try { db.exec("ALTER TABLE users ADD COLUMN country_code TEXT;"); } catch {}
+  try { db.exec("ALTER TABLE users ADD COLUMN country TEXT;"); } catch {}
+
+  db.exec(`
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,

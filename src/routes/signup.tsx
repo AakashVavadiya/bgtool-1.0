@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { AuthUser } from "@/lib/auth-user";
+import { COUNTRIES, detectUserCountry, isCountryRestricted, type CountryInfo } from "@/lib/countries";
+import { setSavedCurrency } from "@/lib/currency";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,8 +17,13 @@ import {
   Lock,
   ArrowLeft,
   Shield,
+  Phone,
+  Globe,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CountrySelectModal } from "@/components/CountrySelectModal";
+import { ServiceUnavailableDialog } from "@/components/ServiceUnavailableDialog";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -35,12 +42,27 @@ function SignupPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<CountryInfo>(() => COUNTRIES[0]!);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+  const [showUnavailableDialog, setShowUnavailableDialog] = useState(false);
+
+  // Auto-detect user's country and default currency
+  useEffect(() => {
+    const detected = detectUserCountry();
+    if (isCountryRestricted(detected.code)) {
+      setShowUnavailableDialog(true);
+      setSelectedCountry(COUNTRIES[0]!);
+    } else {
+      setSelectedCountry(detected);
+    }
+  }, []);
 
   // If already logged in, redirect to account
   useEffect(() => {
@@ -73,6 +95,7 @@ function SignupPage() {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim();
+    const rawPhone = phone.trim();
 
     if (!cleanName) {
       setErrorMsg("Please enter your full name.");
@@ -81,6 +104,18 @@ function SignupPage() {
 
     if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
       setErrorMsg("Please enter a valid email address.");
+      return;
+    }
+
+    if (isCountryRestricted(selectedCountry.code)) {
+      setErrorMsg("Our Service Not Available For You in this region.");
+      toast.error("Our Service Not Available For You");
+      setShowUnavailableDialog(true);
+      return;
+    }
+
+    if (rawPhone && rawPhone.replace(/\D/g, "").length < 6) {
+      setErrorMsg("Please enter a valid phone number (minimum 6 digits).");
       return;
     }
 
@@ -97,7 +132,15 @@ function SignupPage() {
     setIsLoading(true);
 
     try {
-      const res = await AuthUser.signUp(cleanName, cleanEmail, password);
+      const formattedPhone = rawPhone ? `${selectedCountry.dialCode} ${rawPhone}` : undefined;
+      const res = await AuthUser.signUp(
+        cleanName,
+        cleanEmail,
+        password,
+        formattedPhone,
+        selectedCountry.dialCode,
+        selectedCountry.name
+      );
       if (!res.success) {
         setErrorMsg(res.error || "Registration failed. Please check your information.");
         toast.error(res.error || "Registration failed.");
@@ -264,6 +307,77 @@ function SignupPage() {
                 </div>
               </div>
 
+              {/* Mobile Number & Country Selection */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="signup-phone"
+                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                  >
+                    Mobile Number & Country
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    {selectedCountry.dialCode === "+91" ? (
+                      <span className="text-emerald-500 font-bold">🇮🇳 India (+91)</span>
+                    ) : (
+                      <span className="text-foreground font-semibold">
+                        {selectedCountry.code} ({selectedCountry.dialCode})
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {/* Custom Country Code Selector Button */}
+                  <div className="relative w-[130px] sm:w-[150px] shrink-0">
+                    <button
+                      type="button"
+                      id="signup-country"
+                      aria-label="Select Country Code"
+                      aria-haspopup="dialog"
+                      disabled={isLoading}
+                      onClick={() => setIsCountryModalOpen(true)}
+                      className="w-full h-12 rounded-2xl border border-border bg-muted/30 px-3 flex items-center justify-between gap-1.5 text-xs font-semibold text-foreground hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 truncate">
+                        <img
+                          src={`https://flagcdn.com/w40/${selectedCountry.flagCode}.png`}
+                          alt={selectedCountry.name}
+                          className="w-4 h-3 object-cover rounded-xs border border-border/50 shrink-0"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                          }}
+                        />
+                        <span className="font-bold text-foreground">
+                          {selectedCountry.dialCode}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground hidden xs:inline sm:inline">
+                          ({selectedCountry.code})
+                        </span>
+                      </div>
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    </button>
+                  </div>
+
+                  {/* Phone Input */}
+                  <div className="relative flex-1">
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      autoComplete="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 98765 43210"
+                      disabled={isLoading}
+                      className="rounded-2xl border-border bg-muted/30 px-3.5 py-3 pl-10 text-sm h-12 focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:border-accent"
+                    />
+                    <Phone className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Identifies your country location & defaults your currency automatically.
+                </p>
+              </div>
+
               {/* Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -414,6 +528,29 @@ function SignupPage() {
           </div>
         </div>
       </main>
+
+      {/* Country Selection Bottom Sheet / Modal */}
+      <CountrySelectModal
+        isOpen={isCountryModalOpen}
+        onClose={() => setIsCountryModalOpen(false)}
+        selectedCountry={selectedCountry}
+        onSelectCountry={(country) => {
+          setSelectedCountry(country);
+          setSavedCurrency(country.defaultCurrency);
+        }}
+      />
+
+      {/* Regional Restriction Notice (e.g. Pakistan) */}
+      <ServiceUnavailableDialog
+        isOpen={showUnavailableDialog}
+        onClose={() => setShowUnavailableDialog(false)}
+        onChangeCountry={() => {
+          setShowUnavailableDialog(false);
+          setIsCountryModalOpen(true);
+        }}
+        countryName="Pakistan"
+        flagCode="pk"
+      />
     </div>
   );
 }

@@ -149,8 +149,83 @@ function ModelsPage() {
             Model Capability & Architecture Matrix<span className="text-accent">.</span>
           </h2>
 
-          <div className="mt-12 overflow-x-auto rounded-3xl border border-border bg-card shadow-sm w-full">
-            <table className="w-full text-left text-sm">
+          {/* Mobile Responsive Cards (< md) */}
+          <div className="mt-8 space-y-4 md:hidden">
+            {bgModels.map((m) => (
+              <div
+                key={m.id}
+                className={`rounded-2xl border p-5 space-y-4 transition-all shadow-xs ${
+                  m.id === "karudi"
+                    ? "border-foreground/30 bg-accent/15 shadow-sm"
+                    : "border-border bg-card"
+                }`}
+              >
+                {/* Header: Name, Badge & Specialty */}
+                <div className="flex items-start justify-between gap-2 pb-3 border-b border-border/60">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display text-lg font-bold text-foreground">
+                        {m.name}
+                      </h3>
+                      {m.id === "karudi" && (
+                        <span className="rounded-full bg-foreground text-background px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
+                          Universal Master
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-accent mt-0.5">{m.specialty}</p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-[10px] font-bold text-foreground">
+                    {m.id === "karudi" ? "Supreme Master Pipeline" : "Dedicated GPU"}
+                  </span>
+                </div>
+
+                {/* Body: Capabilities & Output */}
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                      Specialized Capabilities
+                    </span>
+                    <p className="text-muted-foreground leading-relaxed font-medium">
+                      {m.id === "karudi" && "Orchestrates all specialist models according to exact user intent."}
+                      {m.id === "ganga" && "Sub-pixel alpha matting, hair/fur edge reconstruction, cutout isolation."}
+                      {m.id === "brahmaputra" && "Converting formats (JPG/PNG/WebP), batch processing & image compression."}
+                      {m.id === "narmada" && "Multilingual OCR, intelligent AI summary, and custom meme generator."}
+                      {m.id === "saraswati" && "Deep data research, document interrogation, structured analytical insights."}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2.5 border-t border-border/50">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Primary Output
+                      </span>
+                      <span className="font-bold text-foreground text-xs">
+                        {m.id === "karudi" && "Optimized Unified Result"}
+                        {m.id === "ganga" && "Transparent PNG Cutouts"}
+                        {m.id === "brahmaputra" && "JPG / PNG / WebP / AVIF"}
+                        {m.id === "narmada" && "Text / Summaries / Memes"}
+                        {m.id === "saraswati" && "Structured Research Reports"}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Performance Tier
+                      </span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                        {m.id === "karudi" ? "Supreme Pipeline" : "Ultra-Fast GPU"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Full Matrix Table (>= md) */}
+          <div className="mt-12 hidden md:block overflow-x-auto rounded-3xl border border-border bg-card shadow-sm w-full">
+            <table className="w-full min-w-[850px] text-left text-sm">
               <thead className="border-b border-border bg-muted/50 font-display text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-8 py-5">Model Engine</th>

@@ -18,6 +18,9 @@ export interface DbUser {
   registered_at: string;
   last_active: string;
   last_credit_reset: string;
+  phone?: string | null;
+  country_code?: string | null;
+  country?: string | null;
 }
 
 export function toSafeUser(user: DbUser): SafeUser {
@@ -36,6 +39,10 @@ export function toSafeUser(user: DbUser): SafeUser {
     registeredAt: user.registered_at,
     lastActive: user.last_active,
     lastCreditReset: user.last_credit_reset,
+    phone: user.phone || null,
+    countryCode: user.country_code || null,
+    country: user.country || null,
+    location: user.country || undefined,
   };
 }
 
@@ -51,6 +58,27 @@ export const usersRepo = {
     const cleanEmail = email.trim().toLowerCase();
     const row = db.prepare("SELECT * FROM users WHERE LOWER(email) = ?").get(cleanEmail) as DbUser | undefined;
     return row ?? null;
+  },
+
+  findByPhone(phone: string): DbUser | null {
+    const db = getDb();
+    // Normalize phone (strip spaces, hyphens, parentheses)
+    const clean = phone.replace(/[\s\-()]/g, "").trim();
+    if (!clean) return null;
+    const row = db.prepare("SELECT * FROM users WHERE phone = ? OR phone LIKE ?").get(clean, `%${clean}`) as DbUser | undefined;
+    return row ?? null;
+  },
+
+  findByEmailOrPhone(identifier: string): DbUser | null {
+    if (!identifier) return null;
+    const clean = identifier.trim();
+    if (clean.includes("@")) {
+      return this.findByEmail(clean);
+    }
+    // Try phone lookup first, then fallback to email
+    const byPhone = this.findByPhone(clean);
+    if (byPhone) return byPhone;
+    return this.findByEmail(clean);
   },
 
   getAllSafe(): SafeUser[] {
@@ -92,6 +120,9 @@ export const usersRepo = {
     paidCredits?: number;
     status?: "active" | "restricted" | "banned";
     emailVerified?: boolean;
+    phone?: string | null;
+    countryCode?: string | null;
+    country?: string | null;
   }): DbUser {
     const db = getDb();
     const now = new Date().toISOString();
@@ -104,10 +135,12 @@ export const usersRepo = {
     const insert = db.prepare(`
       INSERT INTO users (
         id, name, email, password_hash, plan, credits, free_credits, paid_credits,
-        total_processed, status, email_verified, verified_at, registered_at, last_active, last_credit_reset
+        total_processed, status, email_verified, verified_at, registered_at, last_active, last_credit_reset,
+        phone, country_code, country
       ) VALUES (
         @id, @name, @email, @password_hash, @plan, @credits, @free_credits, @paid_credits,
-        @total_processed, @status, @email_verified, @verified_at, @registered_at, @last_active, @last_credit_reset
+        @total_processed, @status, @email_verified, @verified_at, @registered_at, @last_active, @last_credit_reset,
+        @phone, @country_code, @country
       )
     `);
 
@@ -131,6 +164,9 @@ export const usersRepo = {
       registered_at: now,
       last_active: now,
       last_credit_reset: today,
+      phone: user.phone || null,
+      country_code: user.countryCode || null,
+      country: user.country || null,
     };
 
     const runTx = db.transaction(() => {
