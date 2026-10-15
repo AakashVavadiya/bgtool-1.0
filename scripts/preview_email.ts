@@ -287,7 +287,7 @@ const previewHtml = `<!DOCTYPE html>
       <div class="content-body">
         <!-- Logo -->
         <a href="https://bg.tools" target="_blank" class="brand-logo" style="text-decoration: none; display: inline-block;">
-          <img src="${logoDataUri}" alt="bg.tools" width="150" height="44" style="display: block; border: 0; outline: none; text-decoration: none; width: 150px; height: 44px; max-width: 160px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: 900; color: #0F172A;" />
+          <img src="${logoDataUri}" alt="bg." width="48" height="48" style="display: block; border: 0; outline: none; text-decoration: none; width: 48px; height: 48px; border-radius: 12px;" />
         </a>
         
         <div>
