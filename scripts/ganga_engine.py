@@ -42,12 +42,15 @@ ISNET_PATH = os.path.join(MODELS_DIR, "isnet-general-use.onnx")
 GANGA_CORE_PATH = os.path.join(MODELS_DIR, "ganga-core.onnx")
 U2NET_PATH = os.path.join(MODELS_DIR, "u2net.onnx")
 
-# Use state-of-the-art 1024x1024 RMBG-1.4 as the primary neural engine when available
-PRIMARY_MODEL = RMBG_PATH if os.path.exists(RMBG_PATH) else GANGA_CORE_PATH
+# RMBG-1.4 1024x1024 model from BRIA AI (gold standard for commercial background removal)
+RMBG_1024_URL = "https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model.onnx"
+U2NET_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx"
+
+PRIMARY_MODEL = RMBG_PATH
 
 MODEL_REGISTRY = {
-    "ganga": PRIMARY_MODEL,
-    "ganga-ultra": RMBG_PATH if os.path.exists(RMBG_PATH) else PRIMARY_MODEL,
+    "ganga": RMBG_PATH,
+    "ganga-ultra": RMBG_PATH,
     "rmbg": RMBG_PATH,
     "isnet": ISNET_PATH,
     "ganga-core": GANGA_CORE_PATH,
@@ -62,7 +65,20 @@ FALLBACK_MODELS = [
     U2NET_PATH,
 ]
 
-U2NET_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx"
+def download_file(url: str, dest_path: str, label: str = "neural model"):
+    import urllib.request
+    print(f"[Ganga AI] Downloading studio-grade {label} from {url}...")
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    tmp_path = dest_path + ".tmp"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+    with urllib.request.urlopen(req, timeout=180) as resp, open(tmp_path, "wb") as f:
+        while True:
+            chunk = resp.read(1024 * 1024)
+            if not chunk:
+                break
+            f.write(chunk)
+    os.replace(tmp_path, dest_path)
+    print(f"[Ganga AI] {label} installed successfully at {dest_path} ({os.path.getsize(dest_path):,} bytes).")
 
 class GangaEngine:
     _sessions = {}
@@ -70,27 +86,32 @@ class GangaEngine:
 
     @classmethod
     def get_session(cls, model_key: str = "ganga") -> ort.InferenceSession:
-        target_path = MODEL_REGISTRY.get(model_key.lower(), MODEL_REGISTRY["ganga"])
+        target_path = MODEL_REGISTRY.get(model_key.lower(), RMBG_PATH)
 
         with cls._lock:
             if target_path in cls._sessions:
                 return cls._sessions[target_path]
 
+            # If RMBG-1.4 model is missing, prioritize downloading RMBG-1.4 (1024x1024)
+            if target_path == RMBG_PATH and not os.path.exists(RMBG_PATH):
+                try:
+                    download_file(RMBG_1024_URL, RMBG_PATH, "RMBG-1.4 1024x1024 model")
+                except Exception as dl_err:
+                    print(f"[Ganga AI] RMBG-1.4 download error: {dl_err}. Checking fallback models...")
+
             candidates = [target_path] + [p for p in FALLBACK_MODELS if p != target_path]
 
-            # If no model exists locally, attempt automatic download of u2net
+            # If no model exists at all, download gold standard model
             if not any(os.path.exists(p) for p in candidates):
-                default_target = MODEL_REGISTRY["ganga"]
-                print(f"[Ganga AI] No model found in {MODELS_DIR}. Attempting download of gold-standard neural model...")
+                print(f"[Ganga AI] No model found in {MODELS_DIR}. Attempting download...")
                 try:
-                    os.makedirs(MODELS_DIR, exist_ok=True)
-                    import urllib.request
-                    tmp_target = default_target + ".tmp"
-                    urllib.request.urlretrieve(U2NET_URL, tmp_target)
-                    os.replace(tmp_target, default_target)
-                    print(f"[Ganga AI] Model installed successfully at {default_target}.")
+                    download_file(RMBG_1024_URL, RMBG_PATH, "RMBG-1.4 1024x1024 model")
                 except Exception as dl_err:
-                    print(f"[Ganga AI] Automatic model download failed: {dl_err}")
+                    print(f"[Ganga AI] Primary download failed: {dl_err}. Attempting U2Net fallback...")
+                    try:
+                        download_file(U2NET_URL, U2NET_PATH, "U2Net fallback model")
+                    except Exception as fallback_err:
+                        print(f"[Ganga AI] Fallback download failed: {fallback_err}")
 
             for candidate in candidates:
                 if os.path.exists(candidate):
@@ -219,62 +240,46 @@ class GangaEngine:
                 else:
                     norm_mask = np.zeros_like(raw_out)
 
-            # 5. Full-Resolution Alpha Upscaling with Sub-Pixel Bicubic Interpolation
-            # INTER_CUBIC produces continuous spline curves along silhouette corners instead of faceted polygons
-            mask_full = cv2.resize(norm_mask, (orig_w, orig_h), interpolation=cv2.INTER_CUBIC)
+            # 5. Full-Resolution Alpha Upscaling with Sub-Pixel Bilinear Interpolation
+            # INTER_LINEAR produces smooth, continuous contour boundaries without cubic ringing / halo artifacts
+            mask_full = cv2.resize(norm_mask, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
             mask_full = np.clip(mask_full, 0.0, 1.0)
 
-            # Adaptive Corner & Contour Anti-Aliasing
-            # Kernel scales gently with resolution so smoothing is perceptually identical on any resolution
-            max_dim = max(orig_w, orig_h)
-            ksize = 3 if max_dim < 1600 else (5 if max_dim < 3200 else 7)
-            sigma = 0.7 if ksize == 3 else (1.0 if ksize == 5 else 1.35)
-            mask_blur = cv2.GaussianBlur(mask_full, (ksize, ksize), sigma)
+            # High-precision contrast normalization: removes background haze while preserving natural sub-pixel anti-aliasing
+            low = 0.05
+            high = 0.95
+            mask_clean = np.clip((mask_full - low) / (high - low), 0.0, 1.0)
+            alpha_uint8 = (mask_clean * 255.0).astype(np.uint8)
 
-            # Parabolic edge weight: peaks smoothly at transition contour (0.5), fades to 0 at solid interior & exterior
-            # This ensures 100% of fine interior textures (hair, knit patterns, skin) remain ultra-sharp
-            edge_w = 4.0 * mask_full * (1.0 - mask_full)
-            edge_w = np.clip(edge_w, 0.0, 1.0)
+            # 6. High-Fidelity Edge Defringing (Background Color Decontamination)
+            # Prevents dark/light background bleed along semi-transparent boundaries
+            # by extending authentic foreground colors into transition zone
+            solid = (alpha_uint8 >= 235).astype(np.uint8)
+            transition = (alpha_uint8 > 5) & (alpha_uint8 < 235)
 
-            # Refined blend: eliminates staircase steps on rounded corners while preserving crisp cutout fidelity
-            smooth_intensity = max(0.2, min(0.9, float(smooth_edge)))
-            mask_blended = (1.0 - edge_w * smooth_intensity) * mask_full + (edge_w * smooth_intensity) * mask_blur
-
-            # Clean background noise floor while preserving smooth sub-pixel roll-off
-            low = 0.02
-            high = 0.98
-            mask_clean = np.where(
-                mask_blended <= low,
-                0.0,
-                np.where(mask_blended >= high, 1.0, (mask_blended - low) / (high - low)),
-            )
-
-            # S-curve Hermite smoothstep along transition zone for continuous derivatives (no cliff edges)
-            transition_zone = (mask_clean > 0.0) & (mask_clean < 1.0)
-            if np.any(transition_zone):
-                t = mask_clean[transition_zone]
-                mask_clean[transition_zone] = t * t * (3.0 - 2.0 * t)
-
-            alpha_uint8 = (np.clip(mask_clean, 0.0, 1.0) * 255.0).astype(np.uint8)
-
-            # 6. Edge Color Decontamination (Defringing)
-            # Removes faint light/dark halos from original background along semi-transparent boundaries
-            semi_trans = (mask_clean > 0.03) & (mask_clean < 0.90)
-            solid_fg = mask_clean >= 0.90
-            if np.any(semi_trans) and np.any(solid_fg):
+            if np.any(transition) and np.any(solid):
                 rgb_np = np.array(img, dtype=np.uint8)
-                dilate_k = 3 if max_dim < 2000 else 5
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_k, dilate_k))
-                dilated_rgb = cv2.dilate(rgb_np, kernel)
+                max_dim = max(orig_w, orig_h)
+                kernel_size = 3 if max_dim < 1600 else 5
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
 
-                bleed_factor = (1.0 - mask_clean[semi_trans, np.newaxis]) * 0.40
-                rgb_decontaminated = rgb_np.copy()
-                rgb_decontaminated[semi_trans] = np.clip(
-                    rgb_np[semi_trans] * (1.0 - bleed_factor) + dilated_rgb[semi_trans] * bleed_factor,
+                dilated_solid = cv2.dilate(solid, kernel)
+                masked_fg = rgb_np * solid[:, :, np.newaxis]
+                dilated_fg = cv2.dilate(masked_fg, kernel)
+
+                denom = dilated_solid[:, :, np.newaxis].astype(np.float32)
+                denom[denom == 0] = 1.0
+                extended_fg = (dilated_fg.astype(np.float32) / denom).astype(np.uint8)
+
+                # Blend transition pixels towards pure foreground color proportional to alpha
+                decontaminated_rgb = rgb_np.copy()
+                blend_factor = (1.0 - (alpha_uint8[transition].astype(np.float32) / 235.0))[:, np.newaxis]
+                decontaminated_rgb[transition] = np.clip(
+                    rgb_np[transition] * (1.0 - blend_factor) + extended_fg[transition] * blend_factor,
                     0,
                     255,
                 ).astype(np.uint8)
-                img_for_cutout = Image.fromarray(rgb_decontaminated, mode="RGB")
+                img_for_cutout = Image.fromarray(decontaminated_rgb, mode="RGB")
             else:
                 img_for_cutout = img
 
