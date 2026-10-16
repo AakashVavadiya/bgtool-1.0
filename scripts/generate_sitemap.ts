@@ -57,6 +57,7 @@ const staticRoutes = [
   { path: "/tools", changefreq: "daily", priority: "0.9", file: "src/routes/tools.index.tsx" },
   { path: "/pricing", changefreq: "weekly", priority: "0.8", file: "src/routes/pricing.tsx" },
   { path: "/faq", changefreq: "weekly", priority: "0.8", file: "src/routes/faq.tsx" },
+  { path: "/download", changefreq: "weekly", priority: "0.8", file: "src/routes/download.tsx" },
   { path: "/models", changefreq: "weekly", priority: "0.8", file: "src/routes/models.tsx" },
   { path: "/contact", changefreq: "monthly", priority: "0.7", file: "src/routes/contact.tsx" },
   { path: "/privacy", changefreq: "monthly", priority: "0.6", file: "src/routes/privacy.tsx" },

@@ -643,6 +643,14 @@ export const CORE_PAGE_ROUTES: Array<{
     isAiRelated: false,
   },
   {
+    id: "download",
+    name: "Desktop & Mobile Apps",
+    path: "/download",
+    category: "core",
+    description: "Download native apps for Windows, macOS, Linux, Android, and iOS.",
+    isAiRelated: false,
+  },
+  {
     id: "auth",
     name: "User Login & Registration",
     path: "/auth",

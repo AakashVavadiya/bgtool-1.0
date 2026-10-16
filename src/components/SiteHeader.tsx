@@ -13,6 +13,7 @@ const links = [
   { label: "Models.", to: "/models" },
   { label: "Tools.", to: "/tools" },
   { label: "Pricing.", to: "/pricing" },
+  { label: "Download.", to: "/download" },
   { label: "FAQ.", to: "/pricing", hash: "faq" },
 ] as const;
 
@@ -116,6 +117,9 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
       }
       return uiSettings.showPricingLink && AdminStore.isPageEnabled("/pricing");
     }
+    if (l.to === "/download") {
+      return AdminStore.isPageEnabled("/download");
+    }
     return AdminStore.isPageEnabled(l.to);
   });
 
@@ -152,7 +156,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <nav className="hidden items-center gap-3.5 lg:gap-5 xl:gap-7 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-85px)] shrink-0 overflow-hidden whitespace-nowrap">
+        <nav className="hidden items-center gap-2.5 lg:gap-4 xl:gap-6 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-65px)] shrink-0 overflow-hidden whitespace-nowrap">
           {visibleLinks.map((l) =>
             "hash" in l ? (
               <Link

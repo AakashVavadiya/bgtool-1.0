@@ -200,9 +200,15 @@ export function SiteFooter() {
           {/* Pricing & Accounts */}
           <div>
             <h4 className="font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Plans & Pricing
+              Plans & Apps
             </h4>
             <ul className="mt-4 space-y-2.5 text-sm font-semibold">
+              <li>
+                <Link to="/download" className="hover:text-accent transition-colors flex items-center gap-1.5 font-bold text-accent">
+                  <span>Download Desktop & Mobile</span>
+                  <span className="rounded-full bg-accent/15 text-accent px-1.5 py-0.2 text-[9px] font-bold">New</span>
+                </Link>
+              </li>
               <li>
                 <Link to="/pricing" className="hover:text-accent transition-colors">
                   Free Daily Credits (10/day)
