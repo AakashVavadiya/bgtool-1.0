@@ -120,12 +120,6 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
   });
 
   const isHeaderSticky = floating || (uiSettings.structure?.headerSticky ?? true);
-  const containerMaxWidthClass =
-    uiSettings.structure?.containerMaxWidth === "boxed"
-      ? "max-w-[1280px] mx-auto"
-      : uiSettings.structure?.containerMaxWidth === "wide"
-      ? "max-w-[1440px] mx-auto"
-      : "w-full";
 
   return (
     <header className={isHeaderSticky ? "sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border transition-all" : "relative z-50 border-b border-border bg-background transition-all"}>
@@ -147,7 +141,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
         </div>
       )}
 
-      <div className={`relative flex items-center justify-between px-4 sm:px-6 py-2 md:px-12 md:py-3 ${containerMaxWidthClass}`}>
+      <div className="relative flex items-center justify-between w-full px-4 sm:px-6 lg:px-8 py-2 md:py-3">
         {/* Mobile Hamburger Menu Toggle */}
         <button
           type="button"
