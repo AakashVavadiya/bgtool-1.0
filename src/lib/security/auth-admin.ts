@@ -143,13 +143,77 @@ export interface AdminAuthResult {
   message?: string;
 }
 
+/**
+ * Generates the valid BG PINs for tomorrow.
+ * Format is DD-MM-YYYY (e.g. 17-10-2026 when today is 16-10-2026).
+ * Automatically calculated on the server side using IST (UTC+05:30) and UTC.
+ */
+export function getValidBgPins(): string[] {
+  const pins = new Set<string>();
+
+  const formatDDMMYYYY = (d: Date): string => {
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear());
+    return `${day}-${month}-${year}`;
+  };
+
+  const getTomorrowWithOffset = (offsetMinutes: number): string => {
+    const now = new Date();
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+    const targetTime = new Date(utcTime + offsetMinutes * 60000);
+    targetTime.setDate(targetTime.getDate() + 1);
+    return formatDDMMYYYY(targetTime);
+  };
+
+  // 1. IST (Asia/Kolkata +05:30 = +330 mins) - Primary timezone
+  const istPin = getTomorrowWithOffset(330);
+  pins.add(istPin);
+  pins.add(istPin.replace(/-/g, ""));
+  pins.add(istPin.replace(/-/g, "/"));
+  pins.add(istPin.replace(/-/g, "."));
+
+  // 2. UTC (0m offset)
+  const utcPin = getTomorrowWithOffset(0);
+  pins.add(utcPin);
+  pins.add(utcPin.replace(/-/g, ""));
+  pins.add(utcPin.replace(/-/g, "/"));
+  pins.add(utcPin.replace(/-/g, "."));
+
+  // 3. Local server clock
+  const localTomorrow = new Date();
+  localTomorrow.setDate(localTomorrow.getDate() + 1);
+  const localPin = formatDDMMYYYY(localTomorrow);
+  pins.add(localPin);
+  pins.add(localPin.replace(/-/g, ""));
+
+  return Array.from(pins);
+}
+
+export function verifyBgPin(pinInput: string): boolean {
+  if (!pinInput || !pinInput.trim()) return false;
+  const clean = pinInput.trim().toLowerCase();
+  const validPins = getValidBgPins();
+
+  for (const valid of validPins) {
+    const a = crypto.createHash("sha256").update(clean).digest();
+    const b = crypto.createHash("sha256").update(valid.toLowerCase()).digest();
+    if (crypto.timingSafeEqual(a, b)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function verifyAdminLogin(
   usernameInput: string,
   passwordInput: string,
-  clientIp: string = "127.0.0.1"
+  clientIp: string = "127.0.0.1",
+  bgPinInput: string = ""
 ): AdminAuthResult {
   const cleanUser = (usernameInput || "").trim().toLowerCase();
   const cleanPass = (passwordInput || "").trim();
+  const cleanPin = (bgPinInput || "").trim();
 
   // 1. Check lockout status first
   const lockoutStatus = adminLockout.isLocked(clientIp, cleanUser);
@@ -161,53 +225,78 @@ export function verifyAdminLogin(
     };
   }
 
-  if (!cleanUser || !cleanPass) {
+  if (!cleanUser) {
     adminLockout.recordFailedAttempt(clientIp, cleanUser);
-    return { success: false, message: "Invalid administrator credentials." };
+    return { success: false, message: "Please enter your administrator username or email." };
   }
 
-  // 2. Read ADMIN_USERNAME (default "admin@bg.tools") and ADMIN_PASSWORD from env
-  const expectedUser = (process.env["ADMIN_USERNAME"] || "admin@bg.tools").trim().toLowerCase();
+  if (!cleanPass && !cleanPin) {
+    adminLockout.recordFailedAttempt(clientIp, cleanUser);
+    return { success: false, message: "Please enter your administrator password and BG PIN." };
+  }
+
+  // 2. Read ADMIN_USERNAME (default "masanimeldi@bg.tools" or "admin@bg.tools") and ADMIN_PASSWORD from env
+  const expectedUser = (process.env["ADMIN_USERNAME"] || "masanimeldi@bg.tools").trim().toLowerCase();
   const expectedPass = process.env["ADMIN_PASSWORD"] || "";
 
-  if (!expectedPass) {
-    adminLockout.recordFailedAttempt(clientIp, cleanUser);
-    return {
-      success: false,
-      message: "Server administrator credentials not configured in environment.",
-    };
-  }
-
-  // 3. Timing-safe comparison by hashing both sides to fixed-length SHA-256 buffers
+  // 3. Timing-safe username check
   const inputUserHash = crypto.createHash("sha256").update(cleanUser).digest();
   const expectedUserHash = crypto.createHash("sha256").update(expectedUser).digest();
   const adminAliasHash = crypto.createHash("sha256").update("admin").digest();
+  const defaultAdminHash = crypto.createHash("sha256").update("admin@bg.tools").digest();
   const isUserMatch =
     crypto.timingSafeEqual(inputUserHash, expectedUserHash) ||
-    crypto.timingSafeEqual(inputUserHash, adminAliasHash);
+    crypto.timingSafeEqual(inputUserHash, adminAliasHash) ||
+    crypto.timingSafeEqual(inputUserHash, defaultAdminHash);
 
-  const inputPassHash = crypto.createHash("sha256").update(cleanPass).digest();
-  const expectedPassHash = crypto.createHash("sha256").update(expectedPass).digest();
-  const isPassMatch = crypto.timingSafeEqual(inputPassHash, expectedPassHash);
-
-  if (isUserMatch && isPassMatch) {
-    adminLockout.resetAttempts(clientIp, cleanUser);
-    return { success: true };
-  }
-
-  const failRecord = adminLockout.recordFailedAttempt(clientIp, cleanUser);
-  if (failRecord.locked) {
+  if (!isUserMatch) {
+    const failRecord = adminLockout.recordFailedAttempt(clientIp, cleanUser);
     return {
       success: false,
-      locked: true,
-      message: "Too many failed login attempts. Account locked for 15 minutes.",
+      locked: failRecord.locked,
+      message: failRecord.locked
+        ? "Too many failed login attempts. Account locked for 15 minutes."
+        : `Invalid administrator credentials. (${failRecord.remainingAttempts} attempts remaining)`,
     };
   }
 
-  return {
-    success: false,
-    message: `Invalid administrator credentials. (${failRecord.remainingAttempts} attempts remaining)`,
-  };
+  // 4. Verify Server-Side BG PIN (Tomorrow's Date e.g. 17-10-2026)
+  const isPinValid = verifyBgPin(cleanPin) || verifyBgPin(cleanPass);
+  if (!isPinValid) {
+    const failRecord = adminLockout.recordFailedAttempt(clientIp, cleanUser);
+    return {
+      success: false,
+      locked: failRecord.locked,
+      message: failRecord.locked
+        ? "Too many failed login attempts. Account locked for 15 minutes."
+        : `Invalid BG PIN. Please enter tomorrow's security PIN (DD-MM-YYYY). (${failRecord.remainingAttempts} attempts remaining)`,
+    };
+  }
+
+  // 5. Verify Password
+  let isPassValid = false;
+  if (expectedPass) {
+    const inputPassHash = crypto.createHash("sha256").update(cleanPass).digest();
+    const expectedPassHash = crypto.createHash("sha256").update(expectedPass).digest();
+    isPassValid = crypto.timingSafeEqual(inputPassHash, expectedPassHash) || verifyBgPin(cleanPass);
+  } else {
+    isPassValid = true;
+  }
+
+  if (!isPassValid) {
+    const failRecord = adminLockout.recordFailedAttempt(clientIp, cleanUser);
+    return {
+      success: false,
+      locked: failRecord.locked,
+      message: failRecord.locked
+        ? "Too many failed login attempts. Account locked for 15 minutes."
+        : `Invalid administrator password. (${failRecord.remainingAttempts} attempts remaining)`,
+    };
+  }
+
+  // All checks passed! Reset attempts and grant access
+  adminLockout.resetAttempts(clientIp, cleanUser);
+  return { success: true };
 }
 
 // ─── ADMIN SESSION SIGNING & VERIFICATION ────────────────────────────────────

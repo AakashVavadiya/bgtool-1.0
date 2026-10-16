@@ -580,14 +580,15 @@ export default {
         const body = (await request.json()) as any;
         const username = String(body.username || "");
         const password = String(body.password || "");
+        const bgPin = String(body.bgPin || body.pin || "");
 
-        const authResult = verifyAdminLogin(username, password, clientIp);
+        const authResult = verifyAdminLogin(username, password, clientIp, bgPin);
         if (!authResult.success) {
           const status = authResult.locked ? 429 : 401;
           return applySecurityHeaders(
             createSafeErrorResponse(
               status,
-              authResult.message || "Invalid administrator username or password."
+              authResult.message || "Invalid administrator credentials or BG PIN."
             )
           );
         }

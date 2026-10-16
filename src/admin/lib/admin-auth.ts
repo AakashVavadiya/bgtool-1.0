@@ -53,19 +53,21 @@ export function getAdminAuthHeaders(): Record<string, string> {
 }
 
 export async function loginAdmin(
-  identifierOrPass: string,
-  optionalPassword?: string
+  usernameInput: string,
+  passwordInput: string,
+  bgPinInput?: string
 ): Promise<{ success: boolean; message?: string }> {
   if (typeof window === "undefined") return { success: false };
 
-  const username = identifierOrPass.trim();
-  const password = optionalPassword ? optionalPassword.trim() : username;
+  const username = (usernameInput || "").trim();
+  const password = (passwordInput || "").trim();
+  const bgPin = (bgPinInput || "").trim();
 
   try {
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, bgPin }),
       credentials: "same-origin",
     });
 
@@ -85,7 +87,7 @@ export async function loginAdmin(
       const err = await res.json().catch(() => ({}));
       return {
         success: false,
-        message: err.error || "Invalid admin username or password. Please try again.",
+        message: err.error || "Invalid admin credentials or BG PIN. Please try again.",
       };
     }
   } catch {

@@ -6,8 +6,9 @@ import { Link } from "@tanstack/react-router";
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(() => typeof window !== "undefined");
   const [session, setSession] = useState<AdminUser | null>(() => getAdminSession());
-  const [username, setUsername] = useState("admin@bg.tools");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [bgPin, setBgPin] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,8 +21,16 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim()) {
+      setErrorMsg("Please enter your admin username or email.");
+      return;
+    }
     if (!password.trim()) {
-      setErrorMsg("Please enter your admin password or security PIN.");
+      setErrorMsg("Please enter your administrator password.");
+      return;
+    }
+    if (!bgPin.trim()) {
+      setErrorMsg("Please enter your server authentication BG PIN.");
       return;
     }
 
@@ -29,11 +38,11 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     setErrorMsg("");
 
     try {
-      const res = await loginAdmin(username, password);
+      const res = await loginAdmin(username, password, bgPin);
       if (res.success) {
         setSession(getAdminSession());
       } else {
-        setErrorMsg(res.message || "Invalid credentials. Please verify and try again.");
+        setErrorMsg(res.message || "Invalid credentials or BG PIN. Please verify and try again.");
       }
     } catch {
       setErrorMsg("Failed to connect to authentication server.");
@@ -86,7 +95,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
             Administrator Sign In
           </h1>
           <p className="mt-1.5 text-xs text-muted-foreground font-medium max-w-xs">
-            Authenticate to manage live traffic, system errors, user credits, and customer inquiries.
+            Authenticate with your administrator credentials and server-side BG PIN.
           </p>
         </div>
 
@@ -104,13 +113,15 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
                   setErrorMsg("");
                 }}
                 placeholder="Enter admin username or email"
+                autoFocus
+                autoComplete="off"
                 className="w-full rounded-2xl border border-input bg-background/60 pl-11 pr-4 py-3.5 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-sm"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground ml-1">Password or Security PIN</label>
+            <label className="text-xs font-semibold text-muted-foreground ml-1">Password</label>
             <div className="relative">
               <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -120,8 +131,29 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
                   setPassword(e.target.value);
                   setErrorMsg("");
                 }}
-                placeholder="Enter password"
-                autoFocus
+                placeholder="Enter admin password"
+                autoComplete="current-password"
+                className="w-full rounded-2xl border border-input bg-background/60 pl-11 pr-4 py-3.5 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-sm"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between ml-1">
+              <label className="text-xs font-semibold text-muted-foreground">Server BG PIN</label>
+              <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Daily Security Pass</span>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="password"
+                value={bgPin}
+                onChange={(e) => {
+                  setBgPin(e.target.value);
+                  setErrorMsg("");
+                }}
+                placeholder="Enter BG PIN (DD-MM-YYYY)"
+                autoComplete="off"
                 className="w-full rounded-2xl border border-input bg-background/60 pl-11 pr-4 py-3.5 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-sm"
               />
             </div>
