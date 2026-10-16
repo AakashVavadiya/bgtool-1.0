@@ -24,17 +24,16 @@ export function CountrySelectModal({
 
   // Focus search input when dialog opens
   useEffect(() => {
-    if (isOpen) {
-      setSearch("");
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-        // Scroll active item into view
-        if (selectedItemRef.current) {
-          selectedItemRef.current.scrollIntoView({ block: "center" });
-        }
-      }, 150);
-      return () => clearTimeout(timer);
-    }
+    if (!isOpen) return;
+    setSearch("");
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+      // Scroll active item into view
+      if (selectedItemRef.current) {
+        selectedItemRef.current.scrollIntoView({ block: "center" });
+      }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   // Lock body scroll when open
@@ -280,8 +279,8 @@ export function CountrySelectModal({
         isOpen={Boolean(blockedCountry)}
         onClose={() => setBlockedCountry(null)}
         onChangeCountry={() => setBlockedCountry(null)}
-        countryName={blockedCountry?.name}
-        flagCode={blockedCountry?.flagCode}
+        countryName={blockedCountry?.name ?? "Pakistan"}
+        flagCode={blockedCountry?.flagCode ?? "pk"}
       />
     </>
   );

@@ -171,7 +171,7 @@ export async function handleCreatePaymentOrder(
       currency: requestedCurrency,
     };
     if (safeEmail) {
-      safeNotes.userEmail = safeEmail;
+      safeNotes["userEmail"] = safeEmail;
     }
 
     const rzpResponse = await fetch("https://api.razorpay.com/v1/orders", {

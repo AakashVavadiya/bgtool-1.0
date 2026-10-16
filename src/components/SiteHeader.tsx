@@ -82,13 +82,12 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
-    if (mobileMenuOpen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
+    if (!mobileMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
   }, [mobileMenuOpen]);
 
   const handleLogout = () => {

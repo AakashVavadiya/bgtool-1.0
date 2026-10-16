@@ -4,9 +4,9 @@ import { ShieldAlert, X, ArrowLeft, Globe } from "lucide-react";
 interface ServiceUnavailableDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onChangeCountry?: () => void;
-  countryName?: string;
-  flagCode?: string;
+  onChangeCountry?: (() => void) | undefined;
+  countryName?: string | undefined;
+  flagCode?: string | undefined;
 }
 
 export function ServiceUnavailableDialog({
