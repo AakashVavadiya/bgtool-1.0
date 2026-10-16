@@ -95,7 +95,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
             Administrator Sign In
           </h1>
           <p className="mt-1.5 text-xs text-muted-foreground font-medium max-w-xs">
-            Authenticate with your administrator credentials and server-side BG PIN.
+            Authenticate with your administrator credentials and BG PIN.
           </p>
         </div>
 
@@ -140,7 +140,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between ml-1">
-              <label className="text-xs font-semibold text-muted-foreground">Server BG PIN</label>
+              <label className="text-xs font-semibold text-muted-foreground">BG PIN</label>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Security Key</span>
             </div>
             <div className="relative">
