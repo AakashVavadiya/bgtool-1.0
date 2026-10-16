@@ -216,6 +216,38 @@ export default {
       }
     }
 
+    // Static Branded Security Error Pages: /429 & /403
+    if (url.pathname === "/429" || url.pathname === "/429.html") {
+      const filePath = path.join(process.cwd(), "public", "429.html");
+      if (fs.existsSync(filePath)) {
+        const html = fs.readFileSync(filePath, "utf-8");
+        return applySecurityHeaders(
+          new Response(html, {
+            status: 429,
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Retry-After": "20",
+            },
+          })
+        );
+      }
+    }
+
+    if (url.pathname === "/403" || url.pathname === "/403.html") {
+      const filePath = path.join(process.cwd(), "public", "403.html");
+      if (fs.existsSync(filePath)) {
+        const html = fs.readFileSync(filePath, "utf-8");
+        return applySecurityHeaders(
+          new Response(html, {
+            status: 403,
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+            },
+          })
+        );
+      }
+    }
+
     // 1. General Rate Limiting for all /api endpoints
     if (url.pathname.startsWith("/api/")) {
       const generalCheck = generalLimiter.check(clientIp);
