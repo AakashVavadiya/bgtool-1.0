@@ -141,7 +141,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between ml-1">
               <label className="text-xs font-semibold text-muted-foreground">Server BG PIN</label>
-              <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Daily Security Pass</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Security Key</span>
             </div>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -152,7 +152,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
                   setBgPin(e.target.value);
                   setErrorMsg("");
                 }}
-                placeholder="Enter BG PIN (DD-MM-YYYY)"
+                placeholder="Enter BG PIN"
                 autoComplete="off"
                 className="w-full rounded-2xl border border-input bg-background/60 pl-11 pr-4 py-3.5 text-sm font-semibold placeholder:text-muted-foreground focus:border-foreground focus:outline-none transition-all shadow-sm"
               />

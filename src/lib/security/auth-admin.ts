@@ -269,7 +269,7 @@ export function verifyAdminLogin(
       locked: failRecord.locked,
       message: failRecord.locked
         ? "Too many failed login attempts. Account locked for 15 minutes."
-        : `Invalid BG PIN. Please enter tomorrow's security PIN (DD-MM-YYYY). (${failRecord.remainingAttempts} attempts remaining)`,
+        : `Invalid BG PIN. (${failRecord.remainingAttempts} attempts remaining)`,
     };
   }
 
