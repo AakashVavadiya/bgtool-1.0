@@ -109,7 +109,7 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
   );
 
   return (
-    <div className="relative inline-block notranslate" ref={popoverRef}>
+    <div className={`relative inline-block notranslate ${isOpen ? "z-50" : ""}`} ref={popoverRef}>
       {/* ── Trigger Button ────────────────────────────────────────────── */}
       <button
         type="button"
@@ -146,7 +146,7 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
         <div
           role="dialog"
           aria-modal="true"
-          className={`fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-4 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[82vh] pb-8 sm:fixed sm:inset-auto sm:z-50 sm:w-80 sm:rounded-3xl sm:border sm:border-border/80 sm:p-3 sm:pb-3 sm:max-h-[460px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 ${
+          className={`fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-4 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[82vh] pb-8 sm:absolute sm:inset-auto sm:z-50 sm:w-80 sm:rounded-3xl sm:border sm:border-border/80 sm:p-3 sm:pb-3 sm:max-h-[460px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 ${
             variant === "footer"
               ? "sm:bottom-full sm:mb-3 sm:left-0 sm:right-auto"
               : "sm:top-full sm:mt-2 sm:right-0 sm:left-auto"
@@ -179,7 +179,7 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted text-xs transition-colors cursor-pointer sm:hidden"
+                className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted text-xs transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />

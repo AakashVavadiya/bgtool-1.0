@@ -157,7 +157,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
   });
 
   return (
-    <div className="relative inline-block notranslate" ref={popoverRef}>
+    <div className={`relative inline-block notranslate ${isOpen ? "z-50" : ""}`} ref={popoverRef}>
       {/* ── Trigger Button ────────────────────────────────────────────── */}
       <button
         type="button"
@@ -196,7 +196,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
         <div
           role="dialog"
           aria-modal="true"
-          className={`fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-4 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh] pb-8 sm:fixed sm:inset-auto sm:z-50 sm:w-[390px] sm:rounded-3xl sm:border sm:border-border/80 sm:p-4 sm:pb-4 sm:max-h-[520px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 ${
+          className={`fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-4 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh] pb-8 sm:absolute sm:inset-auto sm:z-50 sm:w-[390px] sm:rounded-3xl sm:border sm:border-border/80 sm:p-4 sm:pb-4 sm:max-h-[520px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 ${
             variant === "footer"
               ? "sm:bottom-full sm:mb-3 sm:left-0 sm:right-auto"
               : "sm:top-full sm:mt-2.5 sm:right-0 sm:left-auto"
