@@ -8,6 +8,7 @@ import {
   Monitor,
   Smartphone,
   Apple,
+  Chrome,
   Sparkles,
   Zap,
   FolderDown,
@@ -19,6 +20,9 @@ import {
   Check,
   Clock,
   ShieldCheck,
+  MousePointerClick,
+  Copy,
+  Layers,
 } from "lucide-react";
 
 export const Route = createFileRoute("/download")({
@@ -26,8 +30,8 @@ export const Route = createFileRoute("/download")({
     const softwareSchema = {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      name: "bg.tools - AI Background Remover Apps",
-      operatingSystem: "Windows, macOS, Linux, Android, iOS",
+      name: "bg.tools - AI Background Remover Apps & Extensions",
+      operatingSystem: "Windows, macOS, Linux, Android, iOS, ChromeOS",
       applicationCategory: "DesignApplication",
       offers: {
         "@type": "Offer",
@@ -37,9 +41,9 @@ export const Route = createFileRoute("/download")({
     };
 
     const seo = buildPageMeta({
-      title: "Apps for Desktop, Android & iOS (Coming Soon) | bg.tools",
+      title: "Apps & Chrome Extension (Coming Soon) | bg.tools",
       description:
-        "Official bg.tools online cloud apps for Windows, macOS, Linux, Android, and iOS. Powered by online AI image models with real-time cloud sync. Coming soon!",
+        "Official bg.tools apps for Windows, macOS, Linux, Android, iOS, and Google Chrome Extension. Powered by online AI models with real-time cloud sync. Coming soon!",
       path: "/download",
       jsonLd: softwareSchema,
     });
@@ -53,7 +57,7 @@ export const Route = createFileRoute("/download")({
   component: DownloadPage,
 });
 
-type Platform = "windows" | "mac" | "linux" | "android" | "ios";
+type Platform = "windows" | "mac" | "linux" | "android" | "ios" | "chrome";
 
 interface SystemReq {
   os: string;
@@ -93,28 +97,38 @@ const SYSTEM_REQS: Record<Platform, SystemReq> = {
     connection: "4G / 5G / WiFi internet access",
     storage: "40 MB free space",
   },
+  chrome: {
+    os: "Google Chrome, Microsoft Edge, Brave, Opera, Vivaldi (Manifest V3)",
+    ram: "2 GB RAM minimum",
+    connection: "Broadband / WiFi connection for cloud AI sync",
+    storage: "< 5 MB installation size",
+  },
 };
 
 const FAQS = [
   {
-    q: "Are the bg.tools apps online or offline?",
-    a: "All bg.tools apps are 100% online cloud-powered! This means all image processing is computed on our high-speed GPU cloud infrastructure. You get the full accuracy of our top AI models (Karudi, Ganga, Brahmaputra, Narmada, Saraswati) without slowing down your phone or computer.",
+    q: "How will the bg.tools Chrome Extension work on any webpage?",
+    a: "Once installed from the Chrome Web Store, you can simply right-click on any image on the web (e-commerce, social media, blogs) and select 'Remove Background with bg.tools'. Our cloud AI processes it in seconds and lets you copy or download a clean transparent PNG directly without leaving your tab. It also works seamlessly in Microsoft Edge, Brave, and Opera.",
   },
   {
-    q: "When will the Desktop and Mobile apps be launched?",
-    a: "Our Desktop (Windows, macOS, Linux) and Mobile (Android, iOS) apps are in active development and coming very soon! Sign up below to be notified the minute the public beta and store releases go live.",
+    q: "Are the bg.tools apps and extension online or offline?",
+    a: "All bg.tools apps and the Chrome Extension are 100% online cloud-powered! This means all image processing is computed on our high-speed GPU cloud infrastructure. You get the full accuracy of our top AI models (Karudi, Ganga, Brahmaputra, Narmada, Saraswati) without slowing down your phone or computer.",
   },
   {
-    q: "Will my cloud account tokens sync across Web, Desktop, and Mobile?",
-    a: "Yes! All apps connect directly to your bg.tools account. Your free daily tokens, purchase packs, subscription limits, and processing history sync automatically across every device.",
+    q: "When will the Desktop, Mobile apps, and Chrome Extension launch?",
+    a: "Our Desktop (Windows, macOS, Linux), Mobile (Android, iOS) apps, and Chrome Extension are in active development and coming very soon! Sign up below to be notified the minute the public beta and store releases go live.",
+  },
+  {
+    q: "Will my cloud account tokens sync across Web, Desktop, Mobile, and Extension?",
+    a: "Yes! Everything connects directly to your bg.tools account. Your free daily tokens, purchase packs, subscription limits, and processing history sync automatically across every device and browser.",
   },
   {
     q: "Can I process batch images in the desktop app?",
     a: "Yes! The online desktop app lets you drag and drop entire folders of images. The images are queued and processed simultaneously via our multi-threaded cloud pipeline for maximum speed.",
   },
   {
-    q: "Will there be a free tier on the apps?",
-    a: "Yes! The native apps will include your free 10 daily tokens just like the web version, so you can edit and remove backgrounds daily at zero cost.",
+    q: "Will there be a free tier on the apps and extension?",
+    a: "Yes! All native apps and the Chrome extension will include your free 10 daily tokens just like the web version, so you can edit and remove backgrounds daily at zero cost.",
   },
 ];
 
@@ -172,7 +186,7 @@ export function DownloadPage() {
     }
     setSubscribed(true);
     toast.success(`You're on the priority launch waitlist!`, {
-      description: `We'll email ${emailNotify} the instant our ${selectedNotifyOs.toUpperCase()} app goes live.`,
+      description: `We'll email ${emailNotify} the instant our ${selectedNotifyOs.toUpperCase()} release goes live.`,
     });
     setEmailNotify("");
   };
@@ -197,7 +211,7 @@ export function DownloadPage() {
           <section className="text-center w-full max-w-4xl mx-auto mb-16 sm:mb-20">
             <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 mb-6 shadow-xs animate-in fade-in duration-500">
               <Clock className="h-3.5 w-3.5 animate-pulse" />
-              <span>Coming Soon • Desktop, Android & iOS Apps</span>
+              <span>Coming Soon • Desktop, Android, iOS & Chrome Extension</span>
             </div>
 
             <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-foreground">
@@ -208,7 +222,7 @@ export function DownloadPage() {
             </h1>
 
             <p className="mt-5 text-base sm:text-lg text-muted-foreground font-medium leading-relaxed max-w-3xl mx-auto">
-              Our official native apps for Windows, macOS, Linux, Android, and iOS are currently in active development. Powered by online cloud AI with instant real-time account sync and heavy batch processing.
+              Our official apps for Windows, macOS, Linux, Android, iOS, and the Chrome Extension are in active development. Powered by online cloud AI with instant real-time account sync and heavy batch processing.
             </p>
 
             {/* Smart Detection Banner */}
@@ -575,7 +589,131 @@ export function DownloadPage() {
               </div>
             </div>
 
-            {/* 3. Online Cloud AI Superpowers */}
+            {/* 3. Chrome Extension Section */}
+            <div className="rounded-3xl border border-border/80 bg-gradient-to-b from-card/90 to-card/50 p-6 sm:p-10 shadow-xl backdrop-blur-md w-full">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6 mb-8">
+                <div>
+                  <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-accent mb-1.5">
+                    <Chrome className="h-4 w-4" />
+                    <span>Browser Extension</span>
+                  </div>
+                  <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground">
+                    bg.tools for Google Chrome
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
+                    Remove backgrounds from any image on any webpage in a single right-click. Also works on Edge, Brave, and Opera.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-3.5 py-1 text-xs font-bold">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Coming Soon</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground border border-border">
+                    <Chrome className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Chrome Web Store</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Chrome Extension Showcase Card */}
+              <div className="rounded-2xl border border-border/80 bg-background/60 p-6 sm:p-8 w-full flex flex-col lg:flex-row items-center justify-between gap-8">
+                <div className="flex-1 space-y-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/25 shrink-0">
+                      <Chrome className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display text-xl font-bold text-foreground">
+                          1-Click Browser Image Cutout
+                        </h3>
+                        <span className="rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black uppercase">
+                          Coming Soon
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                        Compatible with Google Chrome, Microsoft Edge, Brave, Opera & Vivaldi.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Feature Highlights Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                    <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5 space-y-1">
+                      <div className="flex items-center gap-2 font-bold text-xs text-foreground">
+                        <MousePointerClick className="h-4 w-4 text-accent" />
+                        <span>Right-Click Any Web Image</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Found an image on Amazon, Shopify, or Pinterest? Just right-click and remove background without saving to disk.
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5 space-y-1">
+                      <div className="flex items-center gap-2 font-bold text-xs text-foreground">
+                        <Copy className="h-4 w-4 text-emerald-500" />
+                        <span>Clipboard Paste (Ctrl+V)</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Take a screenshot or copy an image anywhere, click the extension icon, and paste to remove background instantly.
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5 space-y-1">
+                      <div className="flex items-center gap-2 font-bold text-xs text-foreground">
+                        <Layers className="h-4 w-4 text-violet-500" />
+                        <span>Floating Mini-Studio</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Preview before/after, adjust edge sharpness, and download crisp transparent PNGs right from your browser toolbar.
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5 space-y-1">
+                      <div className="flex items-center gap-2 font-bold text-xs text-foreground">
+                        <Cloud className="h-4 w-4 text-sky-500" />
+                        <span>Live Account Credit Sync</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Automatically logged in to your bg.tools account with your 10 free daily tokens and subscription credits.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Call To Action Box */}
+                <div className="w-full lg:w-80 shrink-0 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                      Release Pipeline
+                    </span>
+                    <h4 className="font-display text-base font-bold text-foreground">
+                      Chrome Web Store Submission
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Built with modern Chrome Manifest V3 for fast load, minimal memory consumption, and zero tracking.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => handleNotifyAction("chrome", "Chrome Extension")}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent py-3 text-xs font-extrabold text-white hover:opacity-90 active:scale-98 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Bell className="h-4 w-4" />
+                      <span>Notify Me On Extension Launch</span>
+                    </button>
+                    <p className="text-center text-[10px] text-muted-foreground font-medium">
+                      Free to install • Chromium compatible
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Online Cloud AI Superpowers */}
             <div className="rounded-3xl border border-border/80 bg-card/60 p-6 sm:p-10 backdrop-blur-md w-full">
               <div className="text-center max-w-2xl mx-auto mb-10">
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-accent mb-2">
@@ -583,7 +721,7 @@ export function DownloadPage() {
                   <span>Cloud Power</span>
                 </span>
                 <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground">
-                  Why use bg.tools online native apps?
+                  Why use bg.tools online native apps & extension?
                 </h2>
               </div>
 
@@ -614,7 +752,7 @@ export function DownloadPage() {
                   </div>
                   <h4 className="font-bold text-sm text-foreground">Real-Time Account Sync</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Your daily free tokens, paid packages, and custom preferences automatically sync in real-time across Web, Desktop, and Mobile.
+                    Your daily free tokens, paid packages, and custom preferences automatically sync in real-time across Web, Desktop, Mobile, and Extension.
                   </p>
                 </div>
 
@@ -630,19 +768,19 @@ export function DownloadPage() {
               </div>
             </div>
 
-            {/* 4. System Requirements Tabs */}
+            {/* 5. System Requirements Tabs */}
             <div className="rounded-3xl border border-border/80 bg-card/60 p-6 sm:p-10 backdrop-blur-md w-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-6 mb-6">
                 <div>
                   <h3 className="font-display text-xl font-bold text-foreground">System Specifications</h3>
                   <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                    Recommended requirements for using bg.tools apps.
+                    Recommended requirements for using bg.tools apps and extensions.
                   </p>
                 </div>
 
                 {/* Tabs */}
                 <div className="flex flex-wrap gap-1.5 p-1 rounded-2xl bg-muted/50 border border-border/60 text-xs font-bold">
-                  {(["windows", "mac", "linux", "android", "ios"] as const).map((tab) => (
+                  {(["windows", "mac", "linux", "android", "ios", "chrome"] as const).map((tab) => (
                     <button
                       key={tab}
                       type="button"
@@ -653,7 +791,7 @@ export function DownloadPage() {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      {tab}
+                      {tab === "chrome" ? "Chrome Extension" : tab}
                     </button>
                   ))}
                 </div>
@@ -663,7 +801,7 @@ export function DownloadPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                 <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
                   <span className="block text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                    Operating System
+                    Operating System / Browser
                   </span>
                   <span className="mt-1 block text-xs font-bold text-foreground">
                     {SYSTEM_REQS[activeReqTab].os}
@@ -696,7 +834,7 @@ export function DownloadPage() {
               </div>
             </div>
 
-            {/* 5. Early Access / Launch Notification Form */}
+            {/* 6. Early Access / Launch Notification Form */}
             <div id="notify-form" className="rounded-3xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-card/80 to-accent/5 p-8 sm:p-12 shadow-lg w-full">
               <div className="max-w-2xl mx-auto text-center">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-3.5 py-1 text-xs font-bold text-amber-700 dark:text-amber-400 border border-amber-500/30 mb-3">
@@ -704,16 +842,16 @@ export function DownloadPage() {
                   <span>Launch Waitlist</span>
                 </span>
                 <h3 className="font-display text-2xl sm:text-3xl font-black text-foreground">
-                  Get notified when apps go live
+                  Get notified when apps & extensions go live
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-medium">
-                  Be the first to get access when our Desktop and Mobile apps launch. Free daily tokens included on launch day!
+                  Be the first to get access when our Desktop apps, Mobile apps, or Chrome Extension launch. Free daily tokens included on launch day!
                 </p>
 
                 {subscribed ? (
                   <div className="mt-6 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 p-4 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-2">
                     <Check className="h-4 w-4" />
-                    <span>You're on the priority waitlist! We will alert you the moment the app is ready.</span>
+                    <span>You're on the priority waitlist! We will alert you the moment the release is ready.</span>
                   </div>
                 ) : (
                   <form onSubmit={handleNotifySubmit} className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -721,8 +859,9 @@ export function DownloadPage() {
                       value={selectedNotifyOs}
                       onChange={(e) => setSelectedNotifyOs(e.target.value as Platform)}
                       className="rounded-2xl border border-border bg-background px-3.5 py-3 text-xs font-bold text-foreground focus:border-accent focus:outline-none transition-colors"
-                      aria-label="Target Operating System"
+                      aria-label="Target Operating System or Extension"
                     >
+                      <option value="chrome">Google Chrome Extension</option>
                       <option value="windows">Windows Desktop</option>
                       <option value="mac">macOS Desktop</option>
                       <option value="linux">Linux Desktop</option>
@@ -749,14 +888,14 @@ export function DownloadPage() {
               </div>
             </div>
 
-            {/* 6. Download FAQs */}
+            {/* 7. Download FAQs */}
             <div className="rounded-3xl border border-border/80 bg-card/60 p-6 sm:p-10 backdrop-blur-md w-full">
               <div className="text-center max-w-xl mx-auto mb-8">
                 <h3 className="font-display text-2xl font-bold text-foreground">
                   Frequently Asked Questions
                 </h3>
                 <p className="text-xs text-muted-foreground font-medium mt-1">
-                  Everything you need to know about upcoming bg.tools apps.
+                  Everything you need to know about upcoming bg.tools apps and extensions.
                 </p>
               </div>
 

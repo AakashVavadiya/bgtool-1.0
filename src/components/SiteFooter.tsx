@@ -205,7 +205,7 @@ export function SiteFooter() {
             <ul className="mt-4 space-y-2.5 text-sm font-semibold">
               <li>
                 <Link to="/download" className="hover:text-accent transition-colors flex items-center gap-1.5 font-bold text-accent">
-                  <span>Download Desktop & Mobile</span>
+                  <span>Download Apps & Extension</span>
                   <span className="rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 px-1.5 py-0.2 text-[9px] font-bold">Coming Soon</span>
                 </Link>
               </li>
