@@ -49,8 +49,13 @@ U2NET_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net
 PRIMARY_MODEL = RMBG_PATH
 
 MODEL_REGISTRY = {
+    "karudi": RMBG_PATH,
+    "karudi-universal": RMBG_PATH,
+    "karudi-pro": RMBG_PATH,
     "ganga": RMBG_PATH,
     "ganga-ultra": RMBG_PATH,
+    "ganga-matting": RMBG_PATH,
+    "brahmaputra": ISNET_PATH,
     "rmbg": RMBG_PATH,
     "isnet": ISNET_PATH,
     "ganga-core": GANGA_CORE_PATH,
@@ -295,7 +300,16 @@ class GangaEngine:
             out_b64 = base64.b64encode(out_buf.getvalue()).decode("utf-8")
 
             duration = round(time.time() - start_time, 3)
-            engine_name = "Ganga Studio 1024 (RMBG-1.4)" if is_rmbg else ("Ganga IS-Net" if is_isnet else "Ganga Core AI")
+            m_lower = str(model_name).lower()
+            if "karudi" in m_lower:
+                engine_name = "Karudi 1.0 Universal AI"
+            elif "ganga" in m_lower:
+                engine_name = "Ganga Studio 1024 (RMBG-1.4)" if is_rmbg else ("Ganga IS-Net" if is_isnet else "Ganga Core AI")
+            elif "brahmaputra" in m_lower:
+                engine_name = "Brahmaputra Engine"
+            else:
+                engine_name = "Ganga Studio 1024 (RMBG-1.4)" if is_rmbg else ("Ganga IS-Net" if is_isnet else "Ganga Core AI")
+
             return {
                 "success": True,
                 "base64Image": f"data:image/png;base64,{out_b64}",
@@ -303,6 +317,7 @@ class GangaEngine:
                 "height": orig_h,
                 "duration": duration,
                 "engine": engine_name,
+                "model": model_name,
             }
         except Exception as e:
             return {"success": False, "error": str(e) or "Ganga AI processing encountered an error."}

@@ -10,7 +10,7 @@ const fallbackDate = new Date().toISOString().split("T")[0]!;
 const EXCLUDED_PATTERNS = [
   "/admin",
   "admin",
-  "/api",
+  "/api/v1",
   "/account",
   "/auth",
   "/chat",
@@ -58,6 +58,8 @@ const staticRoutes = [
   { path: "/pricing", changefreq: "weekly", priority: "0.8", file: "src/routes/pricing.tsx" },
   { path: "/faq", changefreq: "weekly", priority: "0.8", file: "src/routes/faq.tsx" },
   { path: "/download", changefreq: "weekly", priority: "0.8", file: "src/routes/download.tsx" },
+  { path: "/api", changefreq: "weekly", priority: "0.8", file: "src/routes/api.index.tsx" },
+  { path: "/docs/api", changefreq: "weekly", priority: "0.8", file: "src/routes/docs.api.tsx" },
   { path: "/models", changefreq: "weekly", priority: "0.8", file: "src/routes/models.tsx" },
   { path: "/contact", changefreq: "monthly", priority: "0.7", file: "src/routes/contact.tsx" },
   { path: "/privacy", changefreq: "monthly", priority: "0.6", file: "src/routes/privacy.tsx" },
@@ -141,15 +143,18 @@ Allow: /
 Allow: /tools/
 Allow: /pricing
 Allow: /faq
+Allow: /download
+Allow: /api
+Allow: /docs/api
 Allow: /models
 Allow: /contact
 Allow: /privacy
 Allow: /terms
 
-# Disallow admin panel and private portals
+# Disallow admin panel, private portals, and raw API endpoints
 Disallow: /admin
 Disallow: /admin/
-Disallow: /api/
+Disallow: /api/v1/
 Disallow: /account
 Disallow: /auth
 Disallow: /chat

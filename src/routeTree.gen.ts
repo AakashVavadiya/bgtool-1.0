@@ -28,6 +28,8 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as AccountApiKeysRouteImport } from './routes/account.api-keys'
+import { Route as ApiIndexRouteImport } from './routes/api.index'
 import { Route as ApiBlurFaceRouteImport } from './routes/api/blur-face'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
@@ -40,6 +42,7 @@ import { Route as ApiToolsConfigRouteImport } from './routes/api/tools-config'
 import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
+import { Route as DocsApiRouteImport } from './routes/docs.api'
 import { Route as ToolsIndexRouteImport } from './routes/tools.index'
 import { Route as ToolsSlugRouteImport } from './routes/tools.$slug'
 
@@ -138,6 +141,16 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
   path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountApiKeysRoute = AccountApiKeysRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => AccountRoute,
+} as any)
+const ApiIndexRoute = ApiIndexRouteImport.update({
+  id: '/api/',
+  path: '/api/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBlurFaceRoute = ApiBlurFaceRouteImport.update({
   id: '/api/blur-face',
   path: '/api/blur-face',
@@ -198,6 +211,11 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   path: '/$threadId',
   getParentRoute: () => ChatRoute,
 } as any)
+const DocsApiRoute = DocsApiRouteImport.update({
+  id: '/docs/api',
+  path: '/docs/api',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolsIndexRoute = ToolsIndexRouteImport.update({
   id: '/tools/',
   path: '/tools/',
@@ -213,7 +231,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/500': typeof R500Route
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
@@ -229,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/account/api-keys': typeof AccountApiKeysRoute
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
@@ -240,7 +259,9 @@ export interface FileRoutesByFullPath {
   '/api/tools-config': typeof ApiToolsConfigRoute
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/docs/api': typeof DocsApiRoute
   '/tools/$slug': typeof ToolsSlugRoute
+  '/api/': typeof ApiIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
@@ -248,7 +269,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/500': typeof R500Route
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
@@ -263,6 +284,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/account/api-keys': typeof AccountApiKeysRoute
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
@@ -274,7 +296,9 @@ export interface FileRoutesByTo {
   '/api/tools-config': typeof ApiToolsConfigRoute
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/docs/api': typeof DocsApiRoute
   '/tools/$slug': typeof ToolsSlugRoute
+  '/api': typeof ApiIndexRoute
   '/chat': typeof ChatIndexRoute
   '/tools': typeof ToolsIndexRoute
 }
@@ -283,7 +307,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/500': typeof R500Route
-  '/account': typeof AccountRoute
+  '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
@@ -299,6 +323,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/account/api-keys': typeof AccountApiKeysRoute
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
@@ -310,7 +335,9 @@ export interface FileRoutesById {
   '/api/tools-config': typeof ApiToolsConfigRoute
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/docs/api': typeof DocsApiRoute
   '/tools/$slug': typeof ToolsSlugRoute
+  '/api/': typeof ApiIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
@@ -336,6 +363,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/verify-email'
+    | '/account/api-keys'
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
@@ -347,7 +375,9 @@ export interface FileRouteTypes {
     | '/api/tools-config'
     | '/api/users'
     | '/chat/$threadId'
+    | '/docs/api'
     | '/tools/$slug'
+    | '/api/'
     | '/chat/'
     | '/tools/'
   fileRoutesByTo: FileRoutesByTo
@@ -370,6 +400,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/verify-email'
+    | '/account/api-keys'
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
@@ -381,7 +412,9 @@ export interface FileRouteTypes {
     | '/api/tools-config'
     | '/api/users'
     | '/chat/$threadId'
+    | '/docs/api'
     | '/tools/$slug'
+    | '/api'
     | '/chat'
     | '/tools'
   id:
@@ -405,6 +438,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/verify-email'
+    | '/account/api-keys'
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
@@ -416,7 +450,9 @@ export interface FileRouteTypes {
     | '/api/tools-config'
     | '/api/users'
     | '/chat/$threadId'
+    | '/docs/api'
     | '/tools/$slug'
+    | '/api/'
     | '/chat/'
     | '/tools/'
   fileRoutesById: FileRoutesById
@@ -425,7 +461,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
   R500Route: typeof R500Route
-  AccountRoute: typeof AccountRoute
+  AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
@@ -451,7 +487,9 @@ export interface RootRouteChildren {
   ApiToolGearRoute: typeof ApiToolGearRoute
   ApiToolsConfigRoute: typeof ApiToolsConfigRoute
   ApiUsersRoute: typeof ApiUsersRoute
+  DocsApiRoute: typeof DocsApiRoute
   ToolsSlugRoute: typeof ToolsSlugRoute
+  ApiIndexRoute: typeof ApiIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
 }
 
@@ -590,6 +628,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/api-keys': {
+      id: '/account/api-keys'
+      path: '/api-keys'
+      fullPath: '/account/api-keys'
+      preLoaderRoute: typeof AccountApiKeysRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/api/': {
+      id: '/api/'
+      path: '/api'
+      fullPath: '/api/'
+      preLoaderRoute: typeof ApiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/blur-face': {
       id: '/api/blur-face'
       path: '/api/blur-face'
@@ -674,6 +726,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatThreadIdRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/docs/api': {
+      id: '/docs/api'
+      path: '/docs/api'
+      fullPath: '/docs/api'
+      preLoaderRoute: typeof DocsApiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/': {
       id: '/tools/'
       path: '/tools'
@@ -691,6 +750,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AccountRouteChildren {
+  AccountApiKeysRoute: typeof AccountApiKeysRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountApiKeysRoute: AccountApiKeysRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
+
 interface ChatRouteChildren {
   ChatThreadIdRoute: typeof ChatThreadIdRoute
   ChatIndexRoute: typeof ChatIndexRoute
@@ -707,7 +777,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   R404Route: R404Route,
   R500Route: R500Route,
-  AccountRoute: AccountRoute,
+  AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
@@ -733,7 +803,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiToolGearRoute: ApiToolGearRoute,
   ApiToolsConfigRoute: ApiToolsConfigRoute,
   ApiUsersRoute: ApiUsersRoute,
+  DocsApiRoute: DocsApiRoute,
   ToolsSlugRoute: ToolsSlugRoute,
+  ApiIndexRoute: ApiIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
 }
 export const routeTree = rootRouteImport

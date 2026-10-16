@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ApiKeysManager } from "@/components/account/ApiKeysManager";
 import {
   User,
   Mail,
@@ -74,6 +75,13 @@ const STORAGE_NOTES_KEY = "bg_user_profile_notes";
 export function AccountPage() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
+  const [activeMainTab, setActiveMainTab] = useState<"workspace" | "api-keys">(() => {
+    if (typeof window !== "undefined") {
+      const param = new URLSearchParams(window.location.search).get("tab");
+      if (param === "api-keys" || param === "api" || window.location.pathname.includes("api-keys")) return "api-keys";
+    }
+    return "workspace";
+  });
   
   // Modals & Popovers
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -368,8 +376,43 @@ export function AccountPage() {
           </div>
         </div>
 
-        {/* ─── Two-Column Executive Workspace Layout ───────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ─── Main Tabs Switcher ──────────────────────────────────────────────── */}
+        <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-zinc-800 pb-1">
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("workspace")}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMainTab === "workspace"
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs"
+                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            <Layers className="h-4 w-4" />
+            <span>Overview & Activity</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("api-keys")}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMainTab === "api-keys"
+                ? "bg-orange-500 text-white shadow-xs"
+                : "text-slate-600 dark:text-zinc-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+            }`}
+          >
+            <KeyRound className="h-4 w-4" />
+            <span>Developer API Keys</span>
+            <span className="rounded-full bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 px-1.5 py-0.2 text-[10px] font-extrabold uppercase">
+              v1
+            </span>
+          </button>
+        </div>
+
+        {activeMainTab === "api-keys" ? (
+          <ApiKeysManager />
+        ) : (
+          /* ─── Two-Column Executive Workspace Layout ───────────────────────────── */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* ══════════════════════════════════════════════════════════════════════
               LEFT COLUMN: Profile Card, Specializations, Specs & Details
               ══════════════════════════════════════════════════════════════════════ */}
@@ -907,7 +950,8 @@ export function AccountPage() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </main>
 
       {/* ─── Profile & Password Edit Modal ─────────────────────────────────────── */}

@@ -461,6 +461,84 @@ def process_face_blur_base64(data):
     except Exception as e:
         return {"success": False, "error": str(e) or "Face detection & blur failed."}
 
+def process_image_operations(data, operation):
+    start_time = time.time()
+    try:
+        raw_b64 = data.get("base64Image") or data.get("image")
+        if not raw_b64:
+            return {"success": False, "error": "No image data provided"}
+
+        if "," in raw_b64:
+            raw_b64 = raw_b64.split(",", 1)[1]
+
+        img_bytes = base64.b64decode(raw_b64)
+        is_valid, err_msg, input_img = validate_image_bytes(img_bytes)
+        if not is_valid:
+            return {"success": False, "error": err_msg}
+
+        out_format = str(data.get("format", "")).upper()
+        if not out_format:
+            out_format = input_img.format or "PNG"
+        if out_format in ["JPG", "JPEG"]:
+            out_format = "JPEG"
+            if input_img.mode in ("RGBA", "LA", "P"):
+                background = Image.new("RGB", input_img.size, (255, 255, 255))
+                if input_img.mode == "RGBA":
+                    background.paste(input_img, mask=input_img.split()[3])
+                else:
+                    background.paste(input_img.convert("RGB"))
+                input_img = background
+            elif input_img.mode != "RGB":
+                input_img = input_img.convert("RGB")
+        elif out_format == "WEBP":
+            out_format = "WEBP"
+        else:
+            out_format = "PNG"
+
+        w, h = input_img.size
+        quality = int(data.get("quality", 80))
+        quality = max(10, min(100, quality))
+
+        if operation == "resize":
+            target_w = int(data.get("width", w))
+            target_h = int(data.get("height", h))
+            if target_w <= 0 or target_h <= 0 or target_w > 6000 or target_h > 6000:
+                return {"success": False, "error": "Invalid dimensions for resize (max 6000x6000px)."}
+            input_img = input_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+        elif operation == "crop":
+            crop_x = int(data.get("x", data.get("crop_x", 0)))
+            crop_y = int(data.get("y", data.get("crop_y", 0)))
+            crop_w = int(data.get("width", data.get("crop_width", w - crop_x)))
+            crop_h = int(data.get("height", data.get("crop_height", h - crop_y)))
+            if crop_w <= 0 or crop_h <= 0 or crop_x < 0 or crop_y < 0 or (crop_x + crop_w) > w or (crop_y + crop_h) > h:
+                return {"success": False, "error": f"Crop bounds out of image range ({w}x{h})."}
+            input_img = input_img.crop((crop_x, crop_y, crop_x + crop_w, crop_y + crop_h))
+        elif operation == "compress":
+            pass
+
+        output_buf = io.BytesIO()
+        save_kwargs = {"optimize": True}
+        if out_format in ["JPEG", "WEBP"]:
+            save_kwargs["quality"] = quality
+
+        # Save image (automatically strips EXIF metadata unless explicitly passed)
+        input_img.save(output_buf, out_format, **save_kwargs)
+        out_bytes = output_buf.getvalue()
+        out_b64 = base64.b64encode(out_bytes).decode("utf-8")
+        mime = f"image/{out_format.lower()}"
+
+        return {
+            "success": True,
+            "base64Image": f"data:{mime};base64,{out_b64}",
+            "format": out_format.lower(),
+            "width": input_img.size[0],
+            "height": input_img.size[1],
+            "fileSizeBytes": len(out_bytes),
+            "duration": round(time.time() - start_time, 3),
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e) or "Image processing operation failed."}
+
 class WatermarkServerHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
@@ -517,6 +595,22 @@ class WatermarkServerHandler(BaseHTTPRequestHandler):
                 status_code = 200 if res.get("success") else 400
                 if "exceeds" in str(res.get("error", "")).lower():
                     status_code = 413
+                self.send_json(res, status=status_code)
+            elif self.path in ["/compress-image", "/api/compress-image"]:
+                res = process_image_operations(data, "compress")
+                status_code = 200 if res.get("success") else 400
+                self.send_json(res, status=status_code)
+            elif self.path in ["/convert-image", "/api/convert-image"]:
+                res = process_image_operations(data, "convert")
+                status_code = 200 if res.get("success") else 400
+                self.send_json(res, status=status_code)
+            elif self.path in ["/resize-image", "/api/resize-image"]:
+                res = process_image_operations(data, "resize")
+                status_code = 200 if res.get("success") else 400
+                self.send_json(res, status=status_code)
+            elif self.path in ["/crop-image", "/api/crop-image"]:
+                res = process_image_operations(data, "crop")
+                status_code = 200 if res.get("success") else 400
                 self.send_json(res, status=status_code)
             else:
                 self.send_json({"error": "Not Found"}, status=404)

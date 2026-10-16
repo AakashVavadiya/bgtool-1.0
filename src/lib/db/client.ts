@@ -245,6 +245,78 @@ function initSchema(db: Database.Database): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_telemetry_sessions_ping ON telemetry_sessions(last_ping);
+
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      key_hash TEXT UNIQUE NOT NULL,
+      key_prefix TEXT NOT NULL,
+      key_type TEXT NOT NULL DEFAULT 'live',
+      scopes TEXT NOT NULL DEFAULT '["*"]',
+      status TEXT NOT NULL DEFAULT 'active',
+      ip_allowlist TEXT,
+      rate_limit_per_minute INTEGER NOT NULL DEFAULT 60,
+      daily_quota INTEGER NOT NULL DEFAULT 1000,
+      monthly_quota INTEGER NOT NULL DEFAULT 25000,
+      created_at TEXT NOT NULL,
+      expires_at TEXT,
+      last_used_at TEXT,
+      last_used_ip TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+    CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+    CREATE INDEX IF NOT EXISTS idx_api_keys_status ON api_keys(status);
+
+    CREATE TABLE IF NOT EXISTS api_usage (
+      id TEXT PRIMARY KEY,
+      request_id TEXT NOT NULL,
+      key_id TEXT REFERENCES api_keys(id) ON DELETE SET NULL,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL,
+      status INTEGER NOT NULL,
+      credits_used REAL NOT NULL DEFAULT 0,
+      latency_ms INTEGER NOT NULL DEFAULT 0,
+      ip TEXT,
+      idempotency_key TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_api_usage_key ON api_usage(key_id);
+    CREATE INDEX IF NOT EXISTS idx_api_usage_user ON api_usage(user_id);
+    CREATE INDEX IF NOT EXISTS idx_api_usage_endpoint ON api_usage(endpoint);
+    CREATE INDEX IF NOT EXISTS idx_api_usage_created ON api_usage(created_at);
+    CREATE INDEX IF NOT EXISTS idx_api_usage_idempotency ON api_usage(idempotency_key);
+
+    CREATE TABLE IF NOT EXISTS api_key_events (
+      id TEXT PRIMARY KEY,
+      key_id TEXT REFERENCES api_keys(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      action TEXT NOT NULL,
+      ip TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_api_key_events_key ON api_key_events(key_id);
+    CREATE INDEX IF NOT EXISTS idx_api_key_events_user ON api_key_events(user_id);
+    CREATE INDEX IF NOT EXISTS idx_api_key_events_created ON api_key_events(created_at);
+
+    CREATE TABLE IF NOT EXISTS api_idempotency (
+      idempotency_key TEXT NOT NULL,
+      key_hash TEXT NOT NULL,
+      request_hash TEXT NOT NULL,
+      response_status INTEGER NOT NULL,
+      response_headers TEXT NOT NULL,
+      response_body TEXT NOT NULL,
+      response_is_base64 INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      PRIMARY KEY (key_hash, idempotency_key)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_api_idempotency_expires ON api_idempotency(expires_at);
   `);
 
   // Migrate existing users table if columns are missing

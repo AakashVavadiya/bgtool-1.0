@@ -50,6 +50,12 @@ import {
   paymentsRepo,
   telemetryRepo,
 } from "./lib/db";
+import { handleApiV1 } from "./lib/api/handler";
+import {
+  handleUserApiKeys,
+  handleUserApiKeyAction,
+  handleAdminApiManagement,
+} from "./lib/api/management-endpoints";
 
 validateAdminEnvironment();
 
@@ -246,6 +252,12 @@ export default {
           })
         );
       }
+    }
+
+    // 0.5 Public REST API Gateway (/api/v1/*)
+    if (url.pathname.startsWith("/api/v1/")) {
+      const res = await handleApiV1(request, clientIp);
+      return applySecurityHeaders(res);
     }
 
     // 1. General Rate Limiting for all /api endpoints
@@ -661,6 +673,10 @@ export default {
       );
     }
 
+    if (url.pathname.startsWith("/api/admin/api-management")) {
+      return handleAdminApiManagement(request);
+    }
+
     // 6.5 User Authentication Endpoints
     if (url.pathname === "/api/auth/signup" && request.method === "POST") {
       const clientIp = extractClientIp(request);
@@ -712,6 +728,19 @@ export default {
     if (url.pathname === "/api/auth/deduct-credit" && request.method === "POST") {
       const clientIp = extractClientIp(request);
       return handleDeductCredit(request, clientIp);
+    }
+
+    // 6.51 Customer Dashboard API Key Management
+    if (url.pathname === "/api/user/api-keys") {
+      return handleUserApiKeys(request);
+    }
+
+    if (url.pathname === "/api/user/api-keys/revoke") {
+      return handleUserApiKeyAction(request, "revoke");
+    }
+
+    if (url.pathname === "/api/user/api-keys/rotate") {
+      return handleUserApiKeyAction(request, "rotate");
     }
 
     // 6.55 Location and Country Geolocation Endpoint

@@ -5,7 +5,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminStore, type PurchasePlanConfig, type UiEditSettings } from "@/admin/lib/admin-store";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings } from "lucide-react";
+import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings, Key } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
 const links = [
@@ -14,6 +14,7 @@ const links = [
   { label: "Tools.", to: "/tools" },
   { label: "Pricing.", to: "/pricing" },
   { label: "Download.", to: "/download" },
+  { label: "API.", to: "/api" },
   { label: "FAQ.", to: "/pricing", hash: "faq" },
 ] as const;
 
@@ -22,6 +23,13 @@ function renderTabLabel(label: string) {
     return (
       <span className="notranslate">
         FAQ<span className="text-accent font-bold">.</span>
+      </span>
+    );
+  }
+  if (label === "API.") {
+    return (
+      <span className="notranslate">
+        API<span className="text-accent font-bold">.</span>
       </span>
     );
   }
@@ -120,6 +128,9 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
     if (l.to === "/download") {
       return AdminStore.isPageEnabled("/download");
     }
+    if (l.to === "/api") {
+      return AdminStore.isPageEnabled("/api");
+    }
     return AdminStore.isPageEnabled(l.to);
   });
 
@@ -156,7 +167,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <nav className="hidden items-center gap-2.5 lg:gap-4 xl:gap-6 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-65px)] shrink-0 overflow-hidden whitespace-nowrap">
+        <nav className="hidden items-center gap-2 lg:gap-3.5 xl:gap-5 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-65px)] shrink-0 overflow-hidden whitespace-nowrap">
           {visibleLinks.map((l) =>
             "hash" in l ? (
               <Link
@@ -324,6 +335,20 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                         <span>Account & Settings</span>
                       </span>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                    </Link>
+
+                    <Link
+                      to="/account/api-keys"
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/70 transition-colors group cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Key className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <span>API Keys & Console</span>
+                      </span>
+                      <span className="font-mono text-[10px] font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-md">
+                        v1
+                      </span>
                     </Link>
                   </div>
 

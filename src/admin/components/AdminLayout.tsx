@@ -16,6 +16,7 @@ import { MarketingMailView } from "@/admin/views/MarketingMailView";
 import { OlderReportsView } from "@/admin/views/OlderReportsView";
 import { ProSettingsView } from "@/admin/views/ProSettingsView";
 import { ToolGearView } from "@/admin/views/ToolGearView";
+import { ApiManagementView } from "@/admin/views/ApiManagementView";
 import { AdminStore } from "@/admin/lib/admin-store";
 import {
   Activity,
@@ -38,6 +39,7 @@ import {
   Sliders,
   BotOff,
   Cog,
+  Terminal,
 } from "lucide-react";
 
 export type AdminTab =
@@ -53,7 +55,8 @@ export type AdminTab =
   | "seo-audit"
   | "older-reports"
   | "support"
-  | "marketing";
+  | "marketing"
+  | "api";
 
 const ADMIN_ACTIVE_TAB_KEY = "bg.admin.active_tab.v2";
 const VALID_TABS: AdminTab[] = [
@@ -70,6 +73,7 @@ const VALID_TABS: AdminTab[] = [
   "older-reports",
   "support",
   "marketing",
+  "api",
 ];
 
 function getInitialAdminTab(): AdminTab {
@@ -112,6 +116,7 @@ const navTabs = [
   { id: "older-reports" as const, label: "Older Audit Reports", icon: Archive },
   { id: "support" as const, label: "Support Desk & Inbox", icon: Inbox },
   { id: "marketing" as const, label: "Marketing Broadcast", icon: Mail },
+  { id: "api" as const, label: "Public API Gateway", icon: Terminal },
 ];
 
 export function AdminLayout() {
@@ -319,6 +324,7 @@ export function AdminLayout() {
           )}
           {activeTab === "support" && <SupportDeskView />}
           {activeTab === "marketing" && <MarketingMailView />}
+          {activeTab === "api" && <ApiManagementView />}
         </main>
       </div>
     </div>

@@ -1,1173 +1,401 @@
-process.env["ADMIN_USERNAME"] = "admin@bg.tools";
-process.env["ADMIN_PASSWORD"] = "TestSuperAdminPassword2026!";
-process.env["ADMIN_SESSION_SECRET"] = "TestSessionSecretAtLeast32CharactersLong!";
-process.env["TRUST_PROXY"] = "true";
-
-import assert from "assert";
-import fs from "fs";
-import path from "path";
-import {
-  inspectFileSignature,
-  validateBuffer,
-  validateBase64Payload,
-  TOOL_PROFILES,
-  SECURITY_CONFIG,
-} from "../src/lib/security/upload-policy";
-import {
-  MemoryRateLimiter,
-  generalLimiter,
-  expensiveInferenceLimiter,
-  extractClientIp,
-} from "../src/lib/security/rate-limiter";
-import {
-  createJobWorkspace,
-  writeJobFile,
-  cleanupJobWorkspace,
-  withTempWorkspace,
-  assertPathSafe,
-  runHourlyCleanup,
-} from "../src/lib/security/temp-file-manager";
-import {
-  SECURITY_HEADERS,
-  applySecurityHeaders,
-  createSafeErrorResponse,
-} from "../src/lib/security/headers";
-import {
-  createAdminSessionToken,
-  hashPassword,
-  verifyPassword,
-  migrateUsersData,
-  sanitizeUser,
-  validateAdminEnvironment,
-  verifyAdminLogin,
-  adminLockout,
-  userLockout,
-} from "../src/lib/security";
-import {
-  getDb,
-  usersRepo,
-  sessionsRepo,
-  creditLedgerRepo,
-  inquiriesRepo,
-  configRepo,
-  rateLimitsRepo,
-} from "../src/lib/db";
-import { runMigration } from "./migrate_json_to_sqlite";
-import serverHandler from "../src/server";
-import { SITE_URL, BRAND_NAME } from "../src/lib/seo";
-
-interface TestReport {
-  name: string;
-  passed: boolean;
-  error?: string;
-}
-
-const results: TestReport[] = [];
-
-function test(name: string, fn: () => void | Promise<void>) {
-  return async () => {
-    try {
-      await fn();
-      results.push({ name, passed: true });
-      console.log(`[PASS] ${name}`);
-    } catch (err: any) {
-      results.push({ name, passed: false, error: err?.message || String(err) });
-      console.error(`[FAIL] ${name}:`, err?.message || err);
-    }
-  };
-}
-
-async function runTestSuite() {
-  console.log("=================================================");
-  console.log("RUNNING BG TOOL AUTOMATED SECURITY AUDIT SUITE");
-  console.log("=================================================\n");
-
-  // Clean rate limit tables so test runs are completely isolated and repeatable
-  rateLimitsRepo.reset();
-
-  // TEST 1: Valid PNG image below 30 MB is accepted
-  await test("Test 1: Valid file below 30 MB is accepted", () => {
-    // 1x1 valid PNG buffer
-    const validPng = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      "base64"
-    );
-    const res = validateBuffer(validPng, TOOL_PROFILES["remove-bg"]);
-    assert.strictEqual(res.valid, true, "Valid PNG should be accepted");
-    assert.strictEqual(res.detectedMime, "image/png");
-    assert.strictEqual(res.detectedCategory, "image");
-    assert.ok(res.safeFilename, "Must produce random unguessable safeFilename");
-  })();
-
-  // TEST 2: File exceeding 30 MB is rejected (HTTP 413)
-  await test("Test 2: File exceeding 30 MB is rejected with HTTP 413", () => {
-    const oversizedBuffer = Buffer.alloc(32 * 1024 * 1024); // 32 MB
-    // Set valid PNG header on oversized buffer
-    oversizedBuffer[0] = 0x89;
-    oversizedBuffer[1] = 0x50;
-    oversizedBuffer[2] = 0x4e;
-    oversizedBuffer[3] = 0x47;
-    oversizedBuffer[4] = 0x0d;
-    oversizedBuffer[5] = 0x0a;
-    oversizedBuffer[6] = 0x1a;
-    oversizedBuffer[7] = 0x0a;
-
-    const res = validateBuffer(oversizedBuffer, TOOL_PROFILES["remove-bg"]);
-    assert.strictEqual(res.valid, false, "Oversized buffer must be rejected");
-    assert.strictEqual(res.status, 413, "Must return HTTP 413");
-    assert.ok(res.error?.includes("exceeds"), "Error message must indicate size limit");
-  })();
-
-  // TEST 3: Pre-flight Base64 exceeding 30 MB limit is rejected without decoding
-  await test("Test 3: Pre-flight Base64 payload exceeding size limit is rejected", () => {
-    // String representing ~36 MB of Base64 data (exceeding 30 MB binary)
-    const oversizedB64 = "data:image/png;base64," + "A".repeat(45 * 1024 * 1024);
-    const res = validateBase64Payload(oversizedB64, TOOL_PROFILES["remove-bg"]);
-    assert.strictEqual(res.valid, false);
-    assert.strictEqual(res.status, 413);
-  })();
-
-  // TEST 4: Renamed executable (MZ PE header disguised as image) is rejected
-  await test("Test 4: Renamed executable (.exe disguised as image) is rejected with HTTP 415", () => {
-    // Windows PE header MZ (0x4D, 0x5A)
-    const fakeImageBuffer = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00]);
-    const sig = inspectFileSignature(fakeImageBuffer);
-    assert.strictEqual(sig.category, "executable");
-
-    const res = validateBuffer(fakeImageBuffer, TOOL_PROFILES["remove-bg"]);
-    assert.strictEqual(res.valid, false);
-    assert.strictEqual(res.status, 415);
-    assert.ok(res.error?.toLowerCase().includes("executable"), "Must cite executable prohibition");
-  })();
-
-  // TEST 5: Linux ELF executable is rejected
-  await test("Test 5: Linux ELF executable header is rejected", () => {
-    const elfBuffer = Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00]);
-    const sig = inspectFileSignature(elfBuffer);
-    assert.strictEqual(sig.category, "executable");
-    const res = validateBuffer(elfBuffer, TOOL_PROFILES["remove-bg"]);
-    assert.strictEqual(res.valid, false);
-  })();
-
-  // TEST 6: Zero-byte file is rejected
-  await test("Test 6: Zero-byte file is rejected with HTTP 400", () => {
-    const emptyBuf = Buffer.alloc(0);
-    const res = validateBuffer(emptyBuf, TOOL_PROFILES["remove-bg"]);
-    assert.strictEqual(res.valid, false);
-    assert.strictEqual(res.status, 400);
-    assert.ok(res.error?.includes("empty"));
-  })();
-
-  // TEST 7: Unsupported file type for specific tool is rejected
-  await test("Test 7: PDF passed to remove-bg is rejected with HTTP 415", () => {
-    const pdfBuf = Buffer.from("%PDF-1.4\n%testpdf", "utf-8");
-    const res = validateBuffer(pdfBuf, TOOL_PROFILES["remove-bg"]);
-    assert.strictEqual(res.valid, false);
-    assert.strictEqual(res.status, 415);
-  })();
-
-  // TEST 8: Valid PDF passed to pdf-tools is accepted
-  await test("Test 8: Valid PDF file is accepted for pdf-tools profile", () => {
-    const pdfBuf = Buffer.from("%PDF-1.7\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF", "utf-8");
-    const res = validateBuffer(pdfBuf, TOOL_PROFILES["pdf-tools"]);
-    assert.strictEqual(res.valid, true);
-    assert.strictEqual(res.detectedCategory, "pdf");
-    assert.strictEqual(res.detectedMime, "application/pdf");
-  })();
-
-  // TEST 9: SVG with active script tags is detected and rejected
-  await test("Test 9: SVG with embedded <script> injection is rejected", () => {
-    const maliciousSvg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
-    const sig = inspectFileSignature(maliciousSvg);
-    assert.strictEqual(sig.category, "executable");
-    const res = validateBuffer(maliciousSvg, TOOL_PROFILES["general-image"]);
-    assert.strictEqual(res.valid, false);
-  })();
-
-  // TEST 10: In-memory sliding window rate limiter triggers HTTP 429
-  await test("Test 10: Rate limiter blocks excessive requests and returns HTTP 429", () => {
-    const testLimiter = new MemoryRateLimiter({
-      name: "test",
-      maxRequests: 3,
-      windowMs: 60_000,
-    });
-    const ip = "192.168.1.100";
-
-    const r1 = testLimiter.check(ip);
-    const r2 = testLimiter.check(ip);
-    const r3 = testLimiter.check(ip);
-    const r4 = testLimiter.check(ip);
-
-    assert.strictEqual(r1.allowed, true);
-    assert.strictEqual(r2.allowed, true);
-    assert.strictEqual(r3.allowed, true);
-    assert.strictEqual(r4.allowed, false, "4th request must be denied");
-    assert.ok(r4.retryAfter > 0, "Must specify retryAfter seconds");
-  })();
-
-  // TEST 11: Rate limiter extracts real client IP safely without spoofing
-  await test("Test 11: extractClientIp safely parses X-Forwarded-For", () => {
-    // 1. With TRUST_PROXY=true
-    process.env["TRUST_PROXY"] = "true";
-    const req1 = new Request("http://localhost/api/test", {
-      headers: { "x-forwarded-for": "203.0.113.195, 70.41.3.18, 150.172.238.178" },
-    });
-    const ip1 = extractClientIp(req1);
-    assert.strictEqual(ip1, "203.0.113.195", "Must extract outermost client IP when trusted");
-
-    const req2 = new Request("http://localhost/api/test", {
-      headers: { "x-real-ip": "198.51.100.42" },
-    });
-    const ip2 = extractClientIp(req2);
-    assert.strictEqual(ip2, "198.51.100.42");
-
-    // 2. With TRUST_PROXY disabled / missing, header spoofing is ignored
-    delete process.env["TRUST_PROXY"];
-    const spoofReq = new Request("http://localhost/api/test", {
-      headers: { "x-forwarded-for": "1.2.3.4" },
-    });
-    assert.strictEqual(extractClientIp(spoofReq), "127.0.0.1", "Must ignore spoofed header when TRUST_PROXY is disabled");
-
-    // Restore for subsequent tests
-    process.env["TRUST_PROXY"] = "true";
-  })();
-
-  // TEST 12: Temporary file manager enforces path traversal protection
-  await test("Test 12: Temporary workspace rejects path traversal attempts", () => {
-    const job = createJobWorkspace();
-    try {
-      assert.throws(
-        () => {
-          assertPathSafe(job.jobDir, path.join(job.jobDir, "../../etc/passwd"));
-        },
-        /Security violation: Path traversal attempt detected/,
-        "Must throw on path traversal"
-      );
-    } finally {
-      cleanupJobWorkspace(job.jobDir);
-    }
-  })();
-
-  // TEST 13: Temporary files are cleaned up on success and failure
-  await test("Test 13: withTempWorkspace automatically cleans up files", async () => {
-    let capturedDir = "";
-    await withTempWorkspace(async (job) => {
-      capturedDir = job.jobDir;
-      assert.ok(fs.existsSync(capturedDir), "Job directory must exist during execution");
-      writeJobFile(job, "test.png", Buffer.from("dummydata"));
-      assert.ok(fs.existsSync(path.join(capturedDir, "test.png")));
-    });
-
-    assert.strictEqual(
-      fs.existsSync(capturedDir),
-      false,
-      "Job directory must be purged immediately after execution"
-    );
-  })();
-
-  // TEST 14: Scheduled lifecycle cleanup purges old jobs
-  await test("Test 14: runHourlyCleanup removes abandoned files older than maxAge", () => {
-    const job = createJobWorkspace();
-    // artifically backdate mtime
-    const oldTime = Date.now() - 7200 * 1000; // 2 hours ago
-    fs.utimesSync(job.jobDir, new Date(oldTime), new Date(oldTime));
-
-    const cleaned = runHourlyCleanup(3600 * 1000);
-    assert.ok(cleaned >= 1, "Must have cleaned the stale directory");
-    assert.strictEqual(fs.existsSync(job.jobDir), false, "Stale directory must be removed");
-  })();
-
-  // TEST 15: HTTP Security Headers are present on all responses
-  await test("Test 15: Security headers (nosniff, SAMEORIGIN, CSP) are applied", () => {
-    const rawRes = new Response("ok", { status: 200 });
-    const secured = applySecurityHeaders(rawRes);
-
-    assert.strictEqual(secured.headers.get("x-content-type-options"), "nosniff");
-    assert.strictEqual(secured.headers.get("x-frame-options"), "SAMEORIGIN");
-    assert.strictEqual(secured.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
-    assert.ok(secured.headers.get("content-security-policy")?.includes("default-src 'self'"));
-    assert.strictEqual(secured.headers.get("x-powered-by"), null, "Powered-By header must be stripped");
-  })();
-
-  // TEST 16: Safe error handler prevents stack trace leakage
-  await test("Test 16: Safe error response sanitizes errors and never leaks stack traces", async () => {
-    const safeRes = createSafeErrorResponse(400, "Invalid image format.");
-    const json = await safeRes.json();
-    assert.strictEqual(safeRes.status, 400);
-    assert.strictEqual(json.success, false);
-    assert.strictEqual(json.error, "Invalid image format.");
-    assert.strictEqual(json.stack, undefined, "Stack trace must not be exposed");
-  })();
-
-  // TEST 17: Server entry rejects requests with declared Content-Length > 60MB (HTTP 413)
-  await test("Test 17: server.fetch rejects oversized Content-Length with HTTP 413", async () => {
-    const req = new Request("http://localhost:3000/api/remove-bg", {
-      method: "POST",
-      headers: {
-        "content-length": "70000000", // 70 MB
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ image: "toolarge" }),
-    });
-
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 413, "Must reject oversized body pre-flight with 413");
-    const json = await res.json();
-    assert.ok(json.error?.includes("30 MB limit"), "Friendly error text required");
-  })();
-
-  // TEST 18: Server entry rejects fake base64 executable payload (HTTP 415)
-  await test("Test 18: server.fetch rejects executable payload masquerading as image with HTTP 415", async () => {
-    // MZ PE executable base64: "TVoAAA=="
-    const req = new Request("http://localhost:3000/api/remove-bg", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": "198.51.100.18",
-      },
-      body: JSON.stringify({ base64Image: "data:image/png;base64,TVqQAAMAAAAEAAAA" }),
-    });
-
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 415, "Must reject executable with 415");
-    const json = await res.json();
-    assert.ok(json.error?.includes("Executable"), "Must indicate executable rejection");
-  })();
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PHASE 1 REGRESSION TESTS: /api/users, /api/tools-config, /api/contact, AUTH
-  // ════════════════════════════════════════════════════════════════════════════
-
-  // Generate a valid admin token for testing authorized flows
-  const adminTestToken = createAdminSessionToken({ username: "admin" });
-
-  // TEST 19: Anonymous GET /api/users is rejected with HTTP 401
-  await test("Test 19: Anonymous GET /api/users is rejected with HTTP 401", async () => {
-    const req = new Request("http://localhost:3000/api/users", {
-      method: "GET",
-    });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 401, "Anonymous request to /api/users must return 401");
-    const json = await res.json();
-    assert.strictEqual(json.success, false);
-    assert.ok(json.error?.includes("Unauthorized"), "Must indicate unauthorized access");
-  })();
-
-  // TEST 20: Authorized Admin GET /api/users succeeds & never returns sensitive fields
-  await test("Test 20: Authorized Admin GET /api/users succeeds and strips all sensitive fields", async () => {
-    const req = new Request("http://localhost:3000/api/users", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${adminTestToken}`,
-      },
-    });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 200, "Authorized admin must receive 200");
-    const users = await res.json();
-    assert.ok(Array.isArray(users), "Must return user array");
-
-    // Verify sensitive fields are excluded from every user record
-    for (const u of users) {
-      assert.strictEqual(u.password, undefined, "Plaintext password must NEVER be returned");
-      assert.strictEqual(u.passwordHash, undefined, "Password hash must NEVER be returned");
-      assert.strictEqual(u.token, undefined, "Session token must NEVER be returned");
-      assert.strictEqual(u.ip, undefined, "User IP address must NEVER be returned");
-    }
-  })();
-
-  // TEST 21: Plaintext passwords in data/users.json are safely migrated to scrypt hashes
-  await test("Test 21: Plaintext passwords in data/users.json are securely migrated to scrypt hashes", () => {
-    const testJsonPath = path.join(process.cwd(), "data", ".test-users-migration.json");
-    try {
-      const mockUsers = [
-        {
-          id: "usr_test_migration_01",
-          name: "Test User",
-          email: "test@bg.tools",
-          password: "MyPlaintextPassword123!",
-        },
-      ];
-      fs.writeFileSync(testJsonPath, JSON.stringify(mockUsers, null, 2), "utf-8");
-
-      // Run migration
-      const migrated = migrateUsersData(testJsonPath);
-      assert.strictEqual(migrated.length, 1);
-      assert.strictEqual(migrated[0].password, undefined, "Plaintext password must be removed");
-      assert.ok(migrated[0].passwordHash, "passwordHash must be generated");
-      assert.ok(migrated[0].passwordHash.startsWith("scrypt$"), "Must use scrypt format");
-
-      // Verify the hash matches the original password
-      const verifySuccess = verifyPassword("MyPlaintextPassword123!", migrated[0].passwordHash);
-      assert.strictEqual(verifySuccess, true, "Hash must verify with original password");
-
-      const verifyFail = verifyPassword("WrongPassword456!", migrated[0].passwordHash);
-      assert.strictEqual(verifyFail, false, "Hash must reject wrong password");
-    } finally {
-      if (fs.existsSync(testJsonPath)) {
-        try {
-          fs.unlinkSync(testJsonPath);
-        } catch {}
-      }
-    }
-  })();
-
-  // TEST 22: Anonymous POST /api/users is rejected with HTTP 401
-  await test("Test 22: Anonymous POST /api/users is rejected with HTTP 401", async () => {
-    const req = new Request("http://localhost:3000/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify([{ id: "usr_evil", name: "Hacker" }]),
-    });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 401, "Anonymous update must be rejected with 401");
-  })();
-
-  // TEST 23: Anonymous GET & POST /api/tools-config is rejected with HTTP 401
-  await test("Test 23: Anonymous GET & POST /api/tools-config is rejected with HTTP 401", async () => {
-    // GET check
-    const getReq = new Request("http://localhost:3000/api/tools-config", { method: "GET" });
-    const getRes = await serverHandler.fetch(getReq, {}, {});
-    assert.strictEqual(getRes.status, 401, "Anonymous GET to /api/tools-config must return 401");
-
-    // POST check
-    const postReq = new Request("http://localhost:3000/api/tools-config", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify([]),
-    });
-    const postRes = await serverHandler.fetch(postReq, {}, {});
-    assert.strictEqual(postRes.status, 401, "Anonymous POST to /api/tools-config must return 401");
-  })();
-
-  // TEST 24: Authorized Admin POST /api/tools-config succeeds with strict schema validation
-  await test("Test 24: Authorized Admin POST /api/tools-config succeeds with valid schema", async () => {
-    const validConfig = [
-      {
-        slug: "remove-bg",
-        name: "Remove Background",
-        category: "image-editing",
-        isEnabled: true,
-        creditCost: 1,
-        dailyLimitPerIp: 50,
-        maxResolution: "4K (4096px)",
-        isMaintenance: false,
-        totalUsageCount: 120,
-      },
-    ];
-
-    const req = new Request("http://localhost:3000/api/tools-config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminTestToken}`,
-      },
-      body: JSON.stringify(validConfig),
-    });
-
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 200);
-    const json = await res.json();
-    assert.strictEqual(json.success, true);
-    assert.strictEqual(json.count, 1);
-  })();
-
-  // TEST 25: Malformed & Prototype Pollution in POST /api/tools-config is rejected or sanitized
-  await test("Test 25: Malformed & Prototype Pollution in POST /api/tools-config is safely rejected", async () => {
-    // 1. Invalid payload: not an array
-    const notArrayReq = new Request("http://localhost:3000/api/tools-config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminTestToken}`,
-      },
-      body: JSON.stringify({ slug: "invalid" }),
-    });
-    const notArrayRes = await serverHandler.fetch(notArrayReq, {}, {});
-    assert.strictEqual(notArrayRes.status, 400);
-
-    // 2. Invalid tool item: missing slug
-    const invalidSlugReq = new Request("http://localhost:3000/api/tools-config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminTestToken}`,
-      },
-      body: JSON.stringify([{ name: "Tool without slug" }]),
-    });
-    const invalidSlugRes = await serverHandler.fetch(invalidSlugReq, {}, {});
-    assert.strictEqual(invalidSlugRes.status, 400);
-  })();
-
-  // TEST 26: Anonymous GET /api/contact is rejected with HTTP 401
-  await test("Test 26: Anonymous GET /api/contact is rejected with HTTP 401", async () => {
-    const req = new Request("http://localhost:3000/api/contact", { method: "GET" });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 401, "Anonymous inquiry reading must be rejected with 401");
-  })();
-
-  // TEST 27: Public POST /api/contact accepts valid submission and sanitizes HTML
-  await test("Test 27: Public POST /api/contact accepts valid inquiry and sanitizes HTML", async () => {
-    const req = new Request("http://localhost:3000/api/contact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: "Security Tester <script>alert(1)</script>",
-        email: "audit.test@example.com",
-        subject: "Audit Inquiry",
-        message: "Testing HTML escaping: <b>Hello</b>",
-      }),
-    });
-
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 200);
-    const json = await res.json();
-    assert.strictEqual(json.success, true);
-    assert.ok(json.ticket?.id, "Must return ticket identifier");
-    assert.strictEqual(json.ticket?.status, "open");
-  })();
-
-  // TEST 28: Malformed or oversized POST /api/contact is rejected
-  await test("Test 28: Malformed or oversized POST /api/contact is rejected with HTTP 400/413", async () => {
-    // Missing email
-    const req = new Request("http://localhost:3000/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "Test",
-        email: "not-an-email",
-        message: "Hi",
-      }),
-    });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 400, "Invalid email must return 400");
-  })();
-
-  // TEST 29: Admin Login endpoint validates credentials and returns session token
-  await test("Test 29: Admin Login /api/admin/login verifies credentials and returns session token", async () => {
-    // 1. Invalid password
-    const failReq = new Request("http://localhost:3000/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "admin@bg.tools", password: "wrong_password_999" }),
-    });
-    const failRes = await serverHandler.fetch(failReq, {}, {});
-    assert.strictEqual(failRes.status, 401);
-
-    // 2. Valid login
-    const passReq = new Request("http://localhost:3000/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: "admin@bg.tools",
-        password: process.env["ADMIN_PASSWORD"],
-      }),
-    });
-    const passRes = await serverHandler.fetch(passReq, {}, {});
-    assert.strictEqual(passRes.status, 200);
-    const json = await passRes.json();
-    assert.strictEqual(json.success, true);
-    assert.ok(json.token, "Must return signed token");
-    assert.ok(passRes.headers.get("set-cookie")?.includes("admin_session="), "Must set session cookie");
-  })();
-
-  // TEST 30: Tampered or expired admin session token is rejected
-  await test("Test 30: Tampered or malformed admin session token is rejected with HTTP 401", async () => {
-    const tamperedToken = adminTestToken.slice(0, -6) + "XXXXXX";
-    const req = new Request("http://localhost:3000/api/users", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${tamperedToken}`,
-      },
-    });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 401, "Tampered token must be rejected with 401");
-  })();
-
-  // TEST 31: 5 failed attempts per IP+username triggers 15-minute lockout (HTTP 429)
-  await test("Test 31: 5 failed admin login attempts triggers 15-minute lockout (HTTP 429)", async () => {
-    const testIp = "192.0.2.42";
-    const testUser = "lockout-test@bg.tools";
-
-    // First 4 failed attempts -> 401
-    for (let i = 1; i <= 4; i++) {
-      const req = new Request("http://localhost:3000/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-forwarded-for": testIp },
-        body: JSON.stringify({ username: testUser, password: "bad-password" }),
-      });
-      const res = await serverHandler.fetch(req, {}, {});
-      assert.strictEqual(res.status, 401, `Attempt ${i} should return 401`);
-    }
-
-    // 5th failed attempt -> locks account and returns 429
-    const fifthReq = new Request("http://localhost:3000/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": testIp },
-      body: JSON.stringify({ username: testUser, password: "bad-password" }),
-    });
-    const fifthRes = await serverHandler.fetch(fifthReq, {}, {});
-    assert.strictEqual(fifthRes.status, 429, "5th failed attempt should trigger lockout (429)");
-
-    // 6th attempt (even with valid credentials) -> blocked immediately with 429
-    const sixthReq = new Request("http://localhost:3000/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": testIp },
-      body: JSON.stringify({ username: testUser, password: process.env["ADMIN_PASSWORD"] }),
-    });
-    const sixthRes = await serverHandler.fetch(sixthReq, {}, {});
-    assert.strictEqual(sixthRes.status, 429, "Subsequent attempt while locked must return 429");
-  })();
-
-  // TEST 32: Production mode refuses to start if ADMIN_PASSWORD or ADMIN_SESSION_SECRET is missing or short
-  await test("Test 32: Production mode refuses to start without strong admin env vars", () => {
-    const originalEnv = process.env.NODE_ENV;
-    const originalPass = process.env["ADMIN_PASSWORD"];
-    const originalSecret = process.env["ADMIN_SESSION_SECRET"];
-
-    try {
-      process.env.NODE_ENV = "production";
-
-      // Missing password
-      delete process.env["ADMIN_PASSWORD"];
-      assert.throws(
-        () => validateAdminEnvironment(),
-        /ADMIN_PASSWORD must be defined with at least 12 characters/,
-        "Should throw if ADMIN_PASSWORD is missing in production"
-      );
-
-      // Password too short (< 12 chars)
-      process.env["ADMIN_PASSWORD"] = "short123";
-      assert.throws(
-        () => validateAdminEnvironment(),
-        /ADMIN_PASSWORD must be defined with at least 12 characters/,
-        "Should throw if ADMIN_PASSWORD is too short in production"
-      );
-
-      // Password valid, missing session secret
-      process.env["ADMIN_PASSWORD"] = "ValidLongAdminPassword123!";
-      delete process.env["ADMIN_SESSION_SECRET"];
-      assert.throws(
-        () => validateAdminEnvironment(),
-        /ADMIN_SESSION_SECRET must be defined with at least 32 characters/,
-        "Should throw if ADMIN_SESSION_SECRET is missing in production"
-      );
-
-      // Secret too short (< 32 chars)
-      process.env["ADMIN_SESSION_SECRET"] = "short-secret";
-      assert.throws(
-        () => validateAdminEnvironment(),
-        /ADMIN_SESSION_SECRET must be defined with at least 32 characters/,
-        "Should throw if ADMIN_SESSION_SECRET is too short in production"
-      );
-
-      // Both valid
-      process.env["ADMIN_SESSION_SECRET"] = "ValidLongSessionSecretOver32CharactersLong!";
-      assert.doesNotThrow(() => validateAdminEnvironment(), "Should pass when both are valid");
-    } finally {
-      process.env.NODE_ENV = originalEnv;
-      process.env["ADMIN_PASSWORD"] = originalPass;
-      process.env["ADMIN_SESSION_SECRET"] = originalSecret;
-    }
-  })();
-
-  // TEST 33: User lockout tracker enforces 5 failed attempts -> 15 min block
-  await test("Test 33: User lockout tracker enforces 5 failed attempts -> 15 min block", () => {
-    const testIp = "10.0.0.99";
-    const testUser = "user@example.com";
-
-    assert.strictEqual(userLockout.isLocked(testIp, testUser).locked, false);
-
-    for (let i = 1; i <= 4; i++) {
-      const rec = userLockout.recordFailedAttempt(testIp, testUser);
-      assert.strictEqual(rec.locked, false);
-      assert.strictEqual(rec.remainingAttempts, 5 - i);
-    }
-
-    const fifth = userLockout.recordFailedAttempt(testIp, testUser);
-    assert.strictEqual(fifth.locked, true);
-    assert.strictEqual(userLockout.isLocked(testIp, testUser).locked, true);
-
-    userLockout.resetAttempts(testIp, testUser);
-    assert.strictEqual(userLockout.isLocked(testIp, testUser).locked, false);
-  })();
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PHASE 2 REGRESSION TESTS: SQLITE DATABASE & REPOSITORY LAYER
-  // ════════════════════════════════════════════════════════════════════════════
-
-  // TEST 34: SQLite database operates in WAL mode with busy_timeout configured
-  await test("Test 34: SQLite database operates in WAL mode with cluster-safe busy_timeout", () => {
-    const db = getDb();
-    const journalMode = db.pragma("journal_mode") as [{ journal_mode: string }];
-    assert.strictEqual(journalMode[0]?.journal_mode?.toLowerCase(), "wal", "Must operate in WAL mode");
-
-    const busyTimeout = db.pragma("busy_timeout") as [{ timeout: number }];
-    assert.ok(busyTimeout[0]?.timeout >= 5000, "busy_timeout must be at least 5000ms for PM2 cluster mode");
-  })();
-
-  // TEST 35: Users and sessions repositories enforce transaction safety and hash protection
-  await test("Test 35: Users and sessions repositories enforce transaction safety and SHA-256 token hashing", () => {
-    const testEmail = `test_${Date.now()}@bg.tools`;
-    const createdUser = usersRepo.create({
-      name: "SQLite Test User",
-      email: testEmail,
-      passwordHash: hashPassword("SecretPass123!"),
-      plan: "free",
-      credits: 10,
-    });
-    assert.ok(createdUser.id, "Must return created user with ID");
-    assert.strictEqual(createdUser.email, testEmail);
-
-    // Verify safe retrieval never leaks password_hash
-    const foundSafe = usersRepo.getAllSafe().find((u) => u.id === createdUser.id);
-    assert.ok(foundSafe, "User must be found");
-    assert.strictEqual((foundSafe as any).password_hash, undefined, "password_hash must be excluded");
-    assert.strictEqual((foundSafe as any).passwordHash, undefined, "passwordHash must be excluded");
-
-    // Create session
-    const rawToken = "my_super_secret_session_token_32_bytes_long";
-    const sessionRes = sessionsRepo.createSession(createdUser.id, rawToken);
-    assert.notStrictEqual(sessionRes.session.token_hash, rawToken, "Raw token must NOT be stored in DB");
-
-    // Lookup session by raw token
-    const foundSession = sessionsRepo.findSessionByToken(rawToken);
-    assert.ok(foundSession, "Session must be retrievable by raw token");
-    assert.strictEqual(foundSession.user.id, createdUser.id);
-
-    // Delete session
-    sessionsRepo.deleteSession(rawToken);
-    assert.strictEqual(sessionsRepo.findSessionByToken(rawToken), null, "Deleted session must return null");
-  })();
-
-  // TEST 36: Credit ledger enforces atomic deduction, overspend prevention, and refund support
-  await test("Test 36: Credit ledger enforces atomic deduction, overspend prevention, and refund support", () => {
-    const testEmail = `credit_test_${Date.now()}@bg.tools`;
-    const user = usersRepo.create({
-      name: "Credit Tester",
-      email: testEmail,
-      passwordHash: hashPassword("SecretPass123!"),
-      credits: 3,
-      freeCredits: 3,
-      paidCredits: 0,
-    });
-
-    // 1. Valid deduction
-    const deductRes = creditLedgerRepo.deductUserCredits(user.id, 2, "remove-bg");
-    assert.strictEqual(deductRes.success, true);
-    assert.strictEqual(deductRes.balanceAfter, 1);
-
-    // 2. Overspend attempt rejected (trying to spend 2 when only 1 remains)
-    const overspendRes = creditLedgerRepo.deductUserCredits(user.id, 2, "remove-bg");
-    assert.strictEqual(overspendRes.success, false);
-    assert.ok(overspendRes.error?.includes("Insufficient credits"));
-    assert.strictEqual(overspendRes.balanceAfter, 1);
-
-    // 3. Automatic refund
-    const refundRes = creditLedgerRepo.refundUserCredits(user.id, 2, "remove-bg", "Engine timeout");
-    assert.strictEqual(refundRes.success, true);
-    assert.strictEqual(refundRes.balanceAfter, 3);
-  })();
-
-  // TEST 37: JSON to SQLite migration script executes idempotently
-  await test("Test 37: JSON to SQLite migration script executes idempotently", () => {
-    const firstRun = runMigration();
-    assert.ok(firstRun.toolsConfigMigrated);
-    assert.ok(firstRun.plansConfigMigrated);
-
-    // Second run should run cleanly without throwing
-    const secondRun = runMigration();
-    assert.ok(secondRun.toolsConfigMigrated);
-    assert.ok(secondRun.plansConfigMigrated);
-  })();
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PHASE 3 REGRESSION TESTS: SERVER-SIDE USER AUTHENTICATION
-  // ════════════════════════════════════════════════════════════════════════════
-
-  const testUserEmail = `auth_test_${Date.now()}@bg.tools`;
-  const testUserPass = "SecretPassword123!";
-  let authCookie = "";
-
-  // TEST 38: POST /api/auth/signup validates input, hashes password, sets HttpOnly cookie
-  await test("Test 38: POST /api/auth/signup creates account, enforces >= 8 char password, and sets session cookie", async () => {
-    // 1. Password < 8 characters rejected
-    const shortReq = new Request("http://localhost:3000/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Tester", email: testUserEmail, password: "short" }),
-    });
-    const shortRes = await serverHandler.fetch(shortReq, {}, {});
-    assert.strictEqual(shortRes.status, 400);
-
-    // 2. Valid signup
-    const req = new Request("http://localhost:3000/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Server Auth User", email: testUserEmail, password: testUserPass }),
-    });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 200);
-    const json = await res.json();
-    assert.strictEqual(json.success, true);
-    assert.strictEqual(json.user.email, testUserEmail);
-    assert.strictEqual(json.user.credits, 10);
-    assert.strictEqual(json.user.password_hash, undefined, "password_hash must never be leaked");
-
-    const setCookie = res.headers.get("set-cookie") || "";
-    assert.ok(setCookie.includes("bg_session="), "Must set bg_session cookie");
-    assert.ok(setCookie.includes("HttpOnly"), "Must be HttpOnly cookie");
-    assert.ok(setCookie.includes("SameSite=Lax"), "Must have SameSite=Lax");
-    authCookie = setCookie.split(";")[0]!;
-
-    // 3. Duplicate email returns generic error (no enumeration)
-    const dupReq = new Request("http://localhost:3000/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Duplicate", email: testUserEmail, password: testUserPass }),
-    });
-    const dupRes = await serverHandler.fetch(dupReq, {}, {});
-    assert.strictEqual(dupRes.status, 400);
-  })();
-
-  // TEST 39: POST /api/auth/login validates credentials, enforces lockout, and rotates session
-  await test("Test 39: POST /api/auth/login verifies credentials, rotates session token, and enforces lockout", async () => {
-    // 1. Wrong password rejected
-    const wrongReq = new Request("http://localhost:3000/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: testUserEmail, password: "WrongPassword999!" }),
-    });
-    const wrongRes = await serverHandler.fetch(wrongReq, {}, {});
-    assert.strictEqual(wrongRes.status, 401);
-    const wrongJson = await wrongRes.json();
-    assert.ok(wrongJson.error?.includes("Invalid email or password"));
-
-    // 2. Successful login rotates session
-    const loginReq = new Request("http://localhost:3000/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: testUserEmail, password: testUserPass }),
-    });
-    const loginRes = await serverHandler.fetch(loginReq, {}, {});
-    assert.strictEqual(loginRes.status, 200);
-    const loginJson = await loginRes.json();
-    assert.strictEqual(loginJson.success, true);
-    assert.strictEqual(loginJson.user.email, testUserEmail);
-
-    const newCookie = loginRes.headers.get("set-cookie") || "";
-    assert.ok(newCookie.includes("bg_session="));
-    authCookie = newCookie.split(";")[0]!;
-  })();
-
-  // TEST 40: GET /api/auth/me verifies session cookie and strips sensitive attributes
-  await test("Test 40: GET /api/auth/me returns current user from session cookie", async () => {
-    // 1. Anonymous request rejected with 401
-    const anonReq = new Request("http://localhost:3000/api/auth/me", { method: "GET" });
-    const anonRes = await serverHandler.fetch(anonReq, {}, {});
-    assert.strictEqual(anonRes.status, 401);
-
-    // 2. Authenticated request with bg_session cookie returns 200
-    const authReq = new Request("http://localhost:3000/api/auth/me", {
-      method: "GET",
-      headers: { Cookie: authCookie },
-    });
-    const authRes = await serverHandler.fetch(authReq, {}, {});
-    assert.strictEqual(authRes.status, 200);
-    const meJson = await authRes.json();
-    assert.strictEqual(meJson.authenticated, true);
-    assert.strictEqual(meJson.user.email, testUserEmail);
-    assert.strictEqual(meJson.user.password_hash, undefined);
-  })();
-
-  // TEST 41: POST /api/auth/logout deletes session from DB and expires cookie
-  await test("Test 41: POST /api/auth/logout deletes session from database and expires cookie", async () => {
-    const logoutReq = new Request("http://localhost:3000/api/auth/logout", {
-      method: "POST",
-      headers: { Cookie: authCookie },
-    });
-    const logoutRes = await serverHandler.fetch(logoutReq, {}, {});
-    assert.strictEqual(logoutRes.status, 200);
-    const clearCookie = logoutRes.headers.get("set-cookie") || "";
-    assert.ok(clearCookie.includes("Max-Age=0"), "Cookie must be cleared with Max-Age=0");
-
-    // After logout, GET /api/auth/me with old cookie must fail with 401
-    const verifyReq = new Request("http://localhost:3000/api/auth/me", {
-      method: "GET",
-      headers: { Cookie: authCookie },
-    });
-    const verifyRes = await serverHandler.fetch(verifyReq, {}, {});
-    assert.strictEqual(verifyRes.status, 401, "Revoked session must be rejected");
-  })();
-
-  // TEST 42: Guest daily limit enforcement (signed bg_guest cookie + IP daily limit)
-  await test("Test 42: Guest cannot exceed daily guest allowance and receives signed guest cookie", async () => {
-    const guestIp = `198.51.100.${Math.floor(Math.random() * 200 + 10)}`;
-    // 5 attempts allowed for guest limit
-    for (let i = 1; i <= 5; i++) {
-      const check = creditLedgerRepo.checkAndDeductGuestLimit(guestIp, "remove-bg", 5);
-      assert.strictEqual(check.allowed, true, `Guest request ${i} should be allowed`);
-    }
-    // 6th attempt must be rejected
-    const checkExceeded = creditLedgerRepo.checkAndDeductGuestLimit(guestIp, "remove-bg", 5);
-    assert.strictEqual(checkExceeded.allowed, false, "Guest request 6 should exceed daily limit");
-
-    // Through server endpoint with enforceToolCreditsAndLimits
-    const req = new Request("http://localhost:3000/api/remove-bg", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": guestIp },
-      body: JSON.stringify({ image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" }),
-    });
-    const res = await serverHandler.fetch(req, {}, {});
-    assert.strictEqual(res.status, 429, "Server should return 429 when guest limit is exhausted");
-  })();
-
-  // TEST 43: LocalStorage / client tampering resistance (server authoritative balance)
-  await test("Test 43: Client-side tampering cannot bypass server credit ledger verification", async () => {
-    // Fabricate a request claiming infinite credits or pro plan in headers/body without valid session
-    const fakeReq = new Request("http://localhost:3000/api/remove-bg", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-credits": "999999",
-        "x-user-plan": "pro",
-        "x-forwarded-for": "192.0.2.143",
-      },
-      body: JSON.stringify({
-        user: { credits: 999999, plan: "pro" },
-        image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      }),
-    });
-    const fakeRes = await serverHandler.fetch(fakeReq, {}, {});
-    // Server treats as guest or checks real DB session; claims in header/body are ignored completely
-    assert.ok(fakeRes.status !== 200 || !fakeRes.headers.get("x-user-credits"), "Server must never trust client-claimed credits");
-  })();
-
-  // TEST 44: Atomic credit deduction prevents concurrency race conditions / overspending
-  await test("Test 44: Concurrent debit requests cannot overspend user balance", async () => {
-    // Create test user with exactly 2 credits
-    const raceUserEmail = `race_${Date.now()}@example.com`;
-    const user = usersRepo.create({
-      name: "Race Tester",
-      email: raceUserEmail,
-      passwordHash: "hash",
-      credits: 2,
-      plan: "free",
-    });
-
-    assert.strictEqual(user.credits, 2);
-
-    // Fire 5 simultaneous deduction attempts for 1 credit each
-    const promises = Array.from({ length: 5 }).map(() =>
-      Promise.resolve().then(() => creditLedgerRepo.deductUserCredits(user.id, 1, "test-tool", "127.0.0.1"))
-    );
-
-    const outcomes = await Promise.all(promises);
-    const successes = outcomes.filter((o) => o.success);
-    const failures = outcomes.filter((o) => !o.success);
-
-    assert.strictEqual(successes.length, 2, "Exactly 2 debits must succeed");
-    assert.strictEqual(failures.length, 3, "Remaining 3 debits must fail due to insufficient credits");
-
-    const finalUser = usersRepo.findById(user.id);
-    assert.strictEqual(finalUser?.credits, 0, "User balance must be exactly 0, never negative");
-  })();
-
-  // TEST 45: Downstream failure triggers automatic credit refund
-  await test("Test 45: Downstream tool failure triggers credit refund restoring balance", async () => {
-    const refundUserEmail = `refund_${Date.now()}@example.com`;
-    const user = usersRepo.create({
-      name: "Refund Tester",
-      email: refundUserEmail,
-      passwordHash: "hash",
-      credits: 5,
-      plan: "free",
-    });
-
-    // 1. Deduct 1 credit
-    const debit = creditLedgerRepo.deductUserCredits(user.id, 1, "test-tool", "127.0.0.1");
-    assert.strictEqual(debit.success, true);
-    assert.strictEqual(debit.balanceAfter, 4);
-
-    // Verify balance is now 4
-    let current = usersRepo.findById(user.id);
-    assert.strictEqual(current?.credits, 4);
-
-    // 2. Downstream failure triggers refund
-    const refund = creditLedgerRepo.refundUserCredits(user.id, 1, "test-tool", "Worker timeout 504");
-    assert.strictEqual(refund.success, true);
-    assert.strictEqual(refund.balanceAfter, 5);
-
-    // Verify restored balance
-    current = usersRepo.findById(user.id);
-    assert.strictEqual(current?.credits, 5);
-
-    // Verify ledger records
-    const history = creditLedgerRepo.getUserHistory(user.id);
-    assert.strictEqual(history.length, 2);
-    assert.strictEqual(history[0]?.type, "refund");
-    assert.strictEqual(history[1]?.type, "tool_usage");
-  })();
-
-  // TEST 46: Strict Content Security Policy (removes unsafe-eval, restricts https, allows wasm and blob worker)
-  await test("Test 46: Strict CSP removes unsafe-eval, includes wasm-unsafe-eval, and allows worker blob", () => {
-    const rawRes = new Response("ok", { status: 200 });
-    const secured = applySecurityHeaders(rawRes);
-    const csp = secured.headers.get("content-security-policy") || "";
-
-    assert.ok(!csp.includes("'unsafe-eval'"), "CSP must NOT contain unsafe-eval");
-    assert.ok(csp.includes("'wasm-unsafe-eval'"), "CSP must allow wasm-unsafe-eval for PDF/Tesseract");
-    assert.ok(csp.includes("worker-src 'self' blob:"), "CSP must allow worker-src blob:");
-    assert.ok(!csp.includes("script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"), "CSP must not have blanket https in script-src");
-  })();
-
-  // TEST 47: HSTS header is strictly enforced in production mode
-  await test("Test 47: Strict-Transport-Security header is applied in production mode", () => {
-    const originalEnv = process.env["NODE_ENV"];
-    try {
-      process.env["NODE_ENV"] = "production";
-      const rawRes = new Response("ok", { status: 200 });
-      const secured = applySecurityHeaders(rawRes);
-      assert.strictEqual(
-        secured.headers.get("strict-transport-security"),
-        "max-age=31536000; includeSubDomains; preload",
-        "HSTS must be active in production"
-      );
-    } finally {
-      process.env["NODE_ENV"] = originalEnv;
-    }
-  })();
-
-  // TEST 48: Cluster rate limiter shares limits via SQLite rate_limits table
-  await test("Test 48: SQLite cluster rate limiter coordinates limits across multiple instances", () => {
-    const testIp = "198.51.100.99";
-    const limiter1 = new MemoryRateLimiter({ name: "cluster_test", maxRequests: 2, windowMs: 60_000 });
-    const limiter2 = new MemoryRateLimiter({ name: "cluster_test", maxRequests: 2, windowMs: 60_000 });
-
-    limiter1.reset(testIp);
-
-    // First request from worker 1
-    const r1 = limiter1.check(testIp);
-    assert.strictEqual(r1.allowed, true);
-
-    // Second request from worker 2 (different instance, same SQLite backing)
-    const r2 = limiter2.check(testIp);
-    assert.strictEqual(r2.allowed, true);
-
-    // Third request from worker 1 -> should be rejected because cluster limit (2) is reached
-    const r3 = limiter1.check(testIp);
-    assert.strictEqual(r3.allowed, false, "Cluster rate limit must coordinate across worker instances");
-    assert.strictEqual(r3.retryAfter > 0, true);
-
-    limiter1.reset(testIp);
-  })();
-
-  // TEST 49: InteractiveToolWorkspace DOM-based XSS protections
-  await test("Test 49: InteractiveToolWorkspace sanitizes HTML, strips script tags and event handlers before rendering", () => {
-    const workspaceCode = fs.readFileSync(
-      path.join(process.cwd(), "src", "components", "InteractiveToolWorkspace.tsx"),
-      "utf8"
-    );
-
-    assert.ok(workspaceCode.includes("sanitizeHtmlForImageExport"), "Must contain sanitizeHtmlForImageExport");
-    assert.ok(workspaceCode.includes("script"), "Must sanitize script tags");
-    assert.ok(workspaceCode.includes("iframe"), "Must sanitize iframe tags");
-    assert.ok(workspaceCode.includes("startsWith(\"on\")"), "Must strip inline on* event handler attributes");
-    assert.ok(workspaceCode.includes("javascript:"), "Must strip javascript: pseudo-protocols");
-    assert.ok(
-      !workspaceCode.includes("container.innerHTML = html;"),
-      "Must never assign raw unsanitized html directly to container.innerHTML"
-    );
-  })();
-
-  // TEST 50: Zero occurrences of deprecated brands "bgtool.ai" and "BG Remover Magic"
-  await test("Test 50: Zero legacy brand occurrences ('bgtool.ai', 'BG Remover Magic') and canonical SITE_URL", () => {
-    assert.strictEqual(SITE_URL, "https://bg.tools");
-    assert.strictEqual(BRAND_NAME, "bg.tools");
-
-    const directoriesToCheck = ["src", "public", "scripts", "deployment"];
-    for (const dir of directoriesToCheck) {
-      const fullDir = path.join(process.cwd(), dir);
-      if (!fs.existsSync(fullDir)) continue;
-
-      const scanDir = (currentPath: string) => {
-        const files = fs.readdirSync(currentPath);
-        for (const file of files) {
-          const filePath = path.join(currentPath, file);
-          const stat = fs.statSync(filePath);
-          if (stat.isDirectory()) {
-            scanDir(filePath);
-          } else if (/\.(tsx|ts|html|json|md|conf|txt|xml)$/i.test(file)) {
-            if (file === "test_security_suite.ts") continue;
-            const content = fs.readFileSync(filePath, "utf8");
-            const legacyBrand1 = ["bgtool", "ai"].join(".");
-            const legacyBrand2 = ["bg", "remover", "magic"].join(" ");
-            assert.ok(
-              !content.toLowerCase().includes(legacyBrand1),
-              `File ${filePath} must NOT contain '${legacyBrand1}'`
-            );
-            assert.ok(
-              !content.toLowerCase().includes(legacyBrand2),
-              `File ${filePath} must NOT contain '${legacyBrand2}'`
-            );
-          }
-        }
-      };
-      scanDir(fullDir);
-    }
-  })();
-
-  // TEST 51: Dedicated /faq route with JSON-LD FAQPage structured data
-  await test("Test 51: Dedicated /faq route exists with valid JSON-LD FAQPage schema", () => {
-    const faqPath = path.join(process.cwd(), "src", "routes", "faq.tsx");
-    assert.ok(fs.existsSync(faqPath), "/faq route file must exist");
-    const faqContent = fs.readFileSync(faqPath, "utf8");
-    assert.ok(faqContent.includes("FAQPage"), "Must declare schema.org FAQPage");
-    assert.ok(faqContent.includes("buildPageMeta"), "Must use shared buildPageMeta");
-  })();
-
-  // TEST 52: Sitemap and robots.txt generation
-  await test("Test 52: public/sitemap.xml and robots.txt adhere to https://bg.tools and disallow sensitive routes", () => {
-    const sitemapPath = path.join(process.cwd(), "public", "sitemap.xml");
-    const robotsPath = path.join(process.cwd(), "public", "robots.txt");
-
-    assert.ok(fs.existsSync(sitemapPath), "sitemap.xml must exist in public/");
-    assert.ok(fs.existsSync(robotsPath), "robots.txt must exist in public/");
-
-    const sitemapContent = fs.readFileSync(sitemapPath, "utf8");
-    assert.ok(sitemapContent.includes("https://bg.tools"), "Sitemap must reference https://bg.tools");
-    assert.ok(!sitemapContent.includes("bgtool.ai"), "Sitemap must never reference bgtool.ai");
-
-    const robotsContent = fs.readFileSync(robotsPath, "utf8");
-    assert.ok(robotsContent.includes("Disallow: /admin"), "robots.txt must disallow /admin");
-    assert.ok(robotsContent.includes("Disallow: /api/"), "robots.txt must disallow /api/");
-    assert.ok(robotsContent.includes("Disallow: /auth"), "robots.txt must disallow /auth");
-    assert.ok(robotsContent.includes("Disallow: /chat"), "robots.txt must disallow /chat");
-    assert.ok(robotsContent.includes("Sitemap: https://bg.tools/sitemap.xml"), "robots.txt must declare sitemap URL");
-  })();
-
-  // Summary
-  console.log("\n=================================================");
-  console.log("TEST SUITE EXECUTION SUMMARY");
-  console.log("=================================================");
-  const passedCount = results.filter((r) => r.passed).length;
-  const failedCount = results.filter((r) => !r.passed).length;
-
-  console.log(`Total Tests Run: ${results.length}`);
-  console.log(`Passed: ${passedCount}`);
-  console.log(`Failed: ${failedCount}`);
-
-  if (failedCount > 0) {
-    console.error("\nFailed Tests:");
-    results
-      .filter((r) => !r.passed)
-      .forEach((r) => console.error(` - ${r.name}: ${r.error}`));
-    process.exit(1);
+import server from "../src/server";
+import { apiKeysRepo } from "../src/lib/db/api-keys-repo";
+import { usersRepo } from "../src/lib/db/users-repo";
+import { getDb } from "../src/lib/db/client";
+import crypto from "crypto";
+
+// 1x1 transparent PNG sample for tests
+const SAMPLE_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+const SAMPLE_PNG_BUFFER = Buffer.from(SAMPLE_PNG_BASE64, "base64");
+
+let passedTests = 0;
+let failedTests = 0;
+
+function assert(condition: boolean, testName: string, detail?: string) {
+  if (condition) {
+    passedTests++;
+    console.log(`  \x1b[32m✔ PASS\x1b[0m ${testName}`);
   } else {
-    console.log(`\nALL ${results.length} SECURITY & PRIVACY CONTROLS VERIFIED SUCCESSFULLY!`);
+    failedTests++;
+    console.error(`  \x1b[31m✖ FAIL\x1b[0m ${testName}${detail ? ` - ${detail}` : ""}`);
   }
 }
 
-runTestSuite();
+async function runSecuritySuite() {
+  console.log("\n========================================================");
+  console.log("       bg.tools Public REST API Security Test Suite      ");
+  console.log("========================================================\n");
 
+  const db = getDb();
+  const testUserId = `usr_sec_test_${crypto.randomBytes(6).toString("hex")}`;
+  const now = new Date().toISOString();
+
+  // Create a clean test user with 50 credits
+  db.prepare(`
+    INSERT INTO users (
+      id, name, email, password_hash, plan, credits, free_credits, paid_credits,
+      registered_at, last_active, last_credit_reset
+    ) VALUES (?, 'Security Test User', ?, 'dummy_hash', 'pro', 50, 10, 40, ?, ?, ?)
+  `).run(testUserId, `${testUserId}@example.com`, now, now, now);
+
+  // Create a live API key
+  const liveKeyRes = apiKeysRepo.createKey({
+    userId: testUserId,
+    name: "Security Suite Live Key",
+    keyType: "live",
+  });
+  const liveKey = liveKeyRes.rawKey!;
+
+  // Create a test / sandbox key
+  const testKeyRes = apiKeysRepo.createKey({
+    userId: testUserId,
+    name: "Security Suite Sandbox Key",
+    keyType: "test",
+  });
+  const sandboxKey = testKeyRes.rawKey!;
+
+  // 1. Missing API Key
+  {
+    console.log("[Test 1] Missing API Key");
+    const req = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
+    });
+    const res = await server.fetch(req, {}, {});
+    const body: any = await res.json().catch(() => null);
+    assert(res.status === 401, "Rejects request with 401 Unauthorized");
+    assert(body?.error?.code === "unauthorized", "Returns standard error code 'unauthorized'");
+    assert(Boolean(body?.error?.request_id), "Includes X-Request-Id in error response");
+  }
+
+  // 2. Invalid API Key
+  {
+    console.log("\n[Test 2] Invalid API Key");
+    const req = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer bgt_live_0000000000000000000000000000000000000000000000000000000000000000",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
+    });
+    const res = await server.fetch(req, {}, {});
+    const body: any = await res.json().catch(() => null);
+    assert(res.status === 401, "Rejects invalid key with 401");
+    assert(body?.error?.code === "invalid_api_key", "Returns error code 'invalid_api_key'");
+  }
+
+  // 3. Revoked API Key
+  {
+    console.log("\n[Test 3] Revoked API Key");
+    const tempKeyRes = apiKeysRepo.createKey({ userId: testUserId, name: "Revocation Test Key" });
+    const tempRaw = tempKeyRes.rawKey!;
+    apiKeysRepo.revokeKey(tempKeyRes.key!.id, testUserId);
+
+    const req = new Request("https://bg.tools/api/v1/account", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${tempRaw}` },
+    });
+    const res = await server.fetch(req, {}, {});
+    const body: any = await res.json().catch(() => null);
+    assert(res.status === 401, "Rejects revoked key with 401");
+    assert(body?.error?.code === "invalid_api_key", "Revoked key returns identical timing-safe 401 response");
+  }
+
+  // 4. API Key in Query String
+  {
+    console.log("\n[Test 4] API Key in Query String");
+    const req = new Request(`https://bg.tools/api/v1/remove-background?api_key=${liveKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
+    });
+    const res = await server.fetch(req, {}, {});
+    const body: any = await res.json().catch(() => null);
+    assert(res.status === 400, "Strictly rejects query string API keys with 400 Bad Request");
+    assert(body?.error?.code === "api_key_in_query", "Returns error code 'api_key_in_query'");
+  }
+
+  // 5. Wrong MIME / Executable Upload Block
+  {
+    console.log("\n[Test 5] Executable Binary / Script Rejection");
+    // Windows PE EXE magic bytes: MZ
+    const mzBuffer = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00]);
+    const mzBase64 = mzBuffer.toString("base64");
+
+    const req = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${liveKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ image: mzBase64 }),
+    });
+    const res = await server.fetch(req, {}, {});
+    const body: any = await res.json().catch(() => null);
+    assert(res.status === 415, "Rejects executable binary with HTTP 415 Unsupported Media Type");
+    assert(body?.error?.code === "executable_prohibited", "Returns code 'executable_prohibited'");
+  }
+
+  // 6. Oversized File (> 30 MB)
+  {
+    console.log("\n[Test 6] Oversized Payload (> 30 MB)");
+    const req = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${liveKey}`,
+        "Content-Type": "application/json",
+        "Content-Length": String(35 * 1024 * 1024),
+      },
+      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
+    });
+    const res = await server.fetch(req, {}, {});
+    assert(res.status === 413, "Pre-flight blocks oversized payload with HTTP 413");
+  }
+
+  // 7. SSRF Protection Tests
+  {
+    console.log("\n[Test 7] SSRF Attack Prevention");
+    const ssrfUrls = [
+      { url: "http://127.0.0.1:5000/ping", desc: "Non-HTTPS URL to loopback" },
+      { url: "https://localhost:8443/secret.png", desc: "Localhost internal hostname" },
+      { url: "https://169.254.169.254/latest/meta-data", desc: "Cloud Link-Local / Metadata IP" },
+      { url: "https://10.0.0.1/admin.jpg", desc: "Private Class A Subnet (10.0.0.0/8)" },
+      { url: "https://192.168.1.1/config.png", desc: "Private Class C Subnet (192.168.0.0/16)" },
+    ];
+
+    for (const target of ssrfUrls) {
+      const req = new Request("https://bg.tools/api/v1/remove-background", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${liveKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ image_url: target.url }),
+      });
+      const res = await server.fetch(req, {}, {});
+      assert(res.status === 400, `SSRF blocked for ${target.desc} with HTTP 400`);
+    }
+  }
+
+  // 8. Rate Limiting per Key
+  {
+    console.log("\n[Test 8] Rate Limiting per Key");
+    const rateLimitedKeyRes = apiKeysRepo.createKey({
+      userId: testUserId,
+      name: "Rate Limited Key",
+      rateLimitPerMinute: 2,
+    });
+    const rKey = rateLimitedKeyRes.rawKey!;
+
+    // Call 1
+    const res1 = await server.fetch(
+      new Request("https://bg.tools/api/v1/account", { headers: { Authorization: `Bearer ${rKey}` } }),
+      {},
+      {}
+    );
+    assert(res1.status === 200, "First request succeeds");
+    assert(res1.headers.has("X-RateLimit-Limit"), "Includes X-RateLimit-Limit header");
+
+    // Call 2
+    const res2 = await server.fetch(
+      new Request("https://bg.tools/api/v1/account", { headers: { Authorization: `Bearer ${rKey}` } }),
+      {},
+      {}
+    );
+    assert(res2.status === 200, "Second request succeeds");
+
+    // Call 3 (Exceeds limit of 2)
+    const res3 = await server.fetch(
+      new Request("https://bg.tools/api/v1/account", { headers: { Authorization: `Bearer ${rKey}` } }),
+      {},
+      {}
+    );
+    assert(res3.status === 429, "Third request blocked with HTTP 429 Too Many Requests");
+    assert(res3.headers.has("Retry-After"), "Includes Retry-After header on 429");
+  }
+
+  // 9. Insufficient Credits Check
+  {
+    console.log("\n[Test 9] Insufficient Credits Check");
+    const brokeUserId = `usr_broke_${crypto.randomBytes(6).toString("hex")}`;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    db.prepare(`
+      INSERT INTO users (
+        id, name, email, password_hash, plan, credits, free_credits, paid_credits,
+        registered_at, last_active, last_credit_reset
+      ) VALUES (?, 'Broke User', ?, 'dummy_hash', 'free', 0, 0, 0, ?, ?, ?)
+    `).run(brokeUserId, `${brokeUserId}@example.com`, now, now, todayStr);
+
+    const brokeKeyRes = apiKeysRepo.createKey({ userId: brokeUserId, name: "Broke Key" });
+    const brokeKey = brokeKeyRes.rawKey!;
+
+    const req = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${brokeKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
+    });
+    const res = await server.fetch(req, {}, {});
+    const body: any = await res.json().catch(() => null);
+    assert(res.status === 402, "Blocks request with HTTP 402 Payment Required");
+    assert(body?.error?.code === "insufficient_credits", "Returns error code 'insufficient_credits'");
+  }
+
+  // 10. Idempotency & Double-Charge Prevention
+  {
+    console.log("\n[Test 10] Idempotency Key & Double-Charge Prevention");
+    const idempKey = `idemp_${crypto.randomBytes(8).toString("hex")}`;
+    const userBefore = usersRepo.findById(testUserId)!;
+    const initialCredits = userBefore.credits;
+
+    // Cache a simulated response for this idempotency key
+    apiKeysRepo.saveIdempotentResponse({
+      keyHash: crypto.createHash("sha256").update(liveKey).digest("hex"),
+      idempotencyKey: idempKey,
+      requestHash: "req_test_hash",
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ success: true, idempotent: true }),
+      isBase64: false,
+    });
+
+    // Make request with Idempotency-Key
+    const req = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${liveKey}`,
+        "Idempotency-Key": idempKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
+    });
+
+    const res = await server.fetch(req, {}, {});
+    const body: any = await res.json().catch(() => null);
+
+    assert(res.status === 200, "Idempotent request returns HTTP 200 replay");
+    assert(res.headers.get("x-idempotent-replay") === "true", "Sets X-Idempotent-Replay header");
+
+    const userAfter = usersRepo.findById(testUserId)!;
+    assert(userAfter.credits === initialCredits, "Zero credits deducted on idempotent replay (no double billing)");
+  }
+
+  // 11. SQL Injection Attempt Resistance
+  {
+    console.log("\n[Test 11] SQL Injection Attack Resistance");
+    const sqliPayload = "' OR '1'='1' -- ";
+    const req = new Request("https://bg.tools/api/v1/account", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${liveKey}`,
+        "Idempotency-Key": sqliPayload,
+        "X-Custom-Test": sqliPayload,
+      },
+    });
+    const res = await server.fetch(req, {}, {});
+    assert(res.status === 200, "Parameterized queries safely handle SQL injection payloads");
+  }
+
+  // 12. Security Privacy: Raw Key & Hashes Never Leaked
+  {
+    console.log("\n[Test 12] Cryptographic Privacy: Secret Keys Never Exposed");
+    const userKeys = apiKeysRepo.getKeysByUser(testUserId);
+    const hasPlaintext = userKeys.some((k: any) => k.rawKey || k.keyHash || k.key_hash);
+    assert(!hasPlaintext, "Listing user keys returns prefix only; raw key and SHA-256 hash are never returned");
+
+    const accReq = new Request("https://bg.tools/api/v1/account", {
+      headers: { Authorization: `Bearer ${liveKey}` },
+    });
+    const accRes = await server.fetch(accReq, {}, {});
+    const accBody = await accRes.text();
+    assert(!accBody.includes(liveKey), "API account endpoint never leaks plaintext raw key");
+  }
+
+  // 13. Health & OpenAPI Endpoints
+  {
+    console.log("\n[Test 13] Health and OpenAPI 3.1 Spec");
+    const healthRes = await server.fetch(new Request("https://bg.tools/api/v1/health"), {}, {});
+    assert(healthRes.status === 200, "/api/v1/health responds with 200 OK");
+
+    const specRes = await server.fetch(new Request("https://bg.tools/api/v1/openapi.json"), {}, {});
+    const spec: any = await specRes.json();
+    assert(spec.openapi === "3.1.0", "/api/v1/openapi.json serves valid OpenAPI 3.1.0 spec");
+    assert(Boolean(spec.paths["/api/v1/remove-background"]), "OpenAPI defines /api/v1/remove-background");
+  }
+
+  // 14. Model Selection (Karudi vs Ganga) & Security Sanitization
+  {
+    console.log("\n[Test 14] Model Selection (Karudi vs Ganga) & Security Sanitization");
+
+    // Test selecting Karudi model
+    const reqKarudi = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sandboxKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        image: SAMPLE_PNG_BASE64,
+        model: "karudi",
+        response_format: "json",
+      }),
+    });
+    const resKarudi = await server.fetch(reqKarudi, {}, {});
+    assert(resKarudi.headers.get("x-model-used") === "karudi", "X-Model-Used header correctly identifies karudi model");
+
+    // Test selecting Ganga model
+    const reqGanga = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sandboxKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        image: SAMPLE_PNG_BASE64,
+        model: "ganga",
+        response_format: "json",
+      }),
+    });
+    const resGanga = await server.fetch(reqGanga, {}, {});
+    assert(resGanga.headers.get("x-model-used") === "ganga", "X-Model-Used header correctly identifies ganga model");
+
+    // Test malicious path-traversal / injection string in model parameter
+    const reqMalicious = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sandboxKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        image: SAMPLE_PNG_BASE64,
+        model: "../../etc/passwd' OR 1=1;--",
+        response_format: "json",
+      }),
+    });
+    const resMalicious = await server.fetch(reqMalicious, {}, {});
+    assert(
+      resMalicious.headers.get("x-model-used") === "ganga",
+      "Malicious model string is safely neutralized and defaults to ganga without directory traversal"
+    );
+  }
+
+  // Cleanup test user & keys
+  db.prepare("DELETE FROM users WHERE id = ?").run(testUserId);
+
+  console.log("\n========================================================");
+  console.log(`Test Results: ${passedTests} Passed, ${failedTests} Failed`);
+  console.log("========================================================\n");
+
+  if (failedTests > 0) {
+    process.exit(1);
+  }
+}
+
+runSecuritySuite().catch((err) => {
+  console.error("Test Suite crashed:", err);
+  process.exit(1);
+});

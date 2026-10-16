@@ -16,15 +16,18 @@ Allow: /
 Allow: /tools/
 Allow: /pricing
 Allow: /faq
+Allow: /download
+Allow: /api
+Allow: /docs/api
 Allow: /models
 Allow: /contact
 Allow: /privacy
 Allow: /terms
 
-# Disallow admin panel and private portals
+# Disallow admin panel, private portals, and raw API endpoints
 Disallow: /admin
 Disallow: /admin/
-Disallow: /api/
+Disallow: /api/v1/
 Disallow: /account
 Disallow: /auth
 Disallow: /chat
