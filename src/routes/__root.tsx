@@ -67,6 +67,12 @@ function RootShell({ children }: { children: ReactNode }) {
             __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-RP1JF6Q4TY');`,
           }}
         />
+        {/* Day / Night Theme Initializer: Defaults to Day Mode unless user explicitly saved Night mode */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("bg.theme.v1");if(t==="dark"){document.documentElement.classList.add("dark");}else{document.documentElement.classList.remove("dark");}}catch(e){}})();`,
+          }}
+        />
         {/* Razorpay Checkout SDK */}
         <script async src="https://checkout.razorpay.com/v1/checkout.js" />
       </head>
