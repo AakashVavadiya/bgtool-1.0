@@ -40,7 +40,6 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
   const [currentCurrency, setCurrentCurrencyState] = useState<CurrencyCode>("INR");
   const [searchQuery, setSearchQuery] = useState("");
   const popoverRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCurrentCurrencyState(getCurrentCurrency());
@@ -191,13 +190,11 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
           <div className="relative mt-2.5 mb-1.5 px-0.5 shrink-0">
             <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <input
-              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search currency or country..."
               className="w-full rounded-xl border border-border/80 bg-muted/40 py-2 sm:py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all"
-              autoFocus
             />
           </div>
 
