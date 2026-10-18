@@ -155,6 +155,168 @@ class GangaEngine:
             print(f"[Ganga AI] Warmup notice: {e}")
 
     @classmethod
+    def extract_inside_backgrounds(cls, img_rgb: np.ndarray, alpha_uint8: np.ndarray, raw_mask: np.ndarray = None) -> np.ndarray:
+        """
+        High-precision topological cavity & inside background extraction.
+        Removes strictly enclosed background pockets/gaps (e.g. gaps between
+        desk organizer sections, mug handles, chair legs, scissors loops)
+        while strictly protecting solid foreground objects (even if white/light-colored,
+        such as white pots, white shirts, ceramics, white shoes).
+        """
+        try:
+            if not isinstance(img_rgb, np.ndarray) or not isinstance(alpha_uint8, np.ndarray):
+                return alpha_uint8
+
+            h, w = alpha_uint8.shape[:2]
+            if h < 50 or w < 50:
+                return alpha_uint8
+
+            solid_fg = (alpha_uint8 >= 200).astype(np.uint8)
+            fg_area = int(np.sum(solid_fg))
+            if fg_area < 500:
+                return alpha_uint8
+
+            # Work at optimized scale for speed & robustness
+            scale = 1.0
+            max_d = max(h, w)
+            if max_d > 1600:
+                scale = 1600.0 / max_d
+                small_w = max(100, int(w * scale))
+                small_h = max(100, int(h * scale))
+                work_rgb = cv2.resize(img_rgb, (small_w, small_h), interpolation=cv2.INTER_AREA)
+                work_alpha = cv2.resize(alpha_uint8, (small_w, small_h), interpolation=cv2.INTER_NEAREST)
+                work_solid = cv2.resize(solid_fg, (small_w, small_h), interpolation=cv2.INTER_NEAREST)
+                work_raw = cv2.resize(raw_mask, (small_w, small_h), interpolation=cv2.INTER_LINEAR) if raw_mask is not None else None
+            else:
+                work_rgb = img_rgb
+                work_alpha = alpha_uint8
+                work_solid = solid_fg
+                work_raw = raw_mask
+                small_w, small_h = w, h
+
+            # 1. Identify guaranteed outer background via flood-fill from transparent image perimeter
+            bg_seed = (work_alpha < 20).astype(np.uint8)
+            seeds = []
+            step = max(2, min(small_h, small_w) // 40)
+            for x in range(0, small_w, step):
+                if bg_seed[0, x]: seeds.append((x, 0))
+                if bg_seed[small_h - 1, x]: seeds.append((x, small_h - 1))
+            for y in range(0, small_h, step):
+                if bg_seed[y, 0]: seeds.append((0, y))
+                if bg_seed[y, small_w - 1]: seeds.append((small_w - 1, y))
+
+            if not seeds:
+                return alpha_uint8
+
+            outer_bg = np.zeros((small_h, small_w), dtype=bool)
+            bg_work = bg_seed.copy()
+            for sx, sy in seeds:
+                if bg_work[sy, sx] == 1:
+                    m = np.zeros((small_h + 2, small_w + 2), dtype=np.uint8)
+                    cv2.floodFill(bg_work, m, (sx, sy), 2)
+                    outer_bg |= (m[1:-1, 1:-1] == 1)
+
+            # Dilate outer background by 8px: any candidate touching this is PART OF OUTER PERIMETER
+            # (e.g. pot resting on table, pants reaching floor, mug base). It CANNOT be an interior cavity!
+            dilated_outer = cv2.dilate(outer_bg.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (17, 17))) > 0
+
+            # 2. Sample background color from outer background
+            work_bgr = cv2.cvtColor(work_rgb, cv2.COLOR_RGB2BGR) if work_rgb.ndim == 3 else work_rgb
+            work_lab = cv2.cvtColor(work_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
+
+            bg_samples = work_lab[outer_bg & (work_alpha < 10)]
+            if len(bg_samples) < 40:
+                return alpha_uint8
+
+            median_bg = np.median(bg_samples, axis=0)
+            delta_e = np.sqrt(np.sum(((work_lab - median_bg) / np.array([1.0, 1.2, 1.2])) ** 2, axis=2))
+
+            # 3. Detect interior cavities that are strictly ENCLOSED on BOTH axes (horizontal AND vertical)
+            span = min(70, max(20, int(min(small_h, small_w) * 0.12)))
+            kh = cv2.getStructuringElement(cv2.MORPH_RECT, (span, 1))
+            closed_h = cv2.morphologyEx(work_solid, cv2.MORPH_CLOSE, kh)
+            kv = cv2.getStructuringElement(cv2.MORPH_RECT, (1, span))
+            closed_v = cv2.morphologyEx(work_solid, cv2.MORPH_CLOSE, kv)
+
+            # Must be enclosed horizontally AND vertically (strict 4-way topological negative space)
+            enclosed = (closed_h > 0) & (closed_v > 0)
+
+            # Local texture gradient (true backgrounds have low texture gradient, not intricate surface details)
+            gray = cv2.cvtColor(work_bgr, cv2.COLOR_BGR2GRAY)
+            grad_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+            grad_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+            grad_mag = np.sqrt(grad_x ** 2 + grad_y ** 2)
+
+            # Safeguards for candidate cavity pixels:
+            # - Must be strictly enclosed
+            # - Must NOT touch outer background / floor / table
+            # - Must match background color closely (delta_e < 13.0)
+            # - Must be smooth background (grad_mag < 25)
+            # - If raw neural probability is available: must NOT be high-confidence foreground (raw_mask < 0.40)
+            candidates = enclosed & (~dilated_outer) & (delta_e < 13.0) & (grad_mag < 25)
+            if work_raw is not None:
+                candidates &= (work_raw < 0.40)
+
+            if not np.any(candidates):
+                return alpha_uint8
+
+            num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
+                candidates.astype(np.uint8), connectivity=8
+            )
+            cavity_to_remove = np.zeros((small_h, small_w), dtype=bool)
+
+            # Strict physical constraints on interior gaps/cavities:
+            # - Must be a narrow slot or small hole: area <= 2.5% of foreground
+            # - Slot width <= 45 pixels (cannot be a large solid object)
+            max_cavity_area = max(20, int(fg_area * (scale ** 2) * 0.025))
+
+            for lbl in range(1, num_labels):
+                area = stats[lbl, cv2.CC_STAT_AREA]
+                if area < 12 or area > max_cavity_area:
+                    continue
+
+                comp_w = stats[lbl, cv2.CC_STAT_WIDTH]
+                if comp_w > 45:
+                    continue
+
+                comp_mask = (labels == lbl)
+                dilated = cv2.dilate(comp_mask.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)))
+                boundary = (dilated > 0) & (~comp_mask)
+                if not np.any(boundary):
+                    continue
+
+                bound_de = np.mean(delta_e[boundary])
+                cav_de = np.mean(delta_e[comp_mask])
+
+                # Surrounding boundary MUST have distinct, high-contrast foreground color compared to cavity
+                if bound_de > 20.0 and cav_de < 12.0:
+                    cavity_to_remove |= comp_mask
+
+            if not np.any(cavity_to_remove):
+                return alpha_uint8
+
+            # Upscale cavity mask if we processed at lower resolution
+            if scale != 1.0:
+                cavity_full = cv2.resize(
+                    cavity_to_remove.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST
+                ).astype(bool)
+            else:
+                cavity_full = cavity_to_remove
+
+            refined_alpha = alpha_uint8.copy()
+            refined_alpha[cavity_full] = 0
+
+            # Sub-pixel boundary softening (1-2px) for smooth anti-aliased transitions
+            dilated_cav = cv2.dilate(cavity_full.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+            cav_boundary = (dilated_cav > 0) & (~cavity_full) & (refined_alpha > 0)
+            refined_alpha[cav_boundary] = (refined_alpha[cav_boundary].astype(np.float32) * 0.5).astype(np.uint8)
+
+            return refined_alpha
+        except Exception as e:
+            print(f"[Ganga AI] Cavity extraction notice: {e}")
+            return alpha_uint8
+
+    @classmethod
     def remove_background(cls, image_input, model_name: str = "ganga", smooth_edge: float = 0.6) -> dict:
         """
         Executes ultra-high precision Ganga AI neural background removal on an image
@@ -250,11 +412,20 @@ class GangaEngine:
             mask_full = cv2.resize(norm_mask, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
             mask_full = np.clip(mask_full, 0.0, 1.0)
 
-            # High-precision contrast normalization: removes background haze while preserving natural sub-pixel anti-aliasing
-            low = 0.05
-            high = 0.95
-            mask_clean = np.clip((mask_full - low) / (high - low), 0.0, 1.0)
-            alpha_uint8 = (mask_clean * 255.0).astype(np.uint8)
+            # Calibrated contrast mapping:
+            # - Model probability >= 0.52 is guaranteed 100% solid foreground (alpha = 255)
+            #   Strictly preserves solid objects (white pots, white shirts, ceramics, shoes)
+            # - Model probability <= 0.12 is guaranteed 100% clean background (alpha = 0)
+            # - Smoothstep cubic transfer S(t) = t^2 * (3 - 2t) provides natural sub-pixel anti-aliasing
+            low = 0.12
+            high = 0.52
+            norm = np.clip((mask_full - low) / (high - low), 0.0, 1.0)
+            smooth_mask = norm * norm * (3.0 - 2.0 * norm)
+            alpha_uint8 = (smooth_mask * 255.0).astype(np.uint8)
+
+            # 5b. Ultra-Safe Interior Cavity Extraction
+            # Strictly preserves foreground objects while removing genuine negative spaces
+            alpha_uint8 = cls.extract_inside_backgrounds(np.array(img), alpha_uint8, raw_mask=mask_full)
 
             # 6. High-Fidelity Edge Defringing (Background Color Decontamination)
             # Prevents dark/light background bleed along semi-transparent boundaries

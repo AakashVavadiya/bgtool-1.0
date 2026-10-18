@@ -39,7 +39,7 @@ export function TermsPage() {
       <div>
         <SiteHeader />
 
-        <main className="mx-auto max-w-5xl px-6 py-16 md:px-12 md:py-24">
+        <main className="w-full px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-10 md:py-16">
           {/* Breadcrumb */}
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-6">
             <Link to="/" className="hover:underline">
@@ -56,7 +56,7 @@ export function TermsPage() {
             <h1 className="font-display text-4xl font-extrabold sm:text-5xl md:text-6xl tracking-tight">
               Terms of Service<span className="text-accent">.</span>
             </h1>
-            <p className="max-w-3xl text-base md:text-lg font-medium text-muted-foreground leading-relaxed">
+            <p className="max-w-5xl text-base md:text-lg font-medium text-muted-foreground leading-relaxed">
               Effective Date: October 2026. Welcome to <strong>bg.tools</strong> (accessible at{" "}
               <a href="https://bg.tools" className="text-foreground underline underline-offset-4 hover:text-accent">
                 https://bg.tools

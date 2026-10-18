@@ -6,7 +6,7 @@ import { Faq } from "@/components/Faq";
 import { AdminStore, type PurchasePlanConfig } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
-import { Wand2, Gift, Zap, ShieldCheck, Lock, Check, X, Sparkles, Minus } from "lucide-react";
+import { Wand2, Gift, Zap, ShieldCheck, Lock, Check, X, Sparkles, Minus, Tag, RefreshCw } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { ProductHuntBadge } from "@/components/ProductHuntBadge";
 import { initiateRazorpayCheckout } from "@/lib/razorpay";
@@ -244,6 +244,17 @@ function Pricing() {
     AuthUser.getCurrentUser()
   );
 
+  // Promo Code State
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discountType: "percentage" | "fixed";
+    discountValue: number;
+    description?: string;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [isCheckingPromo, setIsCheckingPromo] = useState(false);
+
   const isYearly = billingPeriod === "yearly";
 
   useEffect(() => {
@@ -274,6 +285,58 @@ function Pricing() {
 
   const formatPrice = (amountINR: number) => formatCurrency(amountINR, currentCurrency);
 
+  const getDiscountedPrice = (priceINR: number) => {
+    if (!appliedPromo) return priceINR;
+    let discount = 0;
+    if (appliedPromo.discountType === "percentage") {
+      discount = Math.round((priceINR * appliedPromo.discountValue) / 100);
+    } else {
+      discount = appliedPromo.discountValue;
+    }
+    return Math.max(1, priceINR - discount);
+  };
+
+  const handleApplyPromo = async (codeToTry?: string) => {
+    const code = (codeToTry || promoCodeInput).trim().toUpperCase();
+    if (!code) {
+      setPromoError("Please enter a promo code.");
+      return;
+    }
+    setIsCheckingPromo(true);
+    setPromoError(null);
+    try {
+      const res = await fetch("/api/promocodes/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, amount: 999 }),
+      });
+      const data = await res.json();
+      if (data.valid && data.promo) {
+        setAppliedPromo({
+          code: data.promo.code,
+          discountType: data.promo.discountType,
+          discountValue: data.promo.discountValue,
+          description: data.promo.description,
+        });
+        setPromoCodeInput(data.promo.code);
+        setPromoError(null);
+      } else {
+        setPromoError(data.error || "Invalid or expired promo code.");
+        setAppliedPromo(null);
+      }
+    } catch {
+      setPromoError("Failed to validate promo code. Please try again.");
+    } finally {
+      setIsCheckingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput("");
+    setPromoError(null);
+  };
+
   const selectedPaygPack: PaygPack =
     PAYG_PACKS.find((p) => String(p.credits) === paygPackCredits) ?? {
       credits: 5,
@@ -289,12 +352,14 @@ function Pricing() {
     priceINR: number,
     planType: "pack" | "subscription" | "festival" = "pack"
   ) => {
+    const finalPriceINR = getDiscountedPrice(priceINR);
     initiateRazorpayCheckout({
       planName: name,
       planType,
       credits,
-      amountINR: priceINR,
+      amountINR: finalPriceINR,
       currency: currentCurrency,
+      promoCode: appliedPromo?.code,
     });
   };
 
@@ -349,6 +414,71 @@ function Pricing() {
         <div className="mt-8 flex justify-center">
           <ProductHuntBadge variant="compact" />
         </div>
+
+        {/* Promo Code Enter Field */}
+        <div className="mt-8 max-w-md mx-auto">
+          <div className="relative flex items-center rounded-2xl border border-border bg-card p-1.5 shadow-sm focus-within:border-foreground transition-all">
+            <Tag className="h-4 w-4 ml-3 text-muted-foreground shrink-0" />
+            <input
+              type="text"
+              value={promoCodeInput}
+              onChange={(e) => {
+                setPromoCodeInput(e.target.value.toUpperCase());
+                setPromoError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleApplyPromo();
+                }
+              }}
+              placeholder="Have a promo code? (e.g. FESTIVE50)"
+              className="w-full bg-transparent px-3 py-1.5 text-xs md:text-sm font-mono font-bold uppercase placeholder:normal-case placeholder:font-normal placeholder:text-muted-foreground focus:outline-none"
+            />
+            {appliedPromo ? (
+              <button
+                type="button"
+                onClick={handleRemovePromo}
+                className="mr-1 inline-flex items-center gap-1 rounded-xl bg-muted hover:bg-muted/80 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+                <span>Remove</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isCheckingPromo || !promoCodeInput.trim()}
+                onClick={() => handleApplyPromo()}
+                className="mr-1 inline-flex items-center gap-1.5 rounded-xl bg-foreground text-background hover:opacity-90 disabled:opacity-40 px-4 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+              >
+                {isCheckingPromo ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                <span>Apply</span>
+              </button>
+            )}
+          </div>
+
+          {appliedPromo && (
+            <div className="mt-2.5 flex items-center justify-between rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-fade-in">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                <span>
+                  Coupon <strong>{appliedPromo.code}</strong> applied! (
+                  {appliedPromo.discountType === "percentage"
+                    ? `${appliedPromo.discountValue}% OFF`
+                    : `₹${appliedPromo.discountValue} OFF`}
+                  )
+                </span>
+              </span>
+              <span className="text-[11px] font-bold">Discounts applied</span>
+            </div>
+          )}
+
+          {promoError && (
+            <p className="mt-2 text-xs font-medium text-rose-500 text-center animate-fade-in">
+              {promoError}
+            </p>
+          )}
+        </div>
       </section>
 
       {/* Main Pricing Cards Container */}
@@ -389,11 +519,16 @@ function Pricing() {
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <span className="font-mono text-2xl sm:text-3xl font-black text-foreground">
-                      {formatPrice(activeOffer.priceINR)}
+                      {formatPrice(getDiscountedPrice(activeOffer.priceINR))}
                     </span>
-                    {activeOffer.originalPriceINR && (
+                    {(appliedPromo || activeOffer.originalPriceINR) && (
                       <span className="font-mono text-sm text-muted-foreground line-through">
-                        {formatPrice(activeOffer.originalPriceINR)}
+                        {formatPrice(appliedPromo ? activeOffer.priceINR : activeOffer.originalPriceINR!)}
+                      </span>
+                    )}
+                    {appliedPromo && (
+                      <span className="rounded-lg bg-pink-500/20 px-2 py-0.5 font-mono text-xs font-bold text-pink-500">
+                        {appliedPromo.code} Applied
                       </span>
                     )}
                     <span className="rounded-lg bg-amber-500/20 px-2.5 py-1 font-mono text-xs font-bold text-amber-500 flex items-center gap-1">
@@ -418,7 +553,7 @@ function Pricing() {
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-7 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-amber-500/25 hover:bg-amber-400 hover:scale-[1.02] transition-all cursor-pointer"
                 >
                   <Gift className="h-4 w-4" />
-                  <span>Claim Offer ({formatPrice(activeOffer.priceINR)})</span>
+                  <span>Claim Offer ({formatPrice(getDiscountedPrice(activeOffer.priceINR))})</span>
                 </button>
               </div>
             </div>
@@ -500,11 +635,16 @@ function Pricing() {
 
               <div className="mt-6">
                 <p className="font-display text-3xl sm:text-4xl font-medium">
-                  {formatPrice(isYearly ? PRICING_CONFIG.lite.yearlyPrice : PRICING_CONFIG.lite.monthlyPrice)}{" "}
+                  {formatPrice(getDiscountedPrice(isYearly ? PRICING_CONFIG.lite.yearlyPrice : PRICING_CONFIG.lite.monthlyPrice))}{" "}
                   <span className="text-sm sm:text-base text-muted-foreground font-normal">
                     {isYearly ? "/ yr" : "/ mo"}
                   </span>
                 </p>
+                {appliedPromo && (
+                  <p className="text-xs text-muted-foreground line-through">
+                    {formatPrice(isYearly ? PRICING_CONFIG.lite.yearlyPrice : PRICING_CONFIG.lite.monthlyPrice)}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 font-mono font-medium">
                   ~{formatPrice(isYearly ? PRICING_CONFIG.lite.costPerTokenYearly : PRICING_CONFIG.lite.costPerTokenMonthly)} / Token
                 </p>
@@ -561,11 +701,16 @@ function Pricing() {
 
               <div className="mt-6">
                 <p className="font-display text-3xl sm:text-4xl font-medium">
-                  {formatPrice(isYearly ? PRICING_CONFIG.medium.yearlyPrice : PRICING_CONFIG.medium.monthlyPrice)}{" "}
+                  {formatPrice(getDiscountedPrice(isYearly ? PRICING_CONFIG.medium.yearlyPrice : PRICING_CONFIG.medium.monthlyPrice))}{" "}
                   <span className="text-sm sm:text-base text-muted-foreground font-normal">
                     {isYearly ? "/ yr" : "/ mo"}
                   </span>
                 </p>
+                {appliedPromo && (
+                  <p className="text-xs text-muted-foreground line-through">
+                    {formatPrice(isYearly ? PRICING_CONFIG.medium.yearlyPrice : PRICING_CONFIG.medium.monthlyPrice)}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-mono font-medium">
                   ~{formatPrice(isYearly ? PRICING_CONFIG.medium.costPerTokenYearly : PRICING_CONFIG.medium.costPerTokenMonthly)} / Token
                 </p>
@@ -624,11 +769,16 @@ function Pricing() {
 
               <div className="mt-6">
                 <p className="font-display text-3xl sm:text-4xl font-medium">
-                  {formatPrice(isYearly ? PRICING_CONFIG.pro.yearlyPrice : PRICING_CONFIG.pro.monthlyPrice)}{" "}
+                  {formatPrice(getDiscountedPrice(isYearly ? PRICING_CONFIG.pro.yearlyPrice : PRICING_CONFIG.pro.monthlyPrice))}{" "}
                   <span className="text-sm sm:text-base text-muted-foreground font-normal">
                     {isYearly ? "/ yr" : "/ mo"}
                   </span>
                 </p>
+                {appliedPromo && (
+                  <p className="text-xs text-muted-foreground line-through">
+                    {formatPrice(isYearly ? PRICING_CONFIG.pro.yearlyPrice : PRICING_CONFIG.pro.monthlyPrice)}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-muted-foreground font-mono font-medium">
                   ~{formatPrice(isYearly ? PRICING_CONFIG.pro.costPerTokenYearly : PRICING_CONFIG.pro.costPerTokenMonthly)} / Token
                 </p>
@@ -702,8 +852,13 @@ function Pricing() {
 
               <div className="mt-4">
                 <p className="font-display text-3xl sm:text-4xl font-medium">
-                  {formatPrice(selectedPaygPack.price)}
+                  {formatPrice(getDiscountedPrice(selectedPaygPack.price))}
                 </p>
+                {appliedPromo && (
+                  <p className="text-xs text-muted-foreground line-through">
+                    {formatPrice(selectedPaygPack.price)}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-mono font-medium">
                   {paygCostPerToken} / Gold Token
                 </p>

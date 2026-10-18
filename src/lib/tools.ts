@@ -358,41 +358,6 @@ export const tools: Tool[] = [
     },
   },
   {
-    slug: "image-to-pdf",
-    name: "Image To PDF",
-    category: "Document Converters",
-    icon: FileType2,
-    blurb: "Bundle one or many images into a single paginated PDF document.",
-    accepts: "Any image",
-    outputs: "PDF",
-    seo: {
-      title: "Image to PDF Converter Online Free — Convert JPG, PNG to PDF",
-      description: "Convert JPG, PNG, WEBP images to PDF online for free. Bundle multiple images into a single PDF document. No watermark, instant download, no sign-up required.",
-      keywords: ["image to pdf", "jpg to pdf converter", "png to pdf online", "convert photo to pdf", "multiple images to pdf", "merge images pdf", "photo to pdf free", "image pdf converter", "jpg to pdf free", "picture to pdf online"],
-      article: {
-        intro: "Converting images to PDF is essential for document sharing, archiving, printing and professional communication. PDF format preserves image quality and layout exactly as intended, and PDFs can be opened on any device without specialised software. Our free converter creates professional PDFs from your JPG, PNG or WEBP images instantly.",
-        howTo: [
-          "Upload your image or images using the upload zone above.",
-          "Images are automatically arranged as pages in your PDF document.",
-          "Download your completed PDF with the Download button.",
-          "Share, print or archive your PDF document.",
-        ],
-        benefits: [
-          { heading: "Universal Document Format", body: "PDF files can be opened on any device — Windows, Mac, iOS, Android — using free PDF viewers. They preserve your image layout exactly as intended." },
-          { heading: "Professional Presentation", body: "PDFs look professional and are appropriate for business documents, portfolios, applications, and formal submissions where image files alone may seem unprofessional." },
-          { heading: "No Quality Loss", body: "Images are embedded in the PDF at full original quality and resolution. No compression artefacts or quality degradation occurs during conversion." },
-          { heading: "Print-Ready Output", body: "PDF is the standard format for professional printing. Converting your images to PDF ensures they will print correctly at the intended size and quality." },
-        ],
-        faqs: [
-          { q: "Can I convert multiple images into one PDF?", a: "Yes — you can upload multiple images and they will each become a separate page in your PDF document." },
-          { q: "What image formats can I convert to PDF?", a: "You can convert JPG, PNG, WEBP, and other common image formats to PDF using this tool." },
-          { q: "Will my PDF be print-quality?", a: "Yes — images are embedded at their full original resolution. For best print quality, use high-resolution source images (300 DPI or higher)." },
-          { q: "Is there a file size limit for Image to PDF conversion?", a: "The tool processes images up to 50MB per file. For larger files or bulk conversions, split your project into batches." },
-        ],
-      },
-    },
-  },
-  {
     slug: "image-to-word",
     name: "Image To Word",
     category: "Document Converters",
@@ -1492,32 +1457,34 @@ export const tools: Tool[] = [
     },
   },
 
-  // Images to PDF
+  // Image to PDF (Multi-Image Select Support)
   {
-    slug: "images-to-pdf",
-    name: "Images to PDF",
+    slug: "image-to-pdf",
+    name: "Image to PDF",
     category: "PDF Tools",
     icon: Images,
     tag: "Popular",
-    blurb: "Convert JPG, PNG, WEBP and other images into a single multi-page PDF.",
-    accepts: "JPG, PNG, WEBP, HEIC, SVG, TIFF",
+    blurb: "Convert one or multiple images (JPG, PNG, WEBP, HEIC) into a single multi-page PDF.",
+    accepts: "JPG, PNG, WEBP, HEIC, TIFF, BMP, SVG",
     outputs: "PDF",
     seo: {
-      title: "Images to PDF Online Free — Convert JPG, PNG to PDF",
-      description: "Convert multiple images to a single PDF document online for free. Supports JPG, PNG, WEBP, HEIC, TIFF. Drag to reorder, instant download.",
-      keywords: ["images to pdf", "jpg to pdf", "png to pdf", "convert image to pdf", "photos to pdf"],
+      title: "Image to PDF Online Free — Convert JPG, PNG, WEBP to PDF",
+      description: "Convert single or multiple images to a single PDF document online for free. Supports JPG, PNG, WEBP, HEIC, TIFF. Drag to reorder, instant download.",
+      keywords: ["image to pdf", "images to pdf", "jpg to pdf", "png to pdf", "convert image to pdf", "photos to pdf", "merge photos to pdf"],
       article: {
-        intro: "Turn any collection of images into a polished PDF document. Upload multiple photos, reorder them, and download a single PDF — great for scanning documents, portfolios, and photo albums.",
-        howTo: ["Upload your images.", "Reorder them by dragging.", "Choose page size and orientation.", "Click Convert to PDF and download."],
+        intro: "Turn any collection of images into a polished, professional PDF document. Upload multiple photos, reorder them as pages, and download a single compiled PDF — great for scanned documents, portfolios, invoices, and photo albums.",
+        howTo: ["Upload your images using the upload zone.", "Reorder them by dragging or using arrow buttons.", "Choose page size (A4 or US Letter).", "Click Convert to PDF and download instantly."],
         benefits: [
-          { heading: "Multi-Image Support", body: "Combine unlimited images into one PDF." },
-          { heading: "Multiple Formats", body: "JPG, PNG, WEBP, HEIC, TIFF and SVG all supported." },
-          { heading: "Page Control", body: "Choose A4, Letter, or fit image to page." },
-          { heading: "No Watermarks", body: "Clean, professional output with no added branding." },
+          { heading: "Multi-Image Selection", body: "Combine unlimited images into a single beautifully formatted PDF document." },
+          { heading: "Multiple Formats Supported", body: "JPG, PNG, WEBP, HEIC, TIFF and SVG all supported with lossless quality." },
+          { heading: "Page Control & Layout", body: "Choose standard A4 or US Letter page sizing to fit your printing and sharing needs." },
+          { heading: "100% Free Forever", body: "Clean, professional output with zero watermarks or tracking." },
         ],
         faqs: [
-          { q: "How many images can I convert?", a: "You can convert as many images as needed." },
-          { q: "Can I control the order of images?", a: "Yes, drag and drop to reorder before converting." },
+          { q: "Can I convert multiple images into one PDF?", a: "Yes! You can select multiple images at once and arrange them into a single multi-page PDF." },
+          { q: "Can I control the order of images?", a: "Yes, easily drag and drop or use the reorder buttons to arrange your pages before compiling." },
+          { q: "Is there a limit on how many images I can select?", a: "No, you can select and convert as many photos as needed without limits." },
+          { q: "Are my files uploaded to a remote server?", a: "No, all conversion runs securely right in your browser with 100% privacy." },
         ],
       },
     },
@@ -4973,4 +4940,6 @@ export const tools: Tool[] = [
   },
 ];
 
-export const getTool = (slug: string) => tools.find((t) => t.slug === slug);
+export const getTool = (slug: string) =>
+  tools.find((t) => t.slug === slug) ||
+  (slug === "images-to-pdf" ? tools.find((t) => t.slug === "image-to-pdf") : undefined);

@@ -12,3 +12,4 @@ export * from "./password-reset-repo";
 export * from "./security-events-repo";
 export * from "./telemetry-repo";
 export * from "./api-keys-repo";
+export * from "./promo-codes-repo";

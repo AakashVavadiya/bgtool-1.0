@@ -86,6 +86,7 @@ export interface CheckoutOptions {
   credits: number;
   amountINR: number;
   currency?: CurrencyCode | undefined;
+  promoCode?: string | undefined;
   onSuccess?: ((paymentId: string) => void) | undefined;
   onError?: ((error: string) => void) | undefined;
   onCancel?: (() => void) | undefined;
@@ -181,6 +182,7 @@ export async function initiateRazorpayCheckout({
         credits,
         amount: amountINR,
         currency: activeCurrency,
+        promoCode: options.promoCode || undefined,
       }),
     });
 
@@ -249,6 +251,7 @@ export async function initiateRazorpayCheckout({
               orderId: response.razorpay_order_id,
               paymentId: response.razorpay_payment_id,
               signature: response.razorpay_signature,
+              promoCode: options.promoCode || undefined,
             }),
           });
 

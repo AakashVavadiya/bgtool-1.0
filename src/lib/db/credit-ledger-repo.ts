@@ -168,19 +168,29 @@ export const creditLedgerRepo = {
   },
 
   /**
-   * Enforce and check daily guest IP usage
+   * Enforce and check daily guest IP usage:
+   * - 5 base free uses across tools without login.
+   * - If 5 uses are finished, when user switches to a different tool, grant 2 bonus chances for that new tool.
    */
   checkAndDeductGuestLimit(
     ip: string,
     toolSlug: string,
-    dailyLimit: number = GUEST_DAILY_LIMIT
-  ): { allowed: boolean; remaining: number; usedToday: number } {
+    dailyLimit: number = GUEST_DAILY_LIMIT,
+    bonusLimit: number = 2
+  ): {
+    allowed: boolean;
+    remaining: number;
+    usedToday: number;
+    isBonus?: boolean;
+    reason?: "base_exhausted" | "same_tool_exhausted" | "bonus_exhausted";
+  } {
     const db = getDb();
     const today = new Date().toISOString().slice(0, 10);
     const ledgerId = `cld_gst_${crypto.randomBytes(10).toString("hex")}`;
     const now = new Date().toISOString();
 
     const guestTx = db.transaction(() => {
+      // 1. Total usage by this IP today
       const countRow = db
         .prepare(`
           SELECT COUNT(*) as count 
@@ -191,30 +201,101 @@ export const creditLedgerRepo = {
 
       const usedToday = countRow ? countRow.count : 0;
 
-      if (usedToday >= dailyLimit) {
-        return { allowed: false, remaining: 0, usedToday };
+      // 2. If under the base limit (5), allow normal execution
+      if (usedToday < dailyLimit) {
+        db.prepare(`
+          INSERT INTO credit_ledger (
+            id, user_id, ip, amount, balance_after, type, tool_slug, description, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          ledgerId,
+          null,
+          ip,
+          -1,
+          dailyLimit - (usedToday + 1),
+          "guest_usage",
+          toolSlug,
+          `Guest anonymous usage of ${toolSlug}`,
+          now
+        );
+
+        return {
+          allowed: true,
+          remaining: dailyLimit - (usedToday + 1),
+          usedToday: usedToday + 1,
+          isBonus: false,
+        };
       }
 
-      db.prepare(`
-        INSERT INTO credit_ledger (
-          id, user_id, ip, amount, balance_after, type, tool_slug, description, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        ledgerId,
-        null,
-        ip,
-        -1,
-        dailyLimit - (usedToday + 1),
-        "guest_usage",
-        toolSlug,
-        `Guest anonymous usage of ${toolSlug}`,
-        now
-      );
+      // 3. Base limit (5) has been exhausted!
+      // Check which tools were used during the initial baseLimit uses:
+      const baseToolRows = db
+        .prepare(`
+          SELECT tool_slug 
+          FROM credit_ledger 
+          WHERE ip = ? AND type = 'guest_usage' AND created_at >= ?
+          ORDER BY created_at ASC 
+          LIMIT ?
+        `)
+        .all(ip, `${today}T00:00:00.000Z`, dailyLimit) as { tool_slug: string }[];
 
+      const baseUsedSlugs = new Set(baseToolRows.map((r) => r.tool_slug).filter(Boolean));
+
+      // If this is the SAME tool that was used in the base uses, block it!
+      if (baseUsedSlugs.has(toolSlug)) {
+        return {
+          allowed: false,
+          remaining: 0,
+          usedToday,
+          isBonus: false,
+          reason: "same_tool_exhausted",
+        };
+      }
+
+      // 4. This is ANOTHER tool! Check how many times this specific tool has been used today
+      const toolCountRow = db
+        .prepare(`
+          SELECT COUNT(*) as count 
+          FROM credit_ledger 
+          WHERE ip = ? AND type = 'guest_usage' AND tool_slug = ? AND created_at >= ?
+        `)
+        .get(ip, toolSlug, `${today}T00:00:00.000Z`) as { count: number };
+
+      const toolUsedCount = toolCountRow ? toolCountRow.count : 0;
+
+      // Give 2 bonus chances for this different tool
+      if (toolUsedCount < bonusLimit) {
+        db.prepare(`
+          INSERT INTO credit_ledger (
+            id, user_id, ip, amount, balance_after, type, tool_slug, description, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          ledgerId,
+          null,
+          ip,
+          -1,
+          bonusLimit - (toolUsedCount + 1),
+          "guest_usage",
+          toolSlug,
+          `Guest bonus trial usage of ${toolSlug} (different tool chance)`,
+          now
+        );
+
+        return {
+          allowed: true,
+          remaining: bonusLimit - (toolUsedCount + 1),
+          usedToday: usedToday + 1,
+          isBonus: true,
+        };
+      }
+
+      // Both base limit and 2 bonus chances for this different tool are exhausted
       return {
-        allowed: true,
-        remaining: dailyLimit - (usedToday + 1),
-        usedToday: usedToday + 1,
+        allowed: false,
+        remaining: 0,
+        usedToday,
+        isBonus: true,
+        reason: "bonus_exhausted",
       };
     });
 

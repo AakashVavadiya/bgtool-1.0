@@ -8,6 +8,7 @@ import {
   type SiteDialogFrequency,
   type SiteDialogTargetPages,
   type WebsiteStructureSettings,
+  type GuestLimitsConfig,
   CORE_PAGE_ROUTES,
 } from "@/admin/lib/admin-store";
 import { tools, TOOL_CATEGORIES, type ToolCategory } from "@/lib/tools";
@@ -53,7 +54,7 @@ import {
 
 export function ProSettingsView() {
   const [settings, setSettings] = useState<UiEditSettings>(() => AdminStore.getUiSettings());
-  const [activeTab, setActiveTab] = useState<"tree" | "ui-edit" | "ai-control" | "dialog" | "structure">("dialog");
+  const [activeTab, setActiveTab] = useState<"tree" | "ui-edit" | "ai-control" | "dialog" | "structure" | "guest-limits">("dialog");
   const [dialogPreviewViewport, setDialogPreviewViewport] = useState<"mobile" | "desktop">("mobile");
   const [isLivePreviewOpen, setIsLivePreviewOpen] = useState(false);
   const [copiedPreviewCode, setCopiedPreviewCode] = useState(false);
@@ -105,6 +106,22 @@ export function ProSettingsView() {
         ...current,
         ...partial,
       },
+    });
+    setSettings(updated);
+    if (message) {
+      toast.success(message);
+    }
+  };
+
+  const handleUpdateGuestLimits = (partial: Partial<GuestLimitsConfig>, message?: string) => {
+    const current = settings.guestLimits || {
+      guestBaseLimit: 5,
+      guestDifferentToolBonus: 2,
+      guestDifferentToolBonusEnabled: true,
+    };
+    const updated = AdminStore.saveGuestLimitsConfig({
+      ...current,
+      ...partial,
     });
     setSettings(updated);
     if (message) {
@@ -447,6 +464,22 @@ export function ProSettingsView() {
         >
           <Sliders className="h-4 w-4" />
           <span>UI Edit Options</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("guest-limits")}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "guest-limits"
+              ? "bg-foreground text-background shadow-xs font-extrabold"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <Shield className="h-4 w-4 text-emerald-500" />
+          <span>Guest Tool Limits</span>
+          <span className="rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-mono font-bold">
+            {settings.guestLimits?.guestBaseLimit ?? 5} + {settings.guestLimits?.guestDifferentToolBonus ?? 2} Bonus
+          </span>
         </button>
       </div>
 
@@ -1783,6 +1816,270 @@ export function ProSettingsView() {
                     />
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 6: GUEST TOOL LIMITS & DIFFERENT TOOL BONUS ─────────────────── */}
+      {activeTab === "guest-limits" && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Banner */}
+          <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-card p-6 sm:p-7 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-0.5 font-mono text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400">
+                    Visitor Access Control
+                  </span>
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
+                <h3 className="font-display text-2xl font-black text-foreground mt-2">
+                  Guest Tool Limits & Different-Tool Bonus Engine
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                  Configure tool execution limits for users working without login. When a guest finishes their base free tries on one tool, grant them extra chances if they try another type of tool!
+                </p>
+              </div>
+
+              {/* Status Pill */}
+              <div className="rounded-2xl border border-emerald-500/30 bg-card p-4 shadow-sm shrink-0">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Current Policy</span>
+                <p className="font-mono text-xl font-black text-foreground mt-1">
+                  {settings.guestLimits?.guestBaseLimit ?? 5} Base + {settings.guestLimits?.guestDifferentToolBonus ?? 2} Bonus
+                </p>
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                  {settings.guestLimits?.guestDifferentToolBonusEnabled !== false ? "✓ Different Tool Bonus Active" : "✕ Bonus Disabled"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Presets */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground">Quick Presets:</span>
+            <button
+              type="button"
+              onClick={() =>
+                handleUpdateGuestLimits(
+                  { guestBaseLimit: 5, guestDifferentToolBonus: 2, guestDifferentToolBonusEnabled: true },
+                  "Applied Standard Preset: 5 Base + 2 Bonus!"
+                )
+              }
+              className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:border-foreground hover:bg-muted transition-all cursor-pointer"
+            >
+              Default (5 Base + 2 Bonus)
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleUpdateGuestLimits(
+                  { guestBaseLimit: 10, guestDifferentToolBonus: 3, guestDifferentToolBonusEnabled: true },
+                  "Applied Generous Preset: 10 Base + 3 Bonus!"
+                )
+              }
+              className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:border-foreground hover:bg-muted transition-all cursor-pointer"
+            >
+              Generous (10 Base + 3 Bonus)
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleUpdateGuestLimits(
+                  { guestBaseLimit: 3, guestDifferentToolBonus: 1, guestDifferentToolBonusEnabled: true },
+                  "Applied Strict Preset: 3 Base + 1 Bonus!"
+                )
+              }
+              className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:border-foreground hover:bg-muted transition-all cursor-pointer"
+            >
+              Strict (3 Base + 1 Bonus)
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleUpdateGuestLimits(
+                  { guestBaseLimit: 5, guestDifferentToolBonus: 0, guestDifferentToolBonusEnabled: false },
+                  "Bonus disabled: Single Tool 5 uses only!"
+                )
+              }
+              className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:border-foreground hover:bg-muted transition-all cursor-pointer"
+            >
+              No Bonus (5 Uses Only)
+            </button>
+          </div>
+
+          {/* Main Controls Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Setting 1: Base Guest Limit */}
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-xs space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4 className="font-display text-base font-bold text-foreground">
+                    1. Base Tool Uses Without Login
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    How many times a guest visitor can use tools before hitting the first limit.
+                  </p>
+                </div>
+                <span className="rounded-full bg-muted border border-border px-3 py-1 font-mono text-sm font-black text-foreground">
+                  {settings.guestLimits?.guestBaseLimit ?? 5} tries
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={1}
+                    max={20}
+                    value={settings.guestLimits?.guestBaseLimit ?? 5}
+                    onChange={(e) =>
+                      handleUpdateGuestLimits({ guestBaseLimit: Number(e.target.value) })
+                    }
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={settings.guestLimits?.guestBaseLimit ?? 5}
+                    onChange={(e) =>
+                      handleUpdateGuestLimits({ guestBaseLimit: Math.max(1, Number(e.target.value)) })
+                    }
+                    className="w-20 rounded-xl border border-input bg-background px-3 py-1.5 font-mono text-xs font-bold text-foreground focus:outline-none"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Recommended: <strong>5 times</strong>. This lets new visitors experience quality processing before signing in.
+                </p>
+              </div>
+            </div>
+
+            {/* Setting 2: Different Tool Bonus Chances */}
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-xs space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4 className="font-display text-base font-bold text-foreground">
+                    2. Bonus Chances for Different Tool
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Extra uses granted when the same user tries another type of tool after exhausting base tries.
+                  </p>
+                </div>
+                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
+                  +{settings.guestLimits?.guestDifferentToolBonus ?? 2} extra
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={10}
+                    value={settings.guestLimits?.guestDifferentToolBonus ?? 2}
+                    onChange={(e) =>
+                      handleUpdateGuestLimits({ guestDifferentToolBonus: Number(e.target.value) })
+                    }
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={settings.guestLimits?.guestDifferentToolBonus ?? 2}
+                    onChange={(e) =>
+                      handleUpdateGuestLimits({ guestDifferentToolBonus: Math.max(0, Number(e.target.value)) })
+                    }
+                    className="w-20 rounded-xl border border-input bg-background px-3 py-1.5 font-mono text-xs font-bold text-foreground focus:outline-none"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Recommended: <strong>2 chances</strong>. If they try the same tool, they stay blocked. If they test a different tool, they get 2 more chances.
+                </p>
+              </div>
+            </div>
+
+            {/* Setting 3: Bonus Toggle Switch */}
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-xs space-y-3 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-display text-base font-bold text-foreground">
+                    Enable Different-Tool Bonus Rule
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    When toggled ON, users who finish their initial 5 tries can sample another tool for 2 bonus chances.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleUpdateGuestLimits(
+                      {
+                        guestDifferentToolBonusEnabled:
+                          settings.guestLimits?.guestDifferentToolBonusEnabled === false ? true : false,
+                      },
+                      `Different-tool bonus ${
+                        settings.guestLimits?.guestDifferentToolBonusEnabled === false ? "ENABLED" : "DISABLED"
+                      }`
+                    )
+                  }
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    settings.guestLimits?.guestDifferentToolBonusEnabled !== false
+                      ? "bg-emerald-500"
+                      : "bg-muted-foreground/30"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                      settings.guestLimits?.guestDifferentToolBonusEnabled !== false
+                        ? "translate-x-5"
+                        : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Workflow Simulation Explainer */}
+          <div className="rounded-3xl border border-border bg-card p-6 sm:p-7 shadow-xs">
+            <h4 className="font-display text-base font-bold text-foreground flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span>How the Rule Works in Action</span>
+            </h4>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+              <div className="rounded-2xl border border-border/80 bg-background/50 p-4 space-y-1.5">
+                <span className="font-mono text-[10px] font-black uppercase text-muted-foreground">Step 1 • Initial Uses</span>
+                <p className="font-bold text-foreground">5 Free Tool Uses</p>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Visitor uses background remover or converter without needing to log in.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border/80 bg-background/50 p-4 space-y-1.5">
+                <span className="font-mono text-[10px] font-black uppercase text-muted-foreground">Step 2 • 5 Uses Finished</span>
+                <p className="font-bold text-foreground">Same Tool Blocked</p>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Trying the same tool prompts: "Daily limit reached for this tool. Try another tool for 2 bonus chances!"
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 space-y-1.5">
+                <span className="font-mono text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Step 3 • Switch Tool</span>
+                <p className="font-bold text-foreground">2 Bonus Chances</p>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Switching to a different tool activates 2 free bonus runs for that new tool.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border/80 bg-background/50 p-4 space-y-1.5">
+                <span className="font-mono text-[10px] font-black uppercase text-muted-foreground">Step 4 • Sign Up</span>
+                <p className="font-bold text-foreground">10 Daily Credits</p>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  After bonus is exhausted, user registers for a free account with 10 free daily Bronze Tokens.
+                </p>
               </div>
             </div>
           </div>

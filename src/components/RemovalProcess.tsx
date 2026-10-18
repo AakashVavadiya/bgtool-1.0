@@ -492,10 +492,13 @@ export function RemovalProcess() {
 
   const handleDownload = () => {
     if (!afterImage) return;
-    const downloadName = fileName ? `bg_removed_${fileName.replace(/\.[^.]+$/, "")}.png` : "bg_removed_transparent.png";
-    if (afterImage.startsWith("data:")) {
+    const baseName = fileName ? fileName.replace(/\.[^.]+$/, "") : "image";
+    const downloadName = `${baseName}_transparent_cutout.png`;
+    const dataToDownload = afterImage;
+
+    if (dataToDownload.startsWith("data:")) {
       try {
-        const parts = afterImage.split(",");
+        const parts = dataToDownload.split(",");
         const mime = parts[0]?.match(/:(.*?);/)?.[1] || "image/png";
         const binary = atob(parts[1] || "");
         const array = new Uint8Array(binary.length);
@@ -511,19 +514,19 @@ export function RemovalProcess() {
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-        toast.success("Background removed PNG downloaded!");
+        toast.success(`Downloaded ${downloadName}`);
         return;
       } catch (e) {
         console.warn("Fallback to direct data url click:", e);
       }
     }
     const a = document.createElement("a");
-    a.href = afterImage;
+    a.href = dataToDownload;
     a.download = downloadName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    toast.success("Background removed PNG downloaded!");
+    toast.success(`Downloaded ${downloadName}`);
   };
 
   const handleReset = () => {
@@ -535,6 +538,7 @@ export function RemovalProcess() {
     setProcessing(false);
     setStep(0);
     setDuration(null);
+    setBgType("checker");
   };
 
   return (
@@ -559,7 +563,10 @@ export function RemovalProcess() {
                   <img
                     src={afterImage || beforeImage || undefined}
                     alt="Processed thumbnail"
-                    className="h-full w-full object-cover"
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="h-full w-full object-cover select-none workspace-protected-image"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-white/10 text-amber-400">
@@ -672,7 +679,7 @@ export function RemovalProcess() {
           </p>
         </div>
       ) : (
-        /* Active Workspace: Image Preview (Left) + Settings Panel (Right) */
+        /* Active Workspace: Image Preview (Left) + Settings / Pipeline (Right) */
         <div className={`w-full transition-all duration-300 ${hasProcessed ? "max-w-5xl mx-auto" : "grid items-start gap-8 lg:grid-cols-[1.8fr_1fr]"}`}>
           {/* Left Column: Canvas Preview Area */}
           <div className="flex flex-col gap-3 w-full">
@@ -757,8 +764,15 @@ export function RemovalProcess() {
 
             {/* Main Visual Canvas Frame */}
             <div
+              onContextMenu={(e) => e.preventDefault()}
               className="group relative flex h-[440px] xs:h-[500px] sm:h-[620px] md:h-[680px] lg:h-[720px] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-border bg-card transition-all shadow-xl select-none"
-              style={hasProcessed && bgType === "checker" ? checkerStyle : { backgroundColor: bgType === "black" ? "#0a0a0c" : bgType === "white" ? "#ffffff" : undefined }}
+              style={
+                hasProcessed && bgType === "checker"
+                  ? checkerStyle
+                  : hasProcessed
+                    ? { backgroundColor: bgType === "black" ? "#0a0a0c" : bgType === "white" ? "#ffffff" : undefined }
+                    : undefined
+              }
             >
               {/* If processed with beforeImage & afterImage, render interactive Before/After Comparison Slider */}
               {hasProcessed && afterImage && beforeImage ? (
@@ -769,6 +783,7 @@ export function RemovalProcess() {
                   onPointerUp={handleSliderPointerUp}
                   onPointerCancel={handleSliderPointerUp}
                   onWheel={handleSliderWheel}
+                  onContextMenu={(e) => e.preventDefault()}
                   className="relative flex items-center justify-center w-full h-full p-2 sm:p-4 cursor-ew-resize touch-none select-none overflow-hidden"
                 >
                   <div
@@ -777,17 +792,19 @@ export function RemovalProcess() {
                       aspectRatio: imageAspect ? `${imageAspect}` : undefined,
                     }}
                   >
-                    {/* BASE LAYER (Underneath): Cutout PNG over transparent/chosen background */}
+                    {/* BASE LAYER (Underneath): Cutout PNG over checker/color */}
                     <img
                       src={afterImage}
                       alt="Cutout PNG"
                       draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
+                      onContextMenu={(e) => e.preventDefault()}
                       onLoad={(e) => {
                         const w = e.currentTarget.naturalWidth;
                         const h = e.currentTarget.naturalHeight;
                         if (w > 0 && h > 0) setImageAspect(w / h);
                       }}
-                      className="w-full h-full object-contain pointer-events-none select-none block"
+                      className="w-full h-full object-contain pointer-events-none select-none block workspace-protected-image"
                     />
 
                     {/* OVERLAY LAYER (Left): Original Photo with background, clipped to slider position */}
@@ -801,7 +818,9 @@ export function RemovalProcess() {
                         src={beforeImage}
                         alt="Original photo"
                         draggable={false}
-                        className="w-full h-full object-contain pointer-events-none select-none block"
+                        onDragStart={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
+                        className="w-full h-full object-contain pointer-events-none select-none block workspace-protected-image"
                       />
                     </div>
 
@@ -847,12 +866,15 @@ export function RemovalProcess() {
                   <img
                     src={beforeImage}
                     alt="Original uploaded"
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
+                    onContextMenu={(e) => e.preventDefault()}
                     onLoad={(e) => {
                       const w = e.currentTarget.naturalWidth;
                       const h = e.currentTarget.naturalHeight;
                       if (w > 0 && h > 0) setImageAspect(w / h);
                     }}
-                    className="max-h-[92%] max-w-[96%] w-auto h-auto object-contain transition-opacity duration-300"
+                    className="max-h-[92%] max-w-[96%] w-auto h-auto object-contain transition-opacity duration-300 select-none workspace-protected-image"
                   />
                 )
               )}
@@ -896,10 +918,11 @@ export function RemovalProcess() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleDownload}
+                    onClick={() => handleDownload()}
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-xs sm:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer"
                   >
-                    <Download className="h-4 w-4 text-amber-400" /> Download PNG
+                    <Download className="h-4 w-4 text-amber-400" />
+                    <span>Download PNG</span>
                   </button>
                 </div>
                 <button
@@ -913,7 +936,7 @@ export function RemovalProcess() {
             )}
           </div>
 
-          {/* Right Column: Pipeline & Settings Control Panel (Only shown while preparing or actively processing, hidden once image is processed) */}
+          {/* Right Column: Pipeline Status before processing */}
           {!hasProcessed && (
             <div className="rounded-3xl border-2 border-border bg-card p-5 sm:p-6 md:p-8 shadow-md flex flex-col justify-between min-h-0 sm:min-h-[620px] md:min-h-[680px] lg:min-h-[720px] lg:sticky lg:top-6">
             <div>
@@ -1024,7 +1047,7 @@ export function RemovalProcess() {
                     </button>
                     <button
                       type="button"
-                      onClick={handleDownload}
+                      onClick={() => handleDownload()}
                       className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-4 py-4 text-xs md:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer"
                     >
                       <Download className="h-4 w-4" /> Download
@@ -1041,8 +1064,8 @@ export function RemovalProcess() {
               </div>
             </div>
           </div>
-          )}
-        </div>
+        )}
+      </div>
       )}
 
       {/* Interactive Cutout Editor Modal (Remove Brush, Restore Brush, Magic Brush) */}

@@ -15,8 +15,14 @@ import {
   Eye,
   EyeOff,
   SlidersHorizontal,
+  Palette,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  BackgroundEditPanel,
+  BackgroundChoice,
+  compositeImageWithBackground,
+} from "./BackgroundEditPanel";
 
 export interface CutoutBrushEditorModalProps {
   originalImageSrc: string; // beforeImage (needed to restore original pixels)
@@ -66,6 +72,40 @@ export function CutoutBrushEditorModal({
   // Magic brush settings (safe default tolerance 14 to prevent bleeding into subject)
   const [magicTolerance, setMagicTolerance] = useState<number>(14);
   const [contiguousOnly, setContiguousOnly] = useState<boolean>(true);
+
+  // Background Options (Magic AI presets, photos, colors, gradients)
+  const [bgChoice, setBgChoice] = useState<BackgroundChoice>({
+    type: "transparent",
+    value: "",
+  });
+  const [bokehBlur, setBokehBlur] = useState<number>(0);
+  const [showBgPanel, setShowBgPanel] = useState<boolean>(true);
+  const [mobileBgSheetOpen, setMobileBgSheetOpen] = useState<boolean>(false);
+
+  const handleBokehBlurChange = (val: number) => {
+    setBokehBlur(val);
+    if (bgChoice.type === "image") {
+      setBgChoice((prev) => ({
+        ...prev,
+        blur: val,
+      }));
+    }
+  };
+
+  const handleBgChoiceChange = (choice: BackgroundChoice) => {
+    if (choice.type === "image") {
+      const blur = choice.blur !== undefined && choice.blur > 0 ? choice.blur : bokehBlur;
+      setBgChoice({
+        ...choice,
+        blur,
+      });
+      if (choice.blur !== undefined) {
+        setBokehBlur(choice.blur);
+      }
+    } else {
+      setBgChoice(choice);
+    }
+  };
 
   // Canvas Viewport & History
   const [zoom, setZoom] = useState<number>(1);
@@ -235,13 +275,10 @@ export function CutoutBrushEditorModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleUndo, handleRedo, onClose]);
 
-  // Mouse wheel zoom with Ctrl key (or trackpad pinch-to-zoom)
+  // Mouse wheel zoom with Alt + Wheel (also supports Ctrl/Cmd + Wheel or trackpad pinch)
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
     const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
+      if (e.altKey || e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const delta = e.deltaY < 0 ? 0.15 : -0.15;
         setZoom((prevZoom) => {
@@ -251,8 +288,8 @@ export function CutoutBrushEditorModal({
       }
     };
 
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => container.removeEventListener("wheel", handleWheel);
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
   }, []);
 
   // When switching to Restore Brush, auto-enable ghost backdrop so user sees what to restore
@@ -665,21 +702,37 @@ export function CutoutBrushEditorModal({
   };
 
   // Save changes and close modal
-  const handleSaveAndApply = () => {
+  const handleSaveAndApply = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const newSrc = canvas.toDataURL("image/png");
+    let newSrc = canvas.toDataURL("image/png");
+    const effectiveBg: BackgroundChoice =
+      bgChoice.type === "image"
+        ? { ...bgChoice, blur: bgChoice.blur ?? bokehBlur }
+        : bgChoice;
+    if (effectiveBg.type !== "transparent") {
+      newSrc = await compositeImageWithBackground(newSrc, effectiveBg);
+    }
     onSave(newSrc);
     toast.success("Cutout edits applied successfully!");
     onClose();
   };
 
   // Download directly as PNG
-  const handleDirectDownload = () => {
+  const handleDirectDownload = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const newSrc = canvas.toDataURL("image/png");
-    const downloadName = filename.replace(/\.[^.]+$/, "") + "_edited.png";
+    let newSrc = canvas.toDataURL("image/png");
+    const effectiveBg: BackgroundChoice =
+      bgChoice.type === "image"
+        ? { ...bgChoice, blur: bgChoice.blur ?? bokehBlur }
+        : bgChoice;
+    const hasBg = effectiveBg.type !== "transparent";
+    if (hasBg) {
+      newSrc = await compositeImageWithBackground(newSrc, effectiveBg);
+    }
+    const baseName = filename.replace(/\.[^.]+$/, "");
+    const downloadName = hasBg ? `${baseName}_with_bg.png` : `${baseName}_cutout.png`;
     if (onDownload) {
       onDownload(newSrc, downloadName);
     } else {
@@ -689,7 +742,7 @@ export function CutoutBrushEditorModal({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      toast.success("Downloaded edited PNG!");
+      toast.success(`Downloaded ${downloadName}!`);
     }
   };
 
@@ -798,9 +851,9 @@ export function CutoutBrushEditorModal({
       <div className="flex flex-1 min-h-0 relative overflow-hidden bg-neutral-950">
         
         {/* DESKTOP LEFT FLOATING DOCK (hidden on mobile, visible on md+) */}
-        <div className="hidden md:flex absolute top-4 left-4 z-20 w-64 max-h-[calc(100%-2rem)] flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/98 backdrop-blur-md p-3 shadow-2xl overflow-y-auto text-white">
+        <div className="hidden md:flex absolute top-4 left-4 z-20 w-80 max-h-[calc(100vh-2rem)] flex-col gap-2.5 rounded-2xl border border-neutral-800 bg-[#131316]/98 backdrop-blur-xl p-3.5 shadow-2xl overflow-y-auto overflow-x-hidden [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent] text-white select-none">
           {/* Tool Selector Tabs */}
-          <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-800/80 rounded-xl border border-neutral-700/60">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-800/80 rounded-xl border border-neutral-700/60 shrink-0">
             {/* Tool 1: Erase */}
             <button
               type="button"
@@ -866,7 +919,7 @@ export function CutoutBrushEditorModal({
                 />
 
                 {/* Quick Size Presets */}
-                <div className="flex items-center justify-between gap-1 pt-0.5">
+                <div className="grid grid-cols-4 gap-1.5 pt-0.5">
                   {[
                     { label: "12px", value: 12 },
                     { label: "28px", value: 28 },
@@ -877,9 +930,9 @@ export function CutoutBrushEditorModal({
                       key={preset.value}
                       type="button"
                       onClick={() => setBrushSize(preset.value)}
-                      className={`flex-1 h-7 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                      className={`h-7 flex items-center justify-center rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
                         brushSize === preset.value
-                          ? "bg-white text-black border-white shadow-xs"
+                          ? "bg-white text-black font-extrabold border-white shadow-xs"
                           : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
                       }`}
                     >
@@ -905,7 +958,7 @@ export function CutoutBrushEditorModal({
                   onChange={(e) => setBrushHardness(Number(e.target.value))}
                   className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
                 />
-                <div className="flex items-center justify-between gap-1">
+                <div className="grid grid-cols-3 gap-1.5">
                   {[
                     { label: "Soft", value: 35 },
                     { label: "Natural", value: 75 },
@@ -915,9 +968,9 @@ export function CutoutBrushEditorModal({
                       key={preset.value}
                       type="button"
                       onClick={() => setBrushHardness(preset.value)}
-                      className={`flex-1 h-7 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                      className={`h-7 flex items-center justify-center rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
                         brushHardness === preset.value
-                          ? "bg-white text-black border-white shadow-xs"
+                          ? "bg-white text-black font-extrabold border-white shadow-xs"
                           : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
                       }`}
                     >
@@ -1035,37 +1088,104 @@ export function CutoutBrushEditorModal({
               className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
             />
 
-            <div className="flex items-center justify-between gap-1">
+            <div className="grid grid-cols-4 gap-1.5">
               {[
                 { label: "Off", value: 0 },
                 { label: "25%", value: 25 },
                 { label: "45%", value: 45 },
                 { label: "70%", value: 70 },
-              ].map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => {
-                    if (preset.value === 0) {
-                      setIsGhostVisible(false);
-                    } else {
-                      setIsGhostVisible(true);
-                      setGhostOpacity(preset.value);
-                    }
-                  }}
-                  className={`flex-1 h-7 flex items-center justify-center rounded-md text-[10px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
-                    effectiveGhostOpacity === preset.value
-                      ? "bg-amber-500/25 text-amber-400 border-amber-500/50"
-                      : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
+              ].map((preset) => {
+                const isSelected = effectiveGhostOpacity === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => {
+                      if (preset.value === 0) {
+                        setIsGhostVisible(false);
+                      } else {
+                        setIsGhostVisible(true);
+                        setGhostOpacity(preset.value);
+                      }
+                    }}
+                    className={`h-7 flex items-center justify-center rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-amber-500 text-black font-extrabold border-amber-400 shadow-sm"
+                        : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
             </div>
 
             <p className="text-[10px] text-neutral-400 leading-tight">
               Shows original background faintly underneath transparent parts to guide your Restore brush.
+            </p>
+          </div>
+
+          {/* ── BACKGROUND BOKEH BLUR (Controls blur on ALL image backgrounds: Magic, Photo & Custom Upload) ── */}
+          <div className="rounded-xl border border-neutral-800 bg-neutral-800/50 p-2.5 space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold">
+              <span className="flex items-center gap-1.5 text-neutral-200">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-amber-400" />
+                <span>Background Bokeh Blur</span>
+              </span>
+              <span className="font-mono text-amber-400 font-bold bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30 text-[10px]">
+                {bgChoice.type === "image" ? (bgChoice.blur ?? bokehBlur) : bokehBlur}px
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="30"
+              value={bgChoice.type === "image" ? (bgChoice.blur ?? bokehBlur) : bokehBlur}
+              onChange={(e) => handleBokehBlurChange(Number(e.target.value))}
+              className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
+            />
+
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { name: "Sharp", value: 0 },
+                { name: "Soft", value: 6 },
+                { name: "Studio", value: 14 },
+                { name: "Dreamy", value: 24 },
+              ].map((preset) => {
+                const activeVal =
+                  bgChoice.type === "image" ? (bgChoice.blur ?? bokehBlur) : bokehBlur;
+                const isSelected = activeVal === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => handleBokehBlurChange(preset.value)}
+                    className={`py-1.5 px-1 rounded-lg text-center border transition-all cursor-pointer min-w-0 ${
+                      isSelected
+                        ? "bg-amber-500 text-black font-black border-amber-400 shadow-sm"
+                        : "bg-neutral-800/80 border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-700"
+                    }`}
+                  >
+                    <span className="block text-[11px] font-bold leading-tight truncate">
+                      {preset.name}
+                    </span>
+                    <span
+                      className={`block text-[10px] font-mono leading-tight ${
+                        isSelected ? "text-black/80 font-black" : "text-neutral-400"
+                      }`}
+                    >
+                      {preset.value}px
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-[10px] text-neutral-400 leading-tight">
+              {bgChoice.type === "image"
+                ? "Depth-of-field blur active on your background image."
+                : "Applies depth-of-field blur to all Magic, Photo & Custom backdrops."}
             </p>
           </div>
 
@@ -1156,12 +1276,30 @@ export function CutoutBrushEditorModal({
 
           <div className="w-px h-4 bg-neutral-800 mx-0.5" />
 
+          {/* Background Options Toggle button */}
+          <button
+            type="button"
+            onClick={() => setShowBgPanel((prev) => !prev)}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
+              showBgPanel
+                ? "border-amber-500/60 bg-amber-500/20 text-amber-300"
+                : "border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white"
+            }`}
+            title="Edit Background (Colors, AI Presets, Photos)"
+          >
+            <Palette className="h-3.5 w-3.5 text-pink-400" />
+            <span className="hidden sm:inline">Background</span>
+            {bgChoice.type !== "transparent" && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            )}
+          </button>
+
           {/* Quick Download button */}
           <button
             type="button"
             onClick={handleDirectDownload}
             className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-            title="Download edited PNG"
+            title="Download PNG (with selected background if applied)"
           >
             <Download className="h-3.5 w-3.5 text-amber-400" />
             <span className="hidden sm:inline">Download</span>
@@ -1189,6 +1327,34 @@ export function CutoutBrushEditorModal({
           </button>
         </div>
 
+        {/* ─── DESKTOP RIGHT-SIDE BACKGROUND EDIT PANEL (matching user's request) ─── */}
+        {showBgPanel ? (
+          <div className="hidden lg:flex flex-col absolute top-16 right-4 z-20 w-80 max-h-[calc(100vh-5.5rem)] shadow-2xl animate-in fade-in duration-200">
+            <BackgroundEditPanel
+              currentBg={bgChoice}
+              defaultBlur={bokehBlur}
+              onChangeBg={handleBgChoiceChange}
+              onClose={() => setShowBgPanel(false)}
+              subjectImageSrc={cutoutImageSrc || originalImageSrc}
+              className="w-full max-h-[calc(100vh-5.5rem)]"
+            />
+          </div>
+        ) : (
+          /* Minimized reopen button when user closed the panel */
+          <button
+            type="button"
+            onClick={() => setShowBgPanel(true)}
+            className="hidden lg:flex items-center gap-2 absolute top-16 right-4 z-20 px-3.5 py-2.5 rounded-2xl bg-neutral-900/95 border border-neutral-800 hover:border-amber-500/50 text-white font-bold text-xs shadow-xl backdrop-blur-md transition-all hover:scale-105 cursor-pointer"
+            title="Open Background Panel"
+          >
+            <Palette className="h-4 w-4 text-pink-400" />
+            <span>Edit Background</span>
+            {bgChoice.type !== "transparent" && (
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            )}
+          </button>
+        )}
+
         {/* ─── CANVAS SCROLL CONTAINER ─────────────────────────────────── */}
         <div
           ref={containerRef}
@@ -1209,12 +1375,42 @@ export function CutoutBrushEditorModal({
               transformOrigin: "center center",
             }}
           >
+            {/* Active Background Layer (Behind Cutout) */}
+            {bgChoice.type !== "transparent" && (
+              <div
+                className="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none select-none z-0"
+                style={
+                  bgChoice.type === "color"
+                    ? { backgroundColor: bgChoice.value }
+                    : bgChoice.type === "gradient"
+                      ? { background: bgChoice.value }
+                      : undefined
+                }
+              >
+                {bgChoice.type === "image" && (
+                  <img
+                    src={bgChoice.value}
+                    alt="Active Background"
+                    className="w-full h-full object-cover transition-all"
+                    style={{
+                      filter:
+                        (bgChoice.blur ?? bokehBlur) > 0
+                          ? `blur(${bgChoice.blur ?? bokehBlur}px)`
+                          : undefined,
+                      transform:
+                        (bgChoice.blur ?? bokehBlur) > 0 ? "scale(1.08)" : undefined,
+                    }}
+                  />
+                )}
+              </div>
+            )}
+
             {/* Ghost Backdrop: faint original background showing through cutout transparent holes */}
             {effectiveGhostOpacity > 0 && (
               <img
                 src={normalizeImageSrc(originalImageSrc)}
                 alt="Original Backdrop Guide"
-                className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0 rounded-lg block"
+                className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-[1] rounded-lg block"
                 style={{
                   opacity: effectiveGhostOpacity / 100,
                 }}
@@ -1375,6 +1571,22 @@ export function CutoutBrushEditorModal({
                     ))}
                   </div>
                 </div>
+
+                {/* Mobile Bokeh Blur Control */}
+                <div className="space-y-1.5 pt-1 border-t border-neutral-800">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-neutral-400 font-medium">Background Bokeh Blur</span>
+                    <span className="font-mono text-amber-400 font-bold">{bokehBlur}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    value={bokehBlur}
+                    onChange={(e) => handleBokehBlurChange(Number(e.target.value))}
+                    className="w-full h-1.5 accent-amber-500 bg-neutral-800 rounded-lg cursor-pointer"
+                  />
+                </div>
               </>
             ) : (
               /* Magic wand mobile tune */
@@ -1450,7 +1662,26 @@ export function CutoutBrushEditorModal({
 
           <button
             type="button"
-            onClick={() => setMobileTuneOpen(!mobileTuneOpen)}
+            onClick={() => {
+              setMobileBgSheetOpen(!mobileBgSheetOpen);
+              if (mobileTuneOpen) setMobileTuneOpen(false);
+            }}
+            className={`p-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer flex items-center justify-center ${
+              mobileBgSheetOpen
+                ? "bg-amber-500 text-black border-amber-400 shadow-sm"
+                : "bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white"
+            }`}
+            title="Edit background options (Magic presets, photo, colors)"
+          >
+            <Palette className="h-4 w-4 text-pink-400" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMobileTuneOpen(!mobileTuneOpen);
+              if (mobileBgSheetOpen) setMobileBgSheetOpen(false);
+            }}
             className={`p-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer flex items-center justify-center ${
               mobileTuneOpen
                 ? "bg-amber-500 text-black border-amber-400 shadow-sm"
@@ -1461,6 +1692,20 @@ export function CutoutBrushEditorModal({
             <SlidersHorizontal className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Mobile Background Sheet */}
+        {mobileBgSheetOpen && (
+          <div className="bg-neutral-950/98 rounded-2xl p-1 border border-neutral-800 max-h-72 overflow-y-auto animate-in fade-in duration-200">
+            <BackgroundEditPanel
+              currentBg={bgChoice}
+              defaultBlur={bokehBlur}
+              onChangeBg={handleBgChoiceChange}
+              onClose={() => setMobileBgSheetOpen(false)}
+              subjectImageSrc={cutoutImageSrc || originalImageSrc}
+              className="w-full border-none bg-transparent text-white shadow-none"
+            />
+          </div>
+        )}
 
         {/* Row 2: Brush Size Slider + Quick Presets (when not magic) */}
         {activeTool !== "magic" ? (
@@ -1516,7 +1761,7 @@ export function CutoutBrushEditorModal({
 
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden lg:flex items-center gap-3 text-[11px] font-medium mr-1 text-neutral-400">
-            <span>Zoom: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">Ctrl + Wheel</kbd></span>
+            <span>Zoom: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">Alt + Wheel</kbd></span>
             <span>Brush Size: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">[</kbd> <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">]</kbd></span>
             <span>Undo: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">Ctrl+Z</kbd></span>
             <span>Redo: <kbd className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-mono font-bold text-neutral-200">Ctrl+Y</kbd></span>

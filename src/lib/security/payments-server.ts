@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { paymentsRepo } from "../db/payments-repo";
 import { configRepo } from "../db/config-repo";
+import { promoCodesRepo } from "../db/promo-codes-repo";
 import { convertInrToCurrency, type CurrencyCode, SUPPORTED_CURRENCIES } from "../currency";
 import { toSafeUser } from "../db/users-repo";
 import { getUserFromRequest } from "./auth-user-server";
@@ -145,8 +146,20 @@ export async function handleCreatePaymentOrder(
       }
     }
 
-    const verifiedInrAmount = expectedInrAmount;
+    let verifiedInrAmount = expectedInrAmount;
     const verifiedCredits = expectedCredits;
+    let appliedPromoCode: string | null = null;
+    let discountAmountINR = 0;
+
+    // Check if promo code was provided and apply discount
+    if (body.promoCode && typeof body.promoCode === "string") {
+      const promoResult = promoCodesRepo.validate(body.promoCode, verifiedInrAmount);
+      if (promoResult.valid && promoResult.finalAmount !== undefined) {
+        discountAmountINR = promoResult.discountAmount || 0;
+        verifiedInrAmount = promoResult.finalAmount;
+        appliedPromoCode = promoResult.code || body.promoCode.trim().toUpperCase();
+      }
+    }
 
     // Convert amount to target currency
     let finalAmount = verifiedInrAmount;
@@ -169,6 +182,7 @@ export async function handleCreatePaymentOrder(
       planName: safePlanName,
       credits: String(verifiedCredits),
       currency: requestedCurrency,
+      promoCode: appliedPromoCode || "NONE",
     };
     if (safeEmail) {
       safeNotes["userEmail"] = safeEmail;
@@ -301,6 +315,14 @@ export async function handleVerifyPayment(
       return applySecurityHeaders(
         createSafeErrorResponse(400, result.error || "Failed to process payment completion.")
       );
+    }
+
+    // Increment promo code usage if applicable
+    const promoCodeToIncrement = body.promoCode || body.promo_code;
+    if (promoCodeToIncrement && typeof promoCodeToIncrement === "string" && !result.alreadyCompleted) {
+      try {
+        promoCodesRepo.incrementUsage(promoCodeToIncrement);
+      } catch {}
     }
 
     return applySecurityHeaders(

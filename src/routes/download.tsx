@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -131,6 +131,139 @@ const FAQS = [
     a: "Yes! All native apps and the Chrome extension will include your free 10 daily tokens just like the web version, so you can edit and remove backgrounds daily at zero cost.",
   },
 ];
+
+const NOTIFY_PLATFORMS: {
+  id: Platform;
+  label: string;
+  icon: any;
+  tag: string;
+}[] = [
+  { id: "chrome", label: "Google Chrome Extension", icon: Chrome, tag: "Chrome Web Store" },
+  { id: "windows", label: "Windows Desktop", icon: Monitor, tag: "Win 10/11" },
+  { id: "mac", label: "macOS Desktop", icon: Apple, tag: "Apple Silicon & Intel" },
+  { id: "linux", label: "Linux Desktop", icon: Laptop, tag: "Ubuntu / Debian" },
+  { id: "android", label: "Android (Google Play)", icon: Smartphone, tag: "Play Store" },
+  { id: "ios", label: "iOS (Apple App Store)", icon: Apple, tag: "App Store" },
+];
+
+function CustomPlatformSelect({
+  value,
+  onChange,
+}: {
+  value: Platform;
+  onChange: (val: Platform) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const selectedPlatform =
+    NOTIFY_PLATFORMS.find((p) => p.id === value) || NOTIFY_PLATFORMS[0]!;
+  const SelectedIcon = selectedPlatform.icon;
+
+  return (
+    <div ref={dropdownRef} className="relative w-full sm:w-auto">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`flex w-full sm:w-auto items-center justify-between gap-3 rounded-2xl border bg-background/90 px-4 py-3 text-xs font-bold text-foreground shadow-xs transition-all cursor-pointer select-none backdrop-blur-md ${
+          isOpen
+            ? "border-accent ring-2 ring-accent/25 shadow-md"
+            : "border-border hover:border-accent/60 hover:bg-card"
+        }`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10 text-accent shrink-0">
+            <SelectedIcon className="h-3.5 w-3.5" />
+          </div>
+          <span className="font-semibold text-foreground truncate max-w-[170px] sm:max-w-none text-left">
+            {selectedPlatform.label}
+          </span>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${
+            isOpen ? "rotate-180 text-accent" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          className="absolute left-0 top-full mt-2 z-50 w-full sm:w-[280px] rounded-2xl border border-border/90 bg-popover/98 p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+        >
+          <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Select Platform
+          </div>
+          <div className="space-y-0.5 max-h-[300px] overflow-y-auto">
+            {NOTIFY_PLATFORMS.map((item) => {
+              const ItemIcon = item.icon;
+              const isSelected = item.id === value;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(item.id);
+                    setIsOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium transition-all cursor-pointer text-left ${
+                    isSelected
+                      ? "bg-accent/15 text-accent font-bold"
+                      : "text-foreground hover:bg-accent/10 hover:text-accent"
+                  }`}
+                  role="option"
+                  aria-selected={isSelected}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`flex h-6 w-6 items-center justify-center rounded-lg shrink-0 ${
+                        isSelected
+                          ? "bg-accent text-accent-foreground shadow-xs"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <ItemIcon className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <div className="leading-tight">{item.label}</div>
+                      <div className="text-[10px] text-muted-foreground font-normal">
+                        {item.tag}
+                      </div>
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <Check className="h-4 w-4 text-accent shrink-0" strokeWidth={2.5} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function DownloadPage() {
   const [detectedPlatform, setDetectedPlatform] = useState<Platform>("windows");
@@ -855,19 +988,10 @@ export function DownloadPage() {
                   </div>
                 ) : (
                   <form onSubmit={handleNotifySubmit} className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <select
+                    <CustomPlatformSelect
                       value={selectedNotifyOs}
-                      onChange={(e) => setSelectedNotifyOs(e.target.value as Platform)}
-                      className="rounded-2xl border border-border bg-background px-3.5 py-3 text-xs font-bold text-foreground focus:border-accent focus:outline-none transition-colors"
-                      aria-label="Target Operating System or Extension"
-                    >
-                      <option value="chrome">Google Chrome Extension</option>
-                      <option value="windows">Windows Desktop</option>
-                      <option value="mac">macOS Desktop</option>
-                      <option value="linux">Linux Desktop</option>
-                      <option value="android">Android (Google Play)</option>
-                      <option value="ios">iOS (Apple App Store)</option>
-                    </select>
+                      onChange={(val) => setSelectedNotifyOs(val)}
+                    />
                     <input
                       type="email"
                       value={emailNotify}

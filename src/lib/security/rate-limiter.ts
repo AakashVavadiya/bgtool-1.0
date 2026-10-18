@@ -1,4 +1,5 @@
 import { rateLimitsRepo } from "../db";
+import { DISABLE_IP_TOOL_LIMIT_FOR_TESTING } from "./testing-config";
 
 export interface RateLimitOptions {
   windowMs: number; // e.g. 60_000 for 1 minute
@@ -134,10 +135,12 @@ export const uploadLimiter = new MemoryRateLimiter({
   maxRequests: parseInt(process.env["RATE_LIMIT_UPLOADS"] || "15", 10),
   name: "uploads",
 });
-
 export const expensiveInferenceLimiter = new MemoryRateLimiter({
   windowMs: 60_000,
-  maxRequests: parseInt(process.env["RATE_LIMIT_EXPENSIVE"] || "6", 10),
+  maxRequests: parseInt(
+    process.env["RATE_LIMIT_EXPENSIVE"] || (DISABLE_IP_TOOL_LIMIT_FOR_TESTING ? "1000" : "6"),
+    10
+  ),
   name: "inference",
 });
 

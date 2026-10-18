@@ -341,7 +341,7 @@ function ToolPage() {
               )}
               {isBgRemover ? (
                 <RemovalProcess key="removal-process" />
-              ) : tool.category === "PDF Tools" ? (
+              ) : tool.category === "PDF Tools" || tool.slug === "image-to-pdf" ? (
                 <PdfToolWorkspace key={`pdf-${tool.slug}`} tool={tool} />
               ) : (
                 <InteractiveToolWorkspace key={`workspace-${tool.slug}`} tool={tool} />

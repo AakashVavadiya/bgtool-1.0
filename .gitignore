@@ -61,3 +61,9 @@ data/**/*.sqlite
 .agents/
 skills-lock.json
 
+# Scratch & test media artifacts
+*.traineddata
+media_*.png
+scripts/*.png
+scripts/*.json
+

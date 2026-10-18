@@ -209,7 +209,7 @@ function getLatestOfferHtml(appBaseUrl: string): string {
       </div>
       <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 16px;">
         <tr><td style="font-size: 12px; font-weight: 700; color: #1F2937; padding: 3px 0;">✓ 650 Total Credits — Lifetime validity (Never expire)</td></tr>
-        <tr><td style="font-size: 12px; font-weight: 700; color: #1F2937; padding: 3px 0;">✓ Ultra HD 4K outputs across all 30+ tools</td></tr>
+        <tr><td style="font-size: 12px; font-weight: 700; color: #1F2937; padding: 3px 0;">✓ Ultra HD 4K outputs across all 130+ tools</td></tr>
         <tr><td style="font-size: 12px; font-weight: 700; color: #1F2937; padding: 3px 0;">✓ Instant dedicated high-speed processing engine</td></tr>
       </table>
       <a href="${appBaseUrl}/pricing" style="display: block; box-sizing: border-box; background: linear-gradient(90deg, #FF6B00 0%, #FF4500 100%); color: #FFFFFF !important; text-align: center; text-decoration: none; font-size: 14px; font-weight: 800; padding: 13px 20px; border-radius: 12px; box-shadow: 0 4px 14px rgba(255, 107, 0, 0.35); letter-spacing: 0.2px;">

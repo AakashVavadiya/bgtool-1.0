@@ -169,8 +169,12 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
   const [showDynamicIsland, setShowDynamicIsland] = useState<boolean>(false);
   const [hasScrolledOnce, setHasScrolledOnce] = useState<boolean>(false);
 
-  // Merge tool options
-  const isMultiFileTool = tool.slug === "merge-pdf" || tool.slug === "images-to-pdf" || tool.slug === "compare-pdfs";
+  // Merge & Multi-file tool options
+  const isMultiFileTool =
+    tool.slug === "merge-pdf" ||
+    tool.slug === "images-to-pdf" ||
+    tool.slug === "image-to-pdf" ||
+    tool.slug === "compare-pdfs";
 
   // Split tool state
   const isSplitTool = tool.slug === "split-pdf" || tool.slug === "halve-pdf-pages";
@@ -255,7 +259,14 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
   // Calculate accepted MIME types dynamically based on tool
   const acceptedFileExtensions = useMemo(() => {
     if (isInvoiceTool) return ".pdf,.xml,.json";
-    if (tool.slug === "images-to-pdf" || tool.slug === "jpg-to-pdf" || tool.slug === "png-to-pdf" || tool.slug === "webp-to-pdf" || tool.slug === "heic-to-pdf") {
+    if (
+      tool.slug === "image-to-pdf" ||
+      tool.slug === "images-to-pdf" ||
+      tool.slug === "jpg-to-pdf" ||
+      tool.slug === "png-to-pdf" ||
+      tool.slug === "webp-to-pdf" ||
+      tool.slug === "heic-to-pdf"
+    ) {
       return ".jpg,.jpeg,.png,.webp,.heic,.bmp,.tiff,image/*";
     }
     if (tool.slug === "word-to-pdf" || tool.slug === "docx-to-pdf" || tool.slug === "doc-to-pdf") {
@@ -881,6 +892,7 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
       }
       // 11. IMAGES TO PDF (or JPG/PNG/WEBP to PDF)
       else if (
+        tool.slug === "image-to-pdf" ||
         tool.slug === "images-to-pdf" ||
         tool.slug === "jpg-to-pdf" ||
         tool.slug === "png-to-pdf" ||
@@ -1114,7 +1126,14 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
           </div>
 
           <h2 className="mt-8 font-display text-3xl font-extrabold md:text-4xl text-foreground">
-            {isMultiFileTool
+            {tool.slug === "image-to-pdf" ||
+            tool.slug === "images-to-pdf" ||
+            tool.slug === "jpg-to-pdf" ||
+            tool.slug === "png-to-pdf" ||
+            tool.slug === "webp-to-pdf" ||
+            tool.slug === "heic-to-pdf"
+              ? "Select Images or Drag & Drop Multiple Photos Here"
+              : isMultiFileTool
               ? "Select PDF Files or Drag & Drop Multiple PDFs Here"
               : `Select PDF File or Drag & Drop Here`}
           </h2>
@@ -1133,7 +1152,18 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
               }}
               className="inline-flex items-center gap-3 rounded-full bg-foreground px-8 sm:px-10 py-4 sm:py-5 text-base font-extrabold text-background shadow-2xl transition-all hover:scale-105 cursor-pointer"
             >
-              <span>{isMultiFileTool ? "Select PDF Files" : "Select PDF Document"}</span>
+              <span>
+                {tool.slug === "image-to-pdf" ||
+                tool.slug === "images-to-pdf" ||
+                tool.slug === "jpg-to-pdf" ||
+                tool.slug === "png-to-pdf" ||
+                tool.slug === "webp-to-pdf" ||
+                tool.slug === "heic-to-pdf"
+                  ? "Select Images"
+                  : isMultiFileTool
+                  ? "Select PDF Files"
+                  : "Select PDF Document"}
+              </span>
               <span aria-hidden>→</span>
             </button>
           </div>
@@ -1536,6 +1566,56 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
                 >
                   <FilePlus className="h-4 w-4 text-accent" />
                   <span>Add Another PDF</span>
+                </button>
+              </div>
+            )}
+
+            {/* IMAGE TO PDF CONTROLS */}
+            {(tool.slug === "image-to-pdf" ||
+              tool.slug === "images-to-pdf" ||
+              tool.slug === "jpg-to-pdf" ||
+              tool.slug === "png-to-pdf" ||
+              tool.slug === "webp-to-pdf") && (
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-secondary/50 p-4 border border-border/80 space-y-2">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-foreground">Multi-Image PDF Compilation</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {files.length > 1
+                      ? `${files.length} images will be compiled into a single PDF document in the exact order shown on the left.`
+                      : "Upload multiple images to combine them into a single multi-page PDF document. Drag to reorder pages anytime."}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground block">Page Size:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "a4", label: "A4 (Standard)" },
+                      { id: "letter", label: "US Letter" },
+                    ].map((fmt) => (
+                      <button
+                        key={fmt.id}
+                        type="button"
+                        onClick={() => setTargetPageSize(fmt.id as "a4" | "letter")}
+                        className={`rounded-xl border py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${
+                          targetPageSize === fmt.id
+                            ? "bg-foreground text-background shadow-sm"
+                            : "border-border text-muted-foreground hover:border-foreground"
+                        }`}
+                      >
+                        {fmt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border py-3 text-xs font-bold text-foreground hover:bg-secondary transition-all cursor-pointer"
+                >
+                  <FilePlus className="h-4 w-4 text-accent" />
+                  <span>Add More Images</span>
                 </button>
               </div>
             )}
@@ -2366,7 +2446,17 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
                 ) : (
                   <>
                     <Wand2 className="h-5 w-5 text-accent" />
-                    <span>{isInvoiceTool ? "Generate PDF Invoice" : `Process with ${tool.name}`}</span>
+                    <span>
+                      {isInvoiceTool
+                        ? "Generate PDF Invoice"
+                        : tool.slug === "image-to-pdf" ||
+                          tool.slug === "images-to-pdf" ||
+                          tool.slug === "jpg-to-pdf" ||
+                          tool.slug === "png-to-pdf" ||
+                          tool.slug === "webp-to-pdf"
+                        ? `Convert ${files.length > 1 ? `${files.length} Images` : "Image"} to PDF`
+                        : `Process with ${tool.name}`}
+                    </span>
                     <ArrowRight className="h-5 w-5" />
                   </>
                 )}

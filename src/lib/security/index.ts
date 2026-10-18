@@ -1,3 +1,4 @@
+export * from "./testing-config";
 export * from "./upload-policy";
 export * from "./rate-limiter";
 export * from "./temp-file-manager";

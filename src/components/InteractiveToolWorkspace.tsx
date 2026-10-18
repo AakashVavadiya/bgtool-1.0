@@ -83,6 +83,7 @@ import { TokenCoin } from "@/components/TokenCoins";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { type Tool } from "@/lib/tools";
 import { PdfToolWorkspace } from "@/components/PdfToolWorkspace";
+import { removeGeminiWatermark, detectGeminiWatermark } from "@/lib/watermark/geminiWatermarkEngine";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import {
   type FaceBox,
@@ -798,715 +799,33 @@ const buildZip = (files: { name: string; data: Uint8Array<ArrayBufferLike> }[]):
   return concat(...parts, cdBytes, eocd);
 };
 
-// Helper: escape special XML characters
-const escapeXml = (str: string): string =>
-  str.replace(/[<>&"']/g, (m) => {
-    switch (m) {
-      case "<": return "&lt;";
-      case ">": return "&gt;";
-      case "&": return "&amp;";
-      case '"': return "&quot;";
-      case "'": return "&apos;";
-      default: return m;
-    }
-  });
-
-// ── Helper: Excel Column Index to Letter (1 -> A, 27 -> AA) ───────────────────
-const getExcelColumnLetter = (colIndex: number): string => {
-  let temp = colIndex;
-  let letter = "";
-  while (temp > 0) {
-    const mod = (temp - 1) % 26;
-    letter = String.fromCharCode(65 + mod) + letter;
-    temp = Math.floor((temp - mod) / 26);
-  }
-  return letter || "A";
-};
-
-// ── Helper: Intelligent OCR Text to 2D Table Matrix Parser ────────────────────
-export const parseOcrTextToGrid = (
-  lines: string[],
-  mode: "grid" | "csv" | "whitespace" | "lines" = "grid"
-): string[][] => {
-  if (!lines || lines.length === 0) return [[""]];
-
-  if (mode === "lines") {
-    return lines.map((l) => [l.trim()]);
-  }
-
-  if (mode === "csv") {
-    return lines.map((l) => {
-      const result: string[] = [];
-      let current = "";
-      let inQuotes = false;
-      for (let i = 0; i < l.length; i++) {
-        const char = l[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === "," && !inQuotes) {
-          result.push(current.trim());
-          current = "";
-        } else {
-          current += char;
-        }
-      }
-      result.push(current.trim());
-      return result;
-    });
-  }
-
-  // mode === "grid" or "whitespace"
-  return lines.map((line) => {
-    const trimmed = line.trim();
-    if (!trimmed) return [""];
-
-    // 1. Pipe delimited table row (e.g. "| Col 1 | Col 2 |")
-    if (trimmed.includes("|")) {
-      const parts = trimmed.split("|").map((p) => p.trim());
-      const cleanParts = parts.filter((p, idx) => !(idx === 0 && p === "") && !(idx === parts.length - 1 && p === ""));
-      if (cleanParts.length > 0) return cleanParts;
-    }
-
-    // 2. Tab delimited
-    if (trimmed.includes("\t")) {
-      return trimmed.split("\t").map((p) => p.trim());
-    }
-
-    // 3. Multi-space column gap (standard tabular scans)
-    if (/\s{2,}/.test(trimmed)) {
-      return trimmed.split(/\s{2,}/).map((p) => p.trim());
-    }
-
-    // 4. Comma separated fallback
-    if (trimmed.includes(",") && trimmed.split(",").length >= 2) {
-      return trimmed.split(",").map((p) => p.trim());
-    }
-
-    return [trimmed];
-  });
-};
-
-// ── 3. Image → DOCX (Fully Editable Microsoft Word OOXML Builder) ─────────────
-export const buildEditableDocxFromOcr = (
-  textLines: string[],
-  options: {
-    fontFamily?: string | undefined;
-    fontSize?: number | undefined;
-    mode?: "text_clean" | "text_and_image" | "image_only" | undefined;
-    imageDataUrl?: string | undefined;
-    imgW?: number | undefined;
-    imgH?: number | undefined;
-    filename?: string | undefined;
-  } = {}
-): Blob => {
-  const enc = new TextEncoder();
-  const fontFamily = options.fontFamily || "Calibri";
-  const fontSizePt = options.fontSize || 11;
-  const szVal = Math.round(fontSizePt * 2); // half-points in Word
-  const mode = options.mode || "text_clean";
-  const filename = options.filename || "document";
-  const safeFname = escapeXml(filename);
-
-  const hasImage = (mode === "text_and_image" || mode === "image_only") && !!options.imageDataUrl;
-  let imgExt = "png";
-  let contentType = "image/png";
-  let imgBytes: Uint8Array = new Uint8Array(0);
-  let emuW = 5486400; // ~6 inches
-  let emuH = 4114800; // ~4.5 inches
-
-  if (hasImage && options.imageDataUrl) {
-    const isJpeg = options.imageDataUrl.startsWith("data:image/jpeg");
-    imgExt = isJpeg ? "jpeg" : "png";
-    contentType = isJpeg ? "image/jpeg" : "image/png";
-    const base64 = options.imageDataUrl.split(",")[1] ?? "";
-    const raw = atob(base64);
-    imgBytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) imgBytes[i] = raw.charCodeAt(i) & 0xff;
-
-    const maxEmuW = 5486400;
-    const maxEmuH = 7772400;
-    emuW = Math.round((options.imgW || 800) * 9525);
-    emuH = Math.round((options.imgH || 600) * 9525);
-    if (emuW > maxEmuW) {
-      emuH = Math.round((emuH * maxEmuW) / emuW);
-      emuW = maxEmuW;
-    }
-    if (emuH > maxEmuH) {
-      emuW = Math.round((emuW * maxEmuH) / emuH);
-      emuH = maxEmuH;
-    }
-  }
-
-  // Content Types
-  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  ${hasImage ? `<Default Extension="${imgExt}" ContentType="${contentType}"/>` : ""}
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-</Types>`;
-
-  // Relationships
-  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`;
-
-  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-  ${hasImage ? `<Relationship Id="rIdImg1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.${imgExt}"/>` : ""}
-</Relationships>`;
-
-  // Word Styles (Standard Typography)
-  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:docDefaults>
-    <w:rPrDefault>
-      <w:rPr>
-        <w:rFonts w:ascii="${fontFamily}" w:eastAsia="${fontFamily}" w:hAnsi="${fontFamily}" w:cs="${fontFamily}"/>
-        <w:sz w:val="${szVal}"/>
-        <w:szCs w:val="${szVal}"/>
-        <w:color w:val="1E293B"/>
-      </w:rPr>
-    </w:rPrDefault>
-    <w:pPrDefault>
-      <w:pPr>
-        <w:spacing w:after="160" w:line="276" w:lineRule="auto"/>
-      </w:pPr>
-    </w:pPrDefault>
-  </w:docDefaults>
-  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
-    <w:name w:val="Normal"/>
-    <w:qFormat/>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading1">
-    <w:name w:val="heading 1"/>
-    <w:basedOn w:val="Normal"/>
-    <w:next w:val="Normal"/>
-    <w:qFormat/>
-    <w:pPr>
-      <w:spacing w:before="280" w:after="140"/>
-    </w:pPr>
-    <w:rPr>
-      <w:b/>
-      <w:bCs/>
-      <w:color w:val="0F172A"/>
-      <w:sz w:val="32"/>
-      <w:szCs w:val="32"/>
-    </w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading2">
-    <w:name w:val="heading 2"/>
-    <w:basedOn w:val="Normal"/>
-    <w:next w:val="Normal"/>
-    <w:qFormat/>
-    <w:pPr>
-      <w:spacing w:before="200" w:after="100"/>
-    </w:pPr>
-    <w:rPr>
-      <w:b/>
-      <w:bCs/>
-      <w:color w:val="334155"/>
-      <w:sz w:val="26"/>
-      <w:szCs w:val="26"/>
-    </w:rPr>
-  </w:style>
-</w:styles>`;
-
-  // Paragraphs
-  const paragraphs: string[] = [];
-
-  // Embed image header if requested
-  if (hasImage) {
-    paragraphs.push(`
-    <w:p>
-      <w:pPr>
-        <w:jc w:val="center"/>
-        <w:spacing w:after="240"/>
-      </w:pPr>
-      <w:r>
-        <w:drawing>
-          <wp:inline distT="0" distB="0" distL="0" distR="0">
-            <wp:extent cx="${emuW}" cy="${emuH}"/>
-            <wp:effectExtent l="0" t="0" r="0" b="0"/>
-            <wp:docPr id="1" name="${safeFname}"/>
-            <wp:cNvGraphicFramePr>
-              <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
-            </wp:cNvGraphicFramePr>
-            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                  <pic:nvPicPr>
-                    <pic:cNvPr id="1" name="${safeFname}"/>
-                    <pic:cNvPicPr/>
-                  </pic:nvPicPr>
-                  <pic:blipFill>
-                    <a:blip r:embed="rIdImg1"/>
-                    <a:stretch><a:fillRect/></a:stretch>
-                  </pic:blipFill>
-                  <pic:spPr>
-                    <a:xfrm><a:off x="0" y="0"/><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm>
-                    <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-                  </pic:spPr>
-                </pic:pic>
-              </a:graphicData>
-            </a:graphic>
-          </wp:inline>
-        </w:drawing>
-      </w:r>
-    </w:p>`);
-  }
-
-  if (mode !== "image_only") {
-    const validLines = textLines && textLines.length > 0 ? textLines : ["No text detected in image."];
-
-    validLines.forEach((line, index) => {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        paragraphs.push(`<w:p><w:pPr><w:spacing w:after="120"/></w:pPr></w:p>`);
-        return;
-      }
-
-      const isHeading1 =
-        trimmed.startsWith("# ") ||
-        (index === 0 && trimmed.length < 50 && !trimmed.includes(",")) ||
-        (trimmed === trimmed.toUpperCase() && trimmed.length < 40 && /[A-Z]/.test(trimmed));
-
-      const isHeading2 = trimmed.startsWith("## ");
-      const isBullet = /^[•\-\*]\s+/.test(trimmed) || /^\d+[\.\)]\s+/.test(trimmed);
-
-      if (isHeading1) {
-        const clean = trimmed.replace(/^#+\s*/, "");
-        paragraphs.push(`
-        <w:p>
-          <w:pPr>
-            <w:pStyle w:val="Heading1"/>
-            <w:spacing w:before="280" w:after="140"/>
-          </w:pPr>
-          <w:r>
-            <w:rPr>
-              <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}"/>
-              <w:b/>
-              <w:sz w:val="32"/>
-              <w:szCs w:val="32"/>
-              <w:color w:val="0F172A"/>
-            </w:rPr>
-            <w:t xml:space="preserve">${escapeXml(clean)}</w:t>
-          </w:r>
-        </w:p>`);
-      } else if (isHeading2) {
-        const clean = trimmed.replace(/^#+\s*/, "");
-        paragraphs.push(`
-        <w:p>
-          <w:pPr>
-            <w:pStyle w:val="Heading2"/>
-            <w:spacing w:before="200" w:after="100"/>
-          </w:pPr>
-          <w:r>
-            <w:rPr>
-              <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}"/>
-              <w:b/>
-              <w:sz w:val="26"/>
-              <w:szCs w:val="26"/>
-              <w:color w:val="334155"/>
-            </w:rPr>
-            <w:t xml:space="preserve">${escapeXml(clean)}</w:t>
-          </w:r>
-        </w:p>`);
-      } else if (isBullet) {
-        paragraphs.push(`
-        <w:p>
-          <w:pPr>
-            <w:ind w:left="720"/>
-            <w:spacing w:after="120"/>
-          </w:pPr>
-          <w:r>
-            <w:rPr>
-              <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}"/>
-              <w:sz w:val="${szVal}"/>
-              <w:szCs w:val="${szVal}"/>
-            </w:rPr>
-            <w:t xml:space="preserve">${escapeXml(trimmed)}</w:t>
-          </w:r>
-        </w:p>`);
-      } else {
-        paragraphs.push(`
-        <w:p>
-          <w:pPr>
-            <w:spacing w:after="160" w:line="276" w:lineRule="auto"/>
-          </w:pPr>
-          <w:r>
-            <w:rPr>
-              <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}"/>
-              <w:sz w:val="${szVal}"/>
-              <w:szCs w:val="${szVal}"/>
-            </w:rPr>
-            <w:t xml:space="preserve">${escapeXml(trimmed)}</w:t>
-          </w:r>
-        </w:p>`);
-      }
-    });
-  }
-
-  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-            xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-            xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-            xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-  <w:body>
-    ${paragraphs.join("\n")}
-    <w:sectPr>
-      <w:pgSz w:w="12240" w:h="15840"/>
-      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
-    </w:sectPr>
-  </w:body>
-</w:document>`;
-
-  const files: { name: string; data: Uint8Array<ArrayBufferLike> }[] = [
-    { name: "[Content_Types].xml", data: enc.encode(contentTypes) },
-    { name: "_rels/.rels", data: enc.encode(rootRels) },
-    { name: "word/_rels/document.xml.rels", data: enc.encode(docRels) },
-    { name: "word/styles.xml", data: enc.encode(stylesXml) },
-    { name: "word/document.xml", data: enc.encode(documentXml) },
-  ];
-
-  if (hasImage && imgBytes.length > 0) {
-    files.push({ name: `word/media/image1.${imgExt}`, data: imgBytes });
-  }
-
-  const zipData = buildZip(files);
-  return new Blob([zipData as BlobPart], {
-    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  });
-};
-
-export const buildDocxFromImage = (dataUrl: string, imgW: number, imgH: number, filename: string): Blob => {
-  return buildEditableDocxFromOcr([], { mode: "image_only", imageDataUrl: dataUrl, imgW, imgH, filename });
-};
-
-// ── 4. Image → XLSX (Fully Editable Microsoft Excel SpreadsheetML Builder) ────
-export const buildEditableXlsxFromOcr = (
-  textLines: string[],
-  options: {
-    parserMode?: "grid" | "csv" | "whitespace" | "lines" | undefined;
-    sheetName?: string | undefined;
-    highlightHeader?: boolean | undefined;
-    filename?: string | undefined;
-  } = {}
-): Blob => {
-  const enc = new TextEncoder();
-  const sheetName = escapeXml(options.sheetName?.trim() || "Sheet1");
-  const highlightHeader = options.highlightHeader ?? true;
-  const grid = parseOcrTextToGrid(textLines, options.parserMode || "grid");
-
-  // Content Types
-  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
-  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-</Types>`;
-
-  // Root Rels
-  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-</Relationships>`;
-
-  // Workbook Rels
-  const workbookRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>`;
-
-  // Styles (Header bold + light background, regular text, number formatting)
-  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <fonts count="2">
-    <font><sz val="11"/><name val="Calibri"/><color rgb="FF1E293B"/></font>
-    <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FF0F172A"/></font>
-  </fonts>
-  <fills count="3">
-    <fill><patternFill patternType="none"/></fill>
-    <fill><patternFill patternType="gray125"/></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FFF1F5F9"/></patternFill></fill>
-  </fills>
-  <borders count="2">
-    <border><left/><right/><top/><bottom/><diagonal/></border>
-    <border>
-      <left style="thin"><color rgb="FFE2E8F0"/></left>
-      <right style="thin"><color rgb="FFE2E8F0"/></right>
-      <top style="thin"><color rgb="FFE2E8F0"/></top>
-      <bottom style="medium"><color rgb="FF94A3B8"/></bottom>
-      <diagonal/>
-    </border>
-  </borders>
-  <cellStyleXfs count="1">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
-  </cellStyleXfs>
-  <cellXfs count="3">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
-      <alignment horizontal="center" vertical="center" wrapText="1"/>
-    </xf>
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1">
-      <alignment horizontal="right" vertical="center"/>
-    </xf>
-  </cellXfs>
-</styleSheet>`;
-
-  // Workbook XML
-  const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <bookViews><workbookView xWindow="0" yWindow="0" windowWidth="20480" windowHeight="10240"/></bookViews>
-  <sheets><sheet name="${sheetName}" sheetId="1" r:id="rId1"/></sheets>
-</workbook>`;
-
-  // Compute column max widths & generate rows XML
-  const colWidths: Record<number, number> = {};
-  const rowsXmlArr: string[] = [];
-
-  grid.forEach((rowCells, rIdx) => {
-    const rowNum = rIdx + 1;
-    const isHeader = rowNum === 1 && highlightHeader;
-    const cellsXmlArr: string[] = [];
-
-    rowCells.forEach((cellVal, cIdx) => {
-      const colNum = cIdx + 1;
-      const colLetter = getExcelColumnLetter(colNum);
-      const cellRef = `${colLetter}${rowNum}`;
-      const trimmed = cellVal.trim();
-
-      colWidths[colNum] = Math.max(colWidths[colNum] || 10, trimmed.length + 4);
-
-      if (isHeader) {
-        cellsXmlArr.push(`<c r="${cellRef}" t="inlineStr" s="1"><is><t xml:space="preserve">${escapeXml(trimmed)}</t></is></c>`);
-      } else {
-        const isNumeric = /^-?\d+(\.\d+)?$/.test(trimmed) && trimmed.length <= 15;
-        if (isNumeric) {
-          cellsXmlArr.push(`<c r="${cellRef}" t="n" s="2"><v>${trimmed}</v></c>`);
-        } else {
-          cellsXmlArr.push(`<c r="${cellRef}" t="inlineStr" s="0"><is><t xml:space="preserve">${escapeXml(trimmed)}</t></is></c>`);
-        }
-      }
-    });
-
-    const rowHeight = isHeader ? ' ht="26" customHeight="1"' : ' ht="20" customHeight="1"';
-    rowsXmlArr.push(`<row r="${rowNum}"${rowHeight}>${cellsXmlArr.join("")}</row>`);
-  });
-
-  const maxCols = Math.max(...grid.map((r) => r.length), 1);
-  const colsXmlArr: string[] = [];
-  for (let c = 1; c <= maxCols; c++) {
-    const w = Math.min(60, Math.max(12, colWidths[c] || 15));
-    colsXmlArr.push(`<col min="${c}" max="${c}" width="${w}" customWidth="1"/>`);
-  }
-
-  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-           xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheetViews>
-    <sheetView tabSelected="1" workbookViewId="0" showGridLines="1"/>
-  </sheetViews>
-  <sheetFormatPr defaultRowHeight="20"/>
-  <cols>
-    ${colsXmlArr.join("\n    ")}
-  </cols>
-  <sheetData>
-    ${rowsXmlArr.join("\n    ")}
-  </sheetData>
-  <pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>
-</worksheet>`;
-
-  const files: { name: string; data: Uint8Array }[] = [
-    { name: "[Content_Types].xml", data: enc.encode(contentTypes) },
-    { name: "_rels/.rels", data: enc.encode(rootRels) },
-    { name: "xl/_rels/workbook.xml.rels", data: enc.encode(workbookRels) },
-    { name: "xl/workbook.xml", data: enc.encode(workbookXml) },
-    { name: "xl/styles.xml", data: enc.encode(stylesXml) },
-    { name: "xl/worksheets/sheet1.xml", data: enc.encode(sheetXml) },
-  ];
-
-  const zipData = buildZip(files);
-  return new Blob([zipData as BlobPart], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-};
-
-const buildXlsxFromImage = (dataUrl: string, imgW: number, imgH: number, filename: string): Blob => {
-  return buildEditableXlsxFromOcr(["Image Converted to Spreadsheet", filename || "Extracted Image Content"], {
-    filename,
-    sheetName: "Sheet1",
-  });
-};
-
-// ── 5. Image → PPTX (custom OOXML PowerPoint builder) ─────────────────────────
-const buildPptxFromImage = (dataUrl: string, imgW: number, imgH: number, filename: string): Blob => {
-  const enc = new TextEncoder();
-  const isJpeg = dataUrl.startsWith("data:image/jpeg") || dataUrl.startsWith("data:image/jpg");
-  const imgExt = isJpeg ? "jpeg" : "png";
-  const contentType = isJpeg ? "image/jpeg" : "image/png";
-
-  const base64 = dataUrl.includes(",") ? (dataUrl.split(",")[1] ?? "") : dataUrl;
-  const raw = atob(base64);
-  const imgBuf = new ArrayBuffer(raw.length);
-  const imgBytes = new Uint8Array(imgBuf);
-  for (let i = 0; i < raw.length; i++) imgBytes[i] = raw.charCodeAt(i) & 0xff;
-
-  // Standard 16:9 Widescreen slide: 13.333 × 7.5 inches = 12192000 × 6858000 EMU
-  const slideW = 12192000;
-  const slideH = 6858000;
-  const safeFname = escapeXml(filename || "image");
-
-  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Default Extension="png" ContentType="image/png"/>
-  <Default Extension="jpeg" ContentType="image/jpeg"/>
-  <Default Extension="jpg" ContentType="image/jpeg"/>
-  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
-  <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
-  <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
-  <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
-</Types>`;
-
-  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
-</Relationships>`;
-
-  const presentationRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>
-</Relationships>`;
-
-  const presentation = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
-                xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-                xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <p:sldMasterIdLst>
-    <p:sldMasterId id="2147483648" r:id="rId1"/>
-  </p:sldMasterIdLst>
-  <p:sldIdLst>
-    <p:sldId id="256" r:id="rId2"/>
-  </p:sldIdLst>
-  <p:sldSz cx="${slideW}" cy="${slideH}" type="screen16x9"/>
-  <p:notesSz cx="6858000" cy="9144000"/>
-</p:presentation>`;
-
-  const slideMaster = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sldMaster xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
-             xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <p:cSld>
-    <p:spTree>
-      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
-      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
-    </p:spTree>
-  </p:cSld>
-  <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
-  <p:sldLayoutIdLst>
-    <p:sldLayoutId id="2147483649" r:id="rId1"/>
-  </p:sldLayoutIdLst>
-</p:sldMaster>`;
-
-  const slideMasterRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
-</Relationships>`;
-
-  const slideLayout = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sldLayout xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
-             xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-             type="blank" preserve="1">
-  <p:cSld name="Blank">
-    <p:spTree>
-      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
-      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
-    </p:spTree>
-  </p:cSld>
-  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
-</p:sldLayout>`;
-
-  const slideLayoutRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>
-</Relationships>`;
-
-  // Scale image to fit within slide while preserving aspect ratio
-  const maxW = slideW * 0.92;
-  const maxH = slideH * 0.92;
-  const ratio = Math.min(maxW / (Math.max(1, imgW) * 9525), maxH / (Math.max(1, imgH) * 9525));
-  const fitW = Math.round(Math.max(1, imgW) * 9525 * ratio);
-  const fitH = Math.round(Math.max(1, imgH) * 9525 * ratio);
-  const offX = Math.round((slideW - fitW) / 2);
-  const offY = Math.round((slideH - fitH) / 2);
-
-  const slide = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
-       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-       xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <p:cSld>
-    <p:spTree>
-      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
-      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${slideW}" cy="${slideH}"/><a:chOff x="0" y="0"/><a:chExt cx="${slideW}" cy="${slideH}"/></a:xfrm></p:grpSpPr>
-      <p:pic>
-        <p:nvPicPr>
-          <p:cNvPr id="2" name="${safeFname}"/>
-          <p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr>
-          <p:nvPr/>
-        </p:nvPicPr>
-        <p:blipFill>
-          <a:blip r:embed="rId2"/>
-          <a:stretch><a:fillRect/></a:stretch>
-        </p:blipFill>
-        <p:spPr>
-          <a:xfrm>
-            <a:off x="${offX}" y="${offY}"/>
-            <a:ext cx="${fitW}" cy="${fitH}"/>
-          </a:xfrm>
-          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-        </p:spPr>
-      </p:pic>
-    </p:spTree>
-  </p:cSld>
-  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
-</p:sld>`;
-
-  const slideRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.${imgExt}"/>
-</Relationships>`;
-
-  const files: { name: string; data: Uint8Array<ArrayBufferLike> }[] = [
-    { name: "[Content_Types].xml", data: enc.encode(contentTypes) },
-    { name: "_rels/.rels", data: enc.encode(rootRels) },
-    { name: "ppt/presentation.xml", data: enc.encode(presentation) },
-    { name: "ppt/_rels/presentation.xml.rels", data: enc.encode(presentationRels) },
-    { name: "ppt/slideMasters/slideMaster1.xml", data: enc.encode(slideMaster) },
-    { name: "ppt/slideMasters/_rels/slideMaster1.xml.rels", data: enc.encode(slideMasterRels) },
-    { name: "ppt/slideLayouts/slideLayout1.xml", data: enc.encode(slideLayout) },
-    { name: "ppt/slideLayouts/_rels/slideLayout1.xml.rels", data: enc.encode(slideLayoutRels) },
-    { name: "ppt/slides/slide1.xml", data: enc.encode(slide) },
-    { name: "ppt/slides/_rels/slide1.xml.rels", data: enc.encode(slideRels) },
-    { name: `ppt/media/image1.${imgExt}`, data: imgBytes },
-  ];
-
-  const zipData = buildZip(files);
-  return new Blob([zipData as BlobPart], {
-    type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  });
-};
+// ── Document & OCR Builders (High-performance, spec-valid OpenXML) ──────────
+export {
+  parseOcrTextToGrid,
+  parseOcrTsvToGrid,
+  buildEditableDocxFromOcr,
+  buildDocxFromImage,
+  buildEditableXlsxFromOcr,
+  buildXlsxFromImage,
+  buildPptxFromOcrAndImage,
+  buildPptxFromImage,
+  performAdvancedOcr,
+  getExcelColumnLetter,
+  type AdvancedOcrResult,
+} from "@/lib/ocrEngine";
+import {
+  parseOcrTextToGrid,
+  parseOcrTsvToGrid,
+  buildEditableDocxFromOcr,
+  buildDocxFromImage,
+  buildEditableXlsxFromOcr,
+  buildXlsxFromImage,
+  buildPptxFromOcrAndImage,
+  buildPptxFromImage,
+  performAdvancedOcr,
+  getExcelColumnLetter,
+  type AdvancedOcrResult,
+} from "@/lib/ocrEngine";
 
 // ── 6. Custom ZIP reader (scan central directory with deflate decompression) ────
 const extractTextFromZip = async (buffer: ArrayBuffer, targetPath: string): Promise<string | null> => {
@@ -2228,6 +1547,7 @@ export interface WatermarkRemovalOptions {
   sensitivity: number; // 10 - 100
   engine: "smart_neural" | "patch_match" | "smooth_diffusion";
   preserveDetails: boolean;
+  alphaGain?: number;
 }
 
 const removeWatermarkAdvanced = (
@@ -2237,14 +1557,38 @@ const removeWatermarkAdvanced = (
   const w = imageData.width;
   const h = imageData.height;
   const srcData = imageData.data;
-  const out = new Uint8ClampedArray(srcData);
+
+  // 1. Dedicated Gemini AI Reverse Alpha Blending (100% Mathematically Exact Restoration)
+  if (options.mode === "gemini_ai") {
+    const geminiRes = removeGeminiWatermark(srcData, w, h, {
+      sensitivity: options.sensitivity,
+      alphaGain: options.alphaGain ?? 1.0,
+      forceRemoval: true,
+    });
+    return new ImageData(geminiRes.cleanedData as unknown as ImageData["data"], w, h);
+  }
+
+  // 2. Full Auto Scan: Check for Gemini AI watermark and losslessly restore first
+  let workingData: ImageData["data"] = srcData;
+
+  if (options.mode === "full_auto") {
+    const gRes = removeGeminiWatermark(srcData, w, h, {
+      sensitivity: options.sensitivity,
+      alphaGain: options.alphaGain ?? 1.0,
+    });
+    if (gRes.detected) {
+      return new ImageData(gRes.cleanedData as unknown as ImageData["data"], w, h);
+    }
+  }
+
+  const out = new Uint8ClampedArray(workingData);
 
   // 1. Calculate pixel luminance and color channels
   const lum = new Float32Array(w * h);
-  for (let i = 0, p = 0; i < srcData.length; i += 4, p++) {
-    const r = srcData[i] ?? 0;
-    const g = srcData[i + 1] ?? 0;
-    const b = srcData[i + 2] ?? 0;
+  for (let i = 0, p = 0; i < workingData.length; i += 4, p++) {
+    const r = workingData[i] ?? 0;
+    const g = workingData[i + 1] ?? 0;
+    const b = workingData[i + 2] ?? 0;
     lum[p] = r * 0.299 + g * 0.587 + b * 0.114;
   }
 
@@ -2312,52 +1656,33 @@ const removeWatermarkAdvanced = (
 
   // Thresholds tuned with sensitivity
   const isCornerMode = options.mode === "corners";
-  const isGeminiMode = options.mode === "gemini_ai";
   const isStockGrid = options.mode === "stock_grid";
 
-  // Highly sensitive Gemini AI sparkle / watermark threshold (positive luminance delta)
-  const geminiDeltaThreshold = Math.max(2.5, 12 * (1.1 - sens * 0.6));
   const generalWhiteDelta = Math.max(6, 22 * (1.1 - sens * 0.5));
   const generalBlackDelta = Math.max(8, 24 * (1.1 - sens * 0.5));
   const generalEdgeThresh = Math.max(10, 26 * (1.1 - sens * 0.4));
-
-  // Bottom-right quadrant bounds where Gemini diamond watermarks reside
-  const brXMin = Math.floor(w * 0.52);
-  const brYMin = Math.floor(h * 0.52);
 
   // 4. Initial Watermark Pixel Tagging
   for (let y = 1; y < h - 1; y++) {
     const row = y * w;
     for (let x = 1; x < w - 1; x++) {
+
       const idx = row + x;
       const l = lum[idx] ?? 0;
       const bg = boxMean[idx] ?? l;
       const deltaL = l - bg;
       const grad = gradMap[idx] ?? 0;
 
-      const inBR = x >= brXMin && y >= brYMin;
       const inCorner =
-        (x <= w * 0.35 || x >= w * 0.65) &&
-        (y <= h * 0.35 || y >= h * 0.65);
+        (y <= h * 0.35 && (x <= w * 0.35 || x >= w * 0.65)) ||
+        (y >= h * 0.55 && (x <= w * 0.48 || x >= w * 0.46));
 
-      if (isGeminiMode && !inBR) continue;
       if (isCornerMode && !inCorner) continue;
 
       let isWm = false;
 
-      // Check 1: Gemini AI Translucent Star / Diamond in Bottom-Right
-      if (inBR || isGeminiMode) {
-        // Translucent overlay produces a positive luminance bump (deltaL > 0)
-        // over the local wooden / fabric / desk / sky background
-        if (deltaL >= geminiDeltaThreshold && (grad > 2.5 || deltaL >= geminiDeltaThreshold * 1.5)) {
-          isWm = true;
-        } else if (Math.abs(deltaL) >= geminiDeltaThreshold * 1.8 && grad > 3) {
-          isWm = true;
-        }
-      }
-
-      // Check 2: Corner Logos & Timestamps & Standard Overlays
-      if (!isWm && (inCorner || !isGeminiMode)) {
+      // Check Corner Logos & Timestamps & Standard Overlays
+      if (inCorner || isCornerMode) {
         if (deltaL > generalWhiteDelta && grad > 4) {
           isWm = true;
         } else if (-deltaL > generalBlackDelta && grad > 5) {
@@ -2367,7 +1692,7 @@ const removeWatermarkAdvanced = (
         }
       }
 
-      // Check 3: Stock Grid / Diagonal Tiled Watermarks
+      // Check Stock Grid / Diagonal Tiled Watermarks
       if (!isWm && isStockGrid) {
         if (Math.abs(deltaL) > generalWhiteDelta * 0.8 && grad > 6) {
           isWm = true;
@@ -2424,7 +1749,7 @@ const removeWatermarkAdvanced = (
 
       const compW = maxX - minX + 1;
       const compH = maxY - minY + 1;
-      const isCandidateBR = minX >= brXMin && minY >= brYMin;
+      const isCandidateBR = minX >= Math.floor(w * 0.52) && minY >= Math.floor(h * 0.52);
 
       // If the component is tiny isolated noise (e.g. < 4 pixels and not in BR), prune it
       if (compSize < (isCandidateBR ? 3 : 6) && compW < 3 && compH < 3) {
@@ -2441,7 +1766,7 @@ const removeWatermarkAdvanced = (
   // 6. Morphological Dilation (3.5px expansion) with Circular Kernel
   // Completely covers all sub-pixel antialiased edges and faint alpha halos
   const dilatedMask = new Uint8Array(w * h);
-  const dilateRadius = 4;
+  const dilateRadius = Math.max(7, Math.min(15, Math.round(Math.min(w, h) * 0.012)));
   const dilateRadiusSq = dilateRadius * dilateRadius;
 
   for (let y = 0; y < h; y++) {
@@ -2502,6 +1827,10 @@ const removeWatermarkAdvanced = (
         distMap[idx] = 0;
       }
     }
+  }
+
+  if (inpaintQueue.length === 0) {
+    return new ImageData(workingData, w, h);
   }
 
   // Multi-scale directional exemplar inpainting
@@ -3279,834 +2608,9 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
   return results;
 };
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * ADVANCED MULTI-FONT NEURAL-CORRELATION OCR ENGINE (Zero External Libraries)
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
-interface GlyphTemplate {
-  char: string;
-  grid: Float32Array; // 18x18 normalized density float array (324 floats)
-  aspectRatio: number;
-  density: number;
-  holes: number;
-  holeYCenter: number; // 0=none, 1=top half, 2=middle, 3=bottom half
-  crossingsH: [number, number, number]; // Horizontal crossings at 25%, 50%, 75%
-  crossingsV: [number, number, number]; // Vertical crossings at 25%, 50%, 75%
-}
-
-let cachedGlyphTemplates: GlyphTemplate[] | null = null;
-
-/**
- * Counts topological holes (Euler loops) and their vertical placement
- */
-const analyzeHolesAndTopology = (
-  grid18: Float32Array
-): { holes: number; holeYCenter: number } => {
-  const pad = 20;
-  const visited = new Uint8Array(pad * pad);
-  const qx: number[] = [0];
-  const qy: number[] = [0];
-  visited[0] = 1;
-  let qh = 0;
-  const dxs = [1, -1, 0, 0];
-  const dys = [0, 0, 1, -1];
-
-  // Flood fill outside background from (0,0)
-  while (qh < qx.length) {
-    const cx = qx[qh] as number;
-    const cy = qy[qh] as number;
-    qh++;
-    for (let d = 0; d < 4; d++) {
-      const nx = cx + (dxs[d] as number);
-      const ny = cy + (dys[d] as number);
-      if (nx >= 0 && nx < pad && ny >= 0 && ny < pad) {
-        const idx = ny * pad + nx;
-        if (!visited[idx]) {
-          const isFg =
-            nx > 0 && nx <= 18 && ny > 0 && ny <= 18
-              ? grid18[(ny - 1) * 18 + (nx - 1)]! > 0.35
-              : false;
-          if (!isFg) {
-            visited[idx] = 1;
-            qx.push(nx);
-            qy.push(ny);
-          }
-        }
-      }
-    }
-  }
-
-  let holes = 0;
-  let holeYSum = 0;
-  let holeCount = 0;
-
-  for (let y = 1; y <= 18; y++) {
-    for (let x = 1; x <= 18; x++) {
-      const idx = y * pad + x;
-      const isBg = grid18[(y - 1) * 18 + (x - 1)]! <= 0.35;
-      if (isBg && !visited[idx]) {
-        holes++;
-        let curHoleYSum = 0;
-        let curHolePixels = 0;
-        const hqx: number[] = [x];
-        const hqy: number[] = [y];
-        visited[idx] = 1;
-        let hqh = 0;
-        while (hqh < hqx.length) {
-          const hcx = hqx[hqh] as number;
-          const hcy = hqy[hqh] as number;
-          hqh++;
-          curHoleYSum += hcy;
-          curHolePixels++;
-          for (let d = 0; d < 4; d++) {
-            const hnx = hcx + (dxs[d] as number);
-            const hny = hcy + (dys[d] as number);
-            if (hnx >= 1 && hnx <= 18 && hny >= 1 && hny <= 18) {
-              const nidx = hny * pad + hnx;
-              if (!visited[nidx] && grid18[(hny - 1) * 18 + (hnx - 1)]! <= 0.35) {
-                visited[nidx] = 1;
-                hqx.push(hnx);
-                hqy.push(hny);
-              }
-            }
-          }
-        }
-        if (curHolePixels >= 2) {
-          holeYSum += curHoleYSum / curHolePixels;
-          holeCount++;
-        }
-      }
-    }
-  }
-
-  let holeYCenter = 0;
-  if (holeCount > 0) {
-    const avgY = holeYSum / holeCount;
-    if (avgY < 7) holeYCenter = 1; // Top
-    else if (avgY > 12) holeYCenter = 3; // Bottom
-    else holeYCenter = 2; // Middle
-  }
-
-  return { holes: Math.min(2, holes), holeYCenter };
-};
-
-/**
- * Computes horizontal and vertical stroke crossings
- */
-const computeCrossings = (
-  grid18: Float32Array
-): { crossingsH: [number, number, number]; crossingsV: [number, number, number] } => {
-  const checkCrossings = (samples: number[], isHorizontal: boolean): [number, number, number] => {
-    const res: [number, number, number] = [0, 0, 0];
-    for (let si = 0; si < 3; si++) {
-      const pos = samples[si]!;
-      let count = 0;
-      let inStroke = false;
-      for (let k = 0; k < 18; k++) {
-        const val = isHorizontal ? grid18[pos * 18 + k]! : grid18[k * 18 + pos]!;
-        const dark = val > 0.4;
-        if (dark && !inStroke) {
-          inStroke = true;
-          count++;
-        } else if (!dark && inStroke) {
-          inStroke = false;
-        }
-      }
-      res[si] = count;
-    }
-    return res;
-  };
-
-  const crossingsH = checkCrossings([4, 9, 14], true);
-  const crossingsV = checkCrossings([4, 9, 14], false);
-  return { crossingsH, crossingsV };
-};
-
-/**
- * Dynamically builds a rich multi-font template database across standard typography families
- */
-const getMultiFontTemplateDatabase = (): GlyphTemplate[] => {
-  if (cachedGlyphTemplates && cachedGlyphTemplates.length > 0) return cachedGlyphTemplates;
-  if (typeof document === "undefined") return [];
-
-  const templates: GlyphTemplate[] = [];
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,:;!?'\"()[]{}@#$%&*-+=/\\<>~_%";
-  const fontFamilies = [
-    "sans-serif",
-    "Arial, sans-serif",
-    "'Segoe UI', Roboto, sans-serif",
-    "'Times New Roman', serif",
-    "'Courier New', monospace",
-    "Georgia, serif",
-    "Verdana, sans-serif"
-  ];
-  const weights = ["bold", "normal"];
-
-  const offCanvas = document.createElement("canvas");
-  offCanvas.width = 64;
-  offCanvas.height = 64;
-  const offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
-  if (!offCtx) return [];
-
-  for (const fontFam of fontFamilies) {
-    for (const weight of weights) {
-      offCtx.font = `${weight} 38px ${fontFam}`;
-      for (let ci = 0; ci < chars.length; ci++) {
-        const ch = chars[ci]!;
-        offCtx.clearRect(0, 0, 64, 64);
-        offCtx.fillStyle = "#ffffff";
-        offCtx.fillRect(0, 0, 64, 64);
-        offCtx.fillStyle = "#000000";
-        offCtx.textAlign = "center";
-        offCtx.textBaseline = "middle";
-        offCtx.fillText(ch, 32, 32);
-
-        const imgData = offCtx.getImageData(0, 0, 64, 64);
-        const data = imgData.data;
-
-        // Find tight bounding box of rendered letter
-        let minX = 64, maxX = 0, minY = 64, maxY = 0;
-        let hasDark = false;
-        for (let y = 0; y < 64; y++) {
-          for (let x = 0; x < 64; x++) {
-            const lum =
-              data[(y * 64 + x) * 4]! * 0.299 +
-              data[(y * 64 + x) * 4 + 1]! * 0.587 +
-              data[(y * 64 + x) * 4 + 2]! * 0.114;
-            if (lum < 160) {
-              if (x < minX) minX = x;
-              if (x > maxX) maxX = x;
-              if (y < minY) minY = y;
-              if (y > maxY) maxY = y;
-              hasDark = true;
-            }
-          }
-        }
-
-        if (!hasDark || maxX < minX || maxY < minY) continue;
-
-        const gw = maxX - minX + 1;
-        const gh = maxY - minY + 1;
-        const aspect = gw / Math.max(1, gh);
-
-        // Downsample into 18x18 normalized continuous density matrix
-        const grid = new Float32Array(324);
-        let darkCount = 0;
-        for (let r = 0; r < 18; r++) {
-          const sy0 = minY + Math.floor((r * gh) / 18);
-          const sy1 = minY + Math.max(sy0 + 1, Math.floor(((r + 1) * gh) / 18));
-          for (let c = 0; c < 18; c++) {
-            const sx0 = minX + Math.floor((c * gw) / 18);
-            const sx1 = minX + Math.max(sx0 + 1, Math.floor(((c + 1) * gw) / 18));
-            let sum = 0, count = 0;
-            for (let y = sy0; y < sy1; y++) {
-              for (let x = sx0; x < sx1; x++) {
-                const lum =
-                  data[(y * 64 + x) * 4]! * 0.299 +
-                  data[(y * 64 + x) * 4 + 1]! * 0.587 +
-                  data[(y * 64 + x) * 4 + 2]! * 0.114;
-                if (lum < 160) sum++;
-                count++;
-              }
-            }
-            const val = count > 0 ? sum / count : 0;
-            grid[r * 18 + c] = val;
-            if (val > 0.35) darkCount++;
-          }
-        }
-
-        const density = darkCount / 324;
-        const { holes, holeYCenter } = analyzeHolesAndTopology(grid);
-        const { crossingsH, crossingsV } = computeCrossings(grid);
-
-        templates.push({
-          char: ch,
-          grid,
-          aspectRatio: aspect,
-          density,
-          holes,
-          holeYCenter,
-          crossingsH,
-          crossingsV,
-        });
-      }
-    }
-  }
-
-  cachedGlyphTemplates = templates;
-  return templates;
-};
-
-/**
- * Recognizes unknown candidate character grid using cosine similarity, structural & topological constraints
- */
-const recognizeGlyph = (
-  candGrid: Float32Array,
-  aspect: number,
-  density: number,
-  templates: GlyphTemplate[]
-): string => {
-  const { holes: candHoles, holeYCenter: candHoleY } = analyzeHolesAndTopology(candGrid);
-  const { crossingsH: candCH, crossingsV: candCV } = computeCrossings(candGrid);
-
-  let bestChar = " ";
-  let bestScore = -99999;
-
-  for (let i = 0; i < templates.length; i++) {
-    const t = templates[i]!;
-    let dot = 0, normA = 0, normB = 0;
-    for (let k = 0; k < 324; k++) {
-      const a = candGrid[k]!;
-      const b = t.grid[k]!;
-      dot += a * b;
-      normA += a * a;
-      normB += b * b;
-    }
-    const sim = normA > 0 && normB > 0 ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0;
-    let score = sim * 100;
-
-    // Aspect ratio bonus/penalty
-    const aspectDiff = Math.abs(t.aspectRatio - aspect);
-    score -= aspectDiff * 20;
-
-    // Density bonus/penalty
-    const densityDiff = Math.abs(t.density - density);
-    score -= densityDiff * 25;
-
-    // Topological hole bonus/penalty
-    if (t.holes === candHoles) {
-      score += 15;
-      if (t.holes > 0 && t.holeYCenter === candHoleY) {
-        score += 10;
-      }
-    } else {
-      score -= Math.abs(t.holes - candHoles) * 30;
-    }
-
-    // Crossings profile alignment
-    const crossDiff =
-      Math.abs(t.crossingsH[0] - candCH[0]) +
-      Math.abs(t.crossingsH[1] - candCH[1]) +
-      Math.abs(t.crossingsH[2] - candCH[2]) +
-      Math.abs(t.crossingsV[0] - candCV[0]) +
-      Math.abs(t.crossingsV[1] - candCV[1]) +
-      Math.abs(t.crossingsV[2] - candCV[2]);
-    score -= crossDiff * 2.5;
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestChar = t.char;
-    }
-  }
-
-  return bestChar;
-};
-
-/**
- * 2D Connected Component Blob
- */
-interface CharacterBlob {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-  width: number;
-  height: number;
-  area: number;
-  centerX: number;
-  centerY: number;
-  mask: Uint8Array;
-}
-
 export type { OcrLanguageOption };
 export const OCR_SUPPORTED_LANGUAGES: OcrLanguageOption[] = RICH_OCR_LANGUAGES;
 
-/**
- * High-accuracy multi-pass OCR recognition engine supporting 60+ global languages
- * with client-side WebAssembly Tesseract + 2D CCA fallback
- */
-export const performAdvancedOcr = async (
-  canvas: HTMLCanvasElement,
-  options: {
-    contrastMode?: "auto" | "high" | "inverted";
-    outputStructure?: "structured" | "plain" | "json";
-    language?: string;
-    onProgress?: (status: string, progress: number) => void;
-  } = {}
-): Promise<{ textLines: string[]; rawWords: string[] }> => {
-  const ocrLang = (options.language || "eng").trim();
-
-  // 1. Primary Engine: Client-Side WebAssembly Tesseract OCR (100% private, runs offline in browser via WebAssembly)
-  try {
-    const Tesseract = await import("tesseract.js");
-    const result = await Tesseract.recognize(canvas, ocrLang, {
-      logger: (m) => {
-        if (options.onProgress && m) {
-          const progress = typeof m.progress === "number" ? Math.round(m.progress * 100) : 0;
-          let label = "Processing OCR";
-          if (m.status === "loading tesseract core") label = "Loading OCR core";
-          else if (m.status === "initializing tesseract") label = "Initializing OCR engine";
-          else if (m.status === "loading language traineddata") label = `Loading language model (${ocrLang})`;
-          else if (m.status === "initializing api") label = "Setting up recognition";
-          else if (m.status === "recognizing text") label = `Recognizing text (${progress}%)`;
-          options.onProgress(label, progress);
-        }
-      },
-    });
-
-    if (result && result.data && result.data.text) {
-      const rawLines = result.data.text
-        .split("\n")
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
-
-      const words: string[] = [];
-      rawLines.forEach((l) => {
-        l.split(/\s+/).forEach((w) => {
-          if (w.trim()) words.push(w.trim());
-        });
-      });
-
-      if (rawLines.length > 0) {
-        return {
-          textLines: rawLines,
-          rawWords: words,
-        };
-      }
-    }
-  } catch (err) {
-    console.warn("Tesseract local WASM engine fallback:", err);
-  }
-
-  const templates = getMultiFontTemplateDatabase();
-
-  // Optimal resolution scaling: upscale if width < 1400px for sharp character boundaries
-  let workCanvas = canvas;
-  if (canvas.width < 1400) {
-    const scale = Math.min(3.5, 1600 / Math.max(1, canvas.width));
-    const upCanvas = document.createElement("canvas");
-    upCanvas.width = Math.round(canvas.width * scale);
-    upCanvas.height = Math.round(canvas.height * scale);
-    const upCtx = upCanvas.getContext("2d");
-    if (upCtx) {
-      upCtx.imageSmoothingEnabled = true;
-      upCtx.imageSmoothingQuality = "high";
-      upCtx.drawImage(canvas, 0, 0, upCanvas.width, upCanvas.height);
-      workCanvas = upCanvas;
-    }
-  }
-
-  const ctx = workCanvas.getContext("2d");
-  if (!ctx) return { textLines: [], rawWords: [] };
-
-  const w = workCanvas.width;
-  const h = workCanvas.height;
-  const imgData = ctx.getImageData(0, 0, w, h);
-  const data = imgData.data;
-
-  // 1. Grayscale & Integral Image computation
-  const gray = new Uint8Array(w * h);
-  let totalLum = 0;
-  for (let i = 0; i < w * h; i++) {
-    const lum = Math.round(data[i * 4]! * 0.299 + data[i * 4 + 1]! * 0.587 + data[i * 4 + 2]! * 0.114);
-    gray[i] = lum;
-    totalLum += lum;
-  }
-  const avgLum = totalLum / (w * h);
-  const isDarkBg =
-    options.contrastMode === "inverted" ? true : options.contrastMode === "high" ? false : avgLum < 110;
-
-  // Integral images: sum & squared sum
-  const sumImg = new Float64Array((w + 1) * (h + 1));
-  const sqSumImg = new Float64Array((w + 1) * (h + 1));
-
-  for (let y = 0; y < h; y++) {
-    let rowSum = 0;
-    let rowSqSum = 0;
-    for (let x = 0; x < w; x++) {
-      const g = gray[y * w + x]!;
-      rowSum += g;
-      rowSqSum += g * g;
-      const idx = (y + 1) * (w + 1) + (x + 1);
-      const topIdx = y * (w + 1) + (x + 1);
-      sumImg[idx] = sumImg[topIdx]! + rowSum;
-      sqSumImg[idx] = sqSumImg[topIdx]! + rowSqSum;
-    }
-  }
-
-  // 2. Integral Sauvola local binarization with dynamic variance gating
-  const binary = new Uint8Array(w * h);
-  const winR = Math.max(12, Math.floor(w / 50));
-  const kParam = 0.2;
-
-  for (let y = 0; y < h; y++) {
-    const y0 = Math.max(0, y - winR);
-    const y1 = Math.min(h, y + winR + 1);
-    for (let x = 0; x < w; x++) {
-      const x0 = Math.max(0, x - winR);
-      const x1 = Math.min(w, x + winR + 1);
-      const area = (x1 - x0) * (y1 - y0);
-
-      const sum =
-        sumImg[y1 * (w + 1) + x1]! -
-        sumImg[y0 * (w + 1) + x1]! -
-        sumImg[y1 * (w + 1) + x0]! +
-        sumImg[y0 * (w + 1) + x0]!;
-      const sqSum =
-        sqSumImg[y1 * (w + 1) + x1]! -
-        sqSumImg[y0 * (w + 1) + x1]! -
-        sqSumImg[y1 * (w + 1) + x0]! +
-        sqSumImg[y0 * (w + 1) + x0]!;
-
-      const mean = sum / area;
-      const variance = Math.max(0, (sqSum - (sum * sum) / area) / area);
-      const std = Math.sqrt(variance);
-
-      const g = gray[y * w + x]!;
-      if (std < 10) {
-        // Flat region variance gate: avoid background speckling
-        binary[y * w + x] = isDarkBg ? (g > 175 ? 1 : 0) : (g < 75 ? 1 : 0);
-      } else {
-        const thresh = mean * (1 + kParam * (std / 128 - 1));
-        binary[y * w + x] = isDarkBg ? (g >= thresh ? 1 : 0) : (g < thresh ? 1 : 0);
-      }
-    }
-  }
-
-  // 3. 2D Connected Component Analysis (CCA) - Extract all foreground character blobs
-  const visited = new Uint8Array(w * h);
-  const rawBlobs: CharacterBlob[] = [];
-
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const idx = y * w + x;
-      if (binary[idx] === 1 && !visited[idx]) {
-        // 8-way flood fill
-        let minBX = x, maxBX = x, minBY = y, maxBY = y;
-        let blobArea = 0;
-        let sumX = 0, sumY = 0;
-        const qx = [x];
-        const qy = [y];
-        visited[idx] = 1;
-        let qHead = 0;
-
-        const blobPixelCoords: Array<{ px: number; py: number }> = [];
-
-        while (qHead < qx.length) {
-          const cx = qx[qHead] as number;
-          const cy = qy[qHead] as number;
-          qHead++;
-          blobArea++;
-          sumX += cx;
-          sumY += cy;
-          blobPixelCoords.push({ px: cx, py: cy });
-
-          if (cx < minBX) minBX = cx;
-          if (cx > maxBX) maxBX = cx;
-          if (cy < minBY) minBY = cy;
-          if (cy > maxBY) maxBY = cy;
-
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              if (dx === 0 && dy === 0) continue;
-              const nx = cx + dx;
-              const ny = cy + dy;
-              if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
-                const nidx = ny * w + nx;
-                if (binary[nidx] === 1 && !visited[nidx]) {
-                  visited[nidx] = 1;
-                  qx.push(nx);
-                  qy.push(ny);
-                }
-              }
-            }
-          }
-        }
-
-        const bw = maxBX - minBX + 1;
-        const bh = maxBY - minBY + 1;
-
-        // Noise & Page Border Filter
-        if (bh < 4 || blobArea < 4) continue;
-        if (bw > w * 0.95 || bh > h * 0.95) continue;
-
-        // Build tight pixel mask
-        const mask = new Uint8Array(bw * bh);
-        for (let pi = 0; pi < blobPixelCoords.length; pi++) {
-          const p = blobPixelCoords[pi]!;
-          mask[(p.py - minBY) * bw + (p.px - minBX)] = 1;
-        }
-
-        rawBlobs.push({
-          minX: minBX,
-          minY: minBY,
-          maxX: maxBX,
-          maxY: maxBY,
-          width: bw,
-          height: bh,
-          area: blobArea,
-          centerX: sumX / blobArea,
-          centerY: sumY / blobArea,
-          mask,
-        });
-      }
-    }
-  }
-
-  if (rawBlobs.length === 0) return { textLines: [], rawWords: [] };
-
-  // 4. Touching Character Splitting (Valley Cut Decomposition)
-  const individualBlobs: CharacterBlob[] = [];
-  for (const b of rawBlobs) {
-    const aspect = b.width / Math.max(1, b.height);
-    // If blob is unusually wide, it is almost certainly multiple touching characters
-    if (aspect > 1.35 && b.width > 22) {
-      // Compute vertical projection of this blob
-      const colProj = new Int32Array(b.width);
-      for (let cy = 0; cy < b.height; cy++) {
-        for (let cx = 0; cx < b.width; cx++) {
-          if (b.mask[cy * b.width + cx] === 1) {
-            colProj[cx] = (colProj[cx] ?? 0) + 1;
-          }
-        }
-      }
-
-      // Smooth projection
-      const smoothProj = new Float32Array(b.width);
-      for (let cx = 0; cx < b.width; cx++) {
-        const left = cx > 0 ? colProj[cx - 1]! : colProj[cx]!;
-        const right = cx < b.width - 1 ? colProj[cx + 1]! : colProj[cx]!;
-        smoothProj[cx] = (left + colProj[cx]! + right) / 3;
-      }
-
-      // Find local minima valleys (cut points)
-      const cuts: number[] = [0];
-      const minCharW = Math.max(8, Math.round(b.height * 0.4));
-      let lastCut = 0;
-
-      for (let cx = minCharW; cx < b.width - minCharW; cx++) {
-        if (cx - lastCut >= minCharW) {
-          const val = smoothProj[cx]!;
-          const isMin = val <= smoothProj[cx - 1]! && val <= smoothProj[cx + 1]!;
-          if (isMin && val < b.height * 0.45) {
-            cuts.push(cx);
-            lastCut = cx;
-          }
-        }
-      }
-      cuts.push(b.width);
-
-      if (cuts.length > 2) {
-        for (let ci = 0; ci < cuts.length - 1; ci++) {
-          const c0 = cuts[ci]!;
-          const c1 = cuts[ci + 1]!;
-          const subW = c1 - c0;
-          if (subW < 3) continue;
-
-          // Find tight vertical bounds of sub-glyph
-          let sMinY = b.height, sMaxY = 0, subArea = 0;
-          const subMask = new Uint8Array(subW * b.height);
-          for (let cy = 0; cy < b.height; cy++) {
-            for (let cx = c0; cx < c1; cx++) {
-              if (b.mask[cy * b.width + cx] === 1) {
-                if (cy < sMinY) sMinY = cy;
-                if (cy > sMaxY) sMaxY = cy;
-                subMask[cy * subW + (cx - c0)] = 1;
-                subArea++;
-              }
-            }
-          }
-
-          if (subArea > 4 && sMaxY >= sMinY) {
-            const subH = sMaxY - sMinY + 1;
-            const tightSubMask = new Uint8Array(subW * subH);
-            for (let cy = sMinY; cy <= sMaxY; cy++) {
-              for (let cx = 0; cx < subW; cx++) {
-                tightSubMask[(cy - sMinY) * subW + cx] = subMask[cy * subW + cx]!;
-              }
-            }
-            individualBlobs.push({
-              minX: b.minX + c0,
-              minY: b.minY + sMinY,
-              maxX: b.minX + c1 - 1,
-              maxY: b.minY + sMaxY,
-              width: subW,
-              height: subH,
-              area: subArea,
-              centerX: b.minX + c0 + subW / 2,
-              centerY: b.minY + sMinY + subH / 2,
-              mask: tightSubMask,
-            });
-          }
-        }
-        continue;
-      }
-    }
-    individualBlobs.push(b);
-  }
-
-  // 5. Line Formation via Baseline & Vertical Proximity Clustering
-  individualBlobs.sort((a, b) => a.centerY - b.centerY);
-  const lineClusters: Array<{ avgY: number; avgH: number; blobs: CharacterBlob[] }> = [];
-
-  for (const b of individualBlobs) {
-    let matchedCluster = null;
-    for (const cl of lineClusters) {
-      const vertOverlap = Math.min(b.maxY, cl.avgY + cl.avgH / 2) - Math.max(b.minY, cl.avgY - cl.avgH / 2);
-      const overlapRatio = vertOverlap / Math.max(1, Math.min(b.height, cl.avgH));
-      if (overlapRatio > 0.35 || Math.abs(b.centerY - cl.avgY) < Math.max(b.height, cl.avgH) * 0.55) {
-        matchedCluster = cl;
-        break;
-      }
-    }
-
-    if (matchedCluster) {
-      matchedCluster.blobs.push(b);
-      matchedCluster.avgY =
-        matchedCluster.blobs.reduce((s, item) => s + item.centerY, 0) / matchedCluster.blobs.length;
-      matchedCluster.avgH =
-        matchedCluster.blobs.reduce((s, item) => s + item.height, 0) / matchedCluster.blobs.length;
-    } else {
-      lineClusters.push({
-        avgY: b.centerY,
-        avgH: b.height,
-        blobs: [b],
-      });
-    }
-  }
-
-  // Sort lines top to bottom
-  lineClusters.sort((a, b) => a.avgY - b.avgY);
-
-  // 6. Character Recognition & Line Assembly
-  const recognizedLines: string[] = [];
-  const rawWords: string[] = [];
-
-  for (const line of lineClusters) {
-    // Sort blobs in line horizontally (left to right)
-    line.blobs.sort((a, b) => a.minX - b.minX);
-
-    const charWidths = line.blobs.map((b) => b.width);
-    const medianW = charWidths.sort((a, b) => a - b)[Math.floor(charWidths.length / 2)] || 16;
-    const spaceThreshold = Math.max(6, Math.round(medianW * 0.48));
-
-    let lineStr = "";
-    let curWord = "";
-
-    for (let bi = 0; bi < line.blobs.length; bi++) {
-      const b = line.blobs[bi]!;
-
-      // Check for space between previous character
-      if (bi > 0) {
-        const gap = b.minX - line.blobs[bi - 1]!.maxX;
-        if (gap >= spaceThreshold) {
-          lineStr += " ";
-          if (curWord) {
-            rawWords.push(curWord);
-            curWord = "";
-          }
-        }
-      }
-
-      // Downsample candidate mask into 18x18 normalized grid
-      const candGrid = new Float32Array(324);
-      let darkCount = 0;
-      for (let r = 0; r < 18; r++) {
-        const sy0 = Math.floor((r * b.height) / 18);
-        const sy1 = Math.max(sy0 + 1, Math.floor(((r + 1) * b.height) / 18));
-        for (let c = 0; c < 18; c++) {
-          const sx0 = Math.floor((c * b.width) / 18);
-          const sx1 = Math.max(sx0 + 1, Math.floor(((c + 1) * b.width) / 18));
-          let s = 0, num = 0;
-          for (let y = sy0; y < sy1 && y < b.height; y++) {
-            for (let x = sx0; x < sx1 && x < b.width; x++) {
-              if (b.mask[y * b.width + x] === 1) s++;
-              num++;
-            }
-          }
-          const val = num > 0 ? s / num : 0;
-          candGrid[r * 18 + c] = val;
-          if (val > 0.35) darkCount++;
-        }
-      }
-
-      const aspect = b.width / Math.max(1, b.height);
-      const density = darkCount / 324;
-      const matchedChar = recognizeGlyph(candGrid, aspect, density, templates);
-
-      lineStr += matchedChar;
-      curWord += matchedChar;
-    }
-
-    if (curWord) rawWords.push(curWord);
-    if (lineStr.trim()) recognizedLines.push(lineStr.trim());
-  }
-
-  // 7. Dictionary & Lexical Correction Pipeline
-  const commonDictionary: Record<string, string> = {
-    CONVERSION: "Conversion",
-    COMPLETE: "Complete",
-    IMAGE: "Image",
-    SUCCESSFULLY: "Successfully",
-    CONVERTED: "Converted",
-    ORIGINAL: "Original",
-    PROCESSED: "Processed",
-    DOWNLOAD: "Download",
-    INVOICE: "INVOICE",
-    RECEIPT: "RECEIPT",
-    TOTAL: "Total",
-    AMOUNT: "Amount",
-    DATE: "Date",
-    CUSTOMER: "Customer",
-    STATUS: "Status",
-    PAID: "Paid",
-    PENDING: "Pending",
-    EMAIL: "Email",
-    PHONE: "Phone",
-    ADDRESS: "Address",
-    NUMBER: "Number",
-    TAX: "Tax",
-    DISCOUNT: "Discount",
-    SUBTOTAL: "Subtotal",
-    BALANCE: "Balance",
-    DUE: "Due",
-    PAYMENT: "Payment",
-    THANK: "Thank",
-    YOU: "You",
-    SMALLER: "Smaller",
-    LARGER: "Larger",
-    KB: "KB",
-    MB: "MB",
-    PX: "px",
-  };
-
-  const postProcessed = recognizedLines.map((line) => {
-    const clean = line.replace(/\s*:\s*/g, ": ");
-    // Replace dictionary words if Levenshtein or case-insensitive match
-    const words = clean.split(" ");
-    const fixedWords = words.map((wrd) => {
-      const stripped = wrd.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-      if (commonDictionary[stripped]) {
-        const replacement = commonDictionary[stripped]!;
-        // preserve trailing punctuation
-        const trail = wrd.match(/[^a-zA-Z0-9]+$/)?.[0] || "";
-        const lead = wrd.match(/^[^a-zA-Z0-9]+/)?.[0] || "";
-        return lead + replacement + trail;
-      }
-      return wrd;
-    });
-
-    return fixedWords.join(" ");
-  });
-
-  return {
-    textLines: postProcessed,
-    rawWords,
-  };
-};
 
 /**
  * Assembles final structured OCR output text combining Barcode/QR payloads and OCR text
@@ -4667,6 +3171,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [origSize, setOrigSize] = useState<number>(0);
   const [newSize, setNewSize] = useState<number>(0);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [outputDimensions, setOutputDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const [creditBalance, setCreditBalance] = useState(() => AuthUser.getCredits());
 
   useEffect(() => {
@@ -4699,6 +3204,19 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [maintainAspect, setMaintainAspect] = useState<boolean>(true);
   const [scalePercent, setScalePercent] = useState<number>(100);
   const [resizeQualityMode, setResizeQualityMode] = useState<"same" | "improved">("same");
+
+  // Real-time estimated output file size for Image Resize tool
+  const estimatedResizeBytes = useMemo(() => {
+    if (!origSize || !dimensions.width || !dimensions.height) return 0;
+    const w = targetWidth > 0 ? targetWidth : dimensions.width;
+    const h = targetHeight > 0 ? targetHeight : dimensions.height;
+    const pixelRatio = (w * h) / (dimensions.width * dimensions.height);
+    if (resizeQualityMode === "improved") {
+      return Math.max(1024, Math.round(origSize * Math.pow(pixelRatio, 0.9) * 1.25));
+    } else {
+      return Math.max(1024, Math.round(origSize * Math.pow(pixelRatio, 0.82)));
+    }
+  }, [origSize, dimensions.width, dimensions.height, targetWidth, targetHeight, resizeQualityMode]);
 
   // 3. Crop
   const [cropAspect, setCropAspect] = useState<"free" | "1:1" | "4:3" | "16:9" | "9:16">("free");
@@ -4772,6 +3290,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [wmRemovalSensitivity, setWmRemovalSensitivity] = useState<number>(55);
   const [wmInpaintEngine, setWmInpaintEngine] = useState<"smart_neural" | "patch_match" | "smooth_diffusion">("smart_neural");
   const [wmPreserveDetails, setWmPreserveDetails] = useState<boolean>(true);
+  const [wmAlphaGain, setWmAlphaGain] = useState<number>(100);
 
   // 7. Upscale Super-Resolution AI State
   const [upscaleFactor, setUpscaleFactor] = useState<number>(2);
@@ -5052,6 +3571,15 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [excelParserMode, setExcelParserMode] = useState<"grid" | "csv" | "whitespace" | "lines">("grid");
   const [excelHighlightHeader, setExcelHighlightHeader] = useState<boolean>(true);
   const [excelSheetName, setExcelSheetName] = useState<string>("Sheet1");
+
+  // PowerPoint (.pptx) Presentation & OCR state
+  const [pptxSlideMode, setPptxSlideMode] = useState<"split" | "text_only" | "image_only">("split");
+  const [pptxSlideTitle, setPptxSlideTitle] = useState<string>("");
+  const [pptxTheme, setPptxTheme] = useState<"modern" | "dark" | "minimal" | "corporate">("modern");
+
+  // General OCR Grid & Anti-Hallucination Empty State
+  const [ocrTableGrid, setOcrTableGrid] = useState<string[][]>([]);
+  const [ocrIsEmpty, setOcrIsEmpty] = useState<boolean>(false);
 
   // Document Converter State (PDF / Word / Excel / PowerPoint to Image)
   const [pdfDocPage, setPdfDocPage] = useState<number>(1);
@@ -5955,6 +4483,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
       };
       img.onload = () => {
         setDimensions({ width: img.width, height: img.height });
+        setOutputDimensions({ width: 0, height: 0 });
         setTargetWidth(img.width);
         setTargetHeight(img.height);
         setCropBox({ x: 10, y: 10, w: 80, h: 80 });
@@ -7825,47 +6354,68 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         applyHDResizingEnhancement(ctx, canvas.width, canvas.height, 0.45);
       }
 
-      // Watermark Removal — Hybrid Python AI Server + High-Precision Client Fallback
+      // Watermark Removal — High-Precision Client Gemini Engine + Python AI Server Fallback
       if (tool.slug === "remove-watermark") {
-        let appliedPython = false;
-        try {
-          const rawDataUrl = canvas.toDataURL("image/png");
-          const pyRes = await fetch("/api/remove-watermark", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              base64Image: rawDataUrl,
-              mode: wmRemovalMode,
-              sensitivity: wmRemovalSensitivity,
-              engine: wmInpaintEngine,
-              preserveDetails: wmPreserveDetails,
-            }),
+        let applied = false;
+
+        // 1. First run high-precision client-side Gemini AI engine (instant, 100% mathematical fidelity)
+        if (wmRemovalMode === "gemini_ai" || wmRemovalMode === "full_auto") {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const gRes = removeGeminiWatermark(imageData.data, canvas.width, canvas.height, {
+            sensitivity: wmRemovalSensitivity,
+            alphaGain: wmAlphaGain / 100,
+            forceRemoval: wmRemovalMode === "gemini_ai",
           });
-          if (pyRes.ok) {
-            const json = await pyRes.json();
-            if (json.success && json.base64Image) {
-              const pyImg = await new Promise<HTMLImageElement>((resolve, reject) => {
-                const i = new Image();
-                i.onload = () => resolve(i);
-                i.onerror = reject;
-                i.src = json.base64Image;
-              });
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              ctx.drawImage(pyImg, 0, 0);
-              appliedPython = true;
-            }
+          if (gRes.detected) {
+            ctx.putImageData(new ImageData(gRes.cleanedData as unknown as ImageData["data"], canvas.width, canvas.height), 0, 0);
+            applied = true;
           }
-        } catch (pyErr) {
-          console.warn("Python watermark server unreachable, falling back to client engine:", pyErr);
         }
 
-        if (!appliedPython) {
+        // 2. If not detected by Gemini engine or mode is corners/stock, call Python AI server
+        if (!applied && wmRemovalMode !== "gemini_ai") {
+          try {
+            const rawDataUrl = canvas.toDataURL("image/png");
+            const pyRes = await fetch("/api/remove-watermark", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                base64Image: rawDataUrl,
+                mode: wmRemovalMode,
+                sensitivity: wmRemovalSensitivity,
+                engine: wmInpaintEngine,
+                preserveDetails: wmPreserveDetails,
+                alphaGain: wmAlphaGain / 100,
+              }),
+            });
+            if (pyRes.ok) {
+              const json = await pyRes.json();
+              if (json.success && json.base64Image && json.watermarkDetected !== false) {
+                const pyImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+                  const i = new Image();
+                  i.onload = () => resolve(i);
+                  i.onerror = reject;
+                  i.src = json.base64Image;
+                });
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(pyImg, 0, 0);
+                applied = true;
+              }
+            }
+          } catch (pyErr) {
+            console.warn("Python watermark server unreachable, falling back to client engine:", pyErr);
+          }
+        }
+
+        // 3. Client inpainting fallback if still not applied
+        if (!applied) {
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const cleaned = removeWatermarkAdvanced(imageData, {
             mode: wmRemovalMode,
             sensitivity: wmRemovalSensitivity,
             engine: wmInpaintEngine,
             preserveDetails: wmPreserveDetails,
+            alphaGain: wmAlphaGain / 100,
           });
           ctx.putImageData(cleaned, 0, 0);
         }
@@ -8165,7 +6715,70 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           setOcrProgressPercent(20);
 
           let lines: string[] = [];
+          let tableGrid: string[][] = [];
           if (wordDocMode !== "image_only") {
+            const ocrRes = await performAdvancedOcr(canvas, {
+              contrastMode: ocrContrastMode,
+              language: effectiveLang,
+              onProgress: (status, progress) => {
+                setOcrProgressStatus(status);
+                setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
+              },
+            });
+            lines = ocrRes.textLines;
+            tableGrid = ocrRes.tableGrid;
+            setOcrTableGrid(tableGrid);
+            setRawOcrDocumentLines(lines);
+            const assembled = lines.join("\n");
+            setOcrText(assembled);
+            setBinaryOutputText(assembled);
+            setOcrIsEmpty(ocrRes.isEmpty);
+          }
+
+          blob = buildEditableDocxFromOcr(lines, {
+            fontFamily: wordFontFamily,
+            fontSize: wordFontSize,
+            mode: wordDocMode,
+            imageDataUrl: pngDataUrl,
+            imgW: canvas.width,
+            imgH: canvas.height,
+            filename: fname,
+            tableGrid: tableGrid.length > 0 ? tableGrid : undefined,
+          });
+          ext = "docx";
+        } else if (tool.slug === "image-to-excel") {
+          setOcrProgressStatus(`Analyzing and extracting spreadsheet table (${langName})...`);
+          setOcrProgressPercent(20);
+
+          const ocrRes = await performAdvancedOcr(canvas, {
+            contrastMode: ocrContrastMode,
+            language: effectiveLang,
+            onProgress: (status, progress) => {
+              setOcrProgressStatus(status);
+              setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
+            },
+          });
+          setRawOcrDocumentLines(ocrRes.textLines);
+          setOcrTableGrid(ocrRes.tableGrid);
+          const assembled = ocrRes.textLines.join("\n");
+          setOcrText(assembled);
+          setBinaryOutputText(assembled);
+          setOcrIsEmpty(ocrRes.isEmpty);
+
+          blob = buildEditableXlsxFromOcr(ocrRes.textLines, {
+            parserMode: excelParserMode,
+            sheetName: excelSheetName,
+            highlightHeader: excelHighlightHeader,
+            filename: fname,
+            tableGrid: ocrRes.tableGrid,
+          });
+          ext = "xlsx";
+        } else if (tool.slug === "image-to-powerpoint") {
+          setOcrProgressStatus(`Analyzing presentation slide & text (${langName})...`);
+          setOcrProgressPercent(20);
+
+          let lines: string[] = [];
+          if (pptxSlideMode !== "image_only") {
             const ocrRes = await performAdvancedOcr(canvas, {
               contrastMode: ocrContrastMode,
               language: effectiveLang,
@@ -8179,42 +6792,19 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             const assembled = lines.join("\n");
             setOcrText(assembled);
             setBinaryOutputText(assembled);
+            setOcrIsEmpty(ocrRes.isEmpty);
           }
 
-          blob = buildEditableDocxFromOcr(lines, {
-            fontFamily: wordFontFamily,
-            fontSize: wordFontSize,
-            mode: wordDocMode,
+          blob = buildPptxFromOcrAndImage(lines, {
+            mode: pptxSlideMode,
+            title: pptxSlideTitle || undefined,
+            theme: pptxTheme,
             imageDataUrl: pngDataUrl,
             imgW: canvas.width,
             imgH: canvas.height,
             filename: fname,
           });
-          ext = "docx";
-        } else if (tool.slug === "image-to-excel") {
-          setOcrProgressStatus(`Loading OCR table model (${langName}) for Excel export...`);
-          setOcrProgressPercent(20);
-
-          const ocrRes = await performAdvancedOcr(canvas, {
-            contrastMode: ocrContrastMode,
-            language: effectiveLang,
-            onProgress: (status, progress) => {
-              setOcrProgressStatus(status);
-              setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
-            },
-          });
-          setRawOcrDocumentLines(ocrRes.textLines);
-          const assembled = ocrRes.textLines.join("\n");
-          setOcrText(assembled);
-          setBinaryOutputText(assembled);
-
-          blob = buildEditableXlsxFromOcr(ocrRes.textLines, {
-            parserMode: excelParserMode,
-            sheetName: excelSheetName,
-            highlightHeader: excelHighlightHeader,
-            filename: fname,
-          });
-          ext = "xlsx";
+          ext = "pptx";
         } else {
           blob = buildPptxFromImage(pngDataUrl, canvas.width, canvas.height, fname);
           ext = "pptx";
@@ -8235,6 +6825,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           toast.success(`OCR Complete! Generated editable Word document (${ext.toUpperCase()}) with ${langName}.`);
         } else if (tool.slug === "image-to-excel") {
           toast.success(`OCR Complete! Generated editable Excel spreadsheet (${ext.toUpperCase()}) with ${langName}.`);
+        } else if (tool.slug === "image-to-powerpoint") {
+          toast.success(`OCR Complete! Generated valid PowerPoint presentation (${ext.toUpperCase()}) with ${langName}.`);
         } else {
           toast.success(`Image converted to ${ext.toUpperCase()} — click Download to save!`);
         }
@@ -8267,15 +6859,24 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           },
         });
         setRawOcrDocumentLines(ocrRes.textLines);
+        setOcrTableGrid(ocrRes.tableGrid);
 
-        const assembled = assembleOcrOutputText(
-          ocrRes.textLines,
-          detectedCodes,
-          skipBarcodeAndQr,
-          ocrOutputStructure
-        );
-        setOcrText(assembled);
-        setBinaryOutputText(assembled);
+        const isEmptyDetection = ocrRes.isEmpty && detectedCodes.length === 0;
+        setOcrIsEmpty(isEmptyDetection);
+
+        if (isEmptyDetection) {
+          setOcrText("");
+          setBinaryOutputText("");
+        } else {
+          const assembled = assembleOcrOutputText(
+            ocrRes.textLines,
+            detectedCodes,
+            skipBarcodeAndQr,
+            ocrOutputStructure
+          );
+          setOcrText(assembled);
+          setBinaryOutputText(assembled);
+        }
 
         const previewUrl = canvas.toDataURL("image/png");
         setProcessedSrc(previewUrl);
@@ -8287,8 +6888,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
         recordToolExecution();
 
-        if (detectedCodes.length > 0) {
-          toast.success(`OCR Complete! Detected ${detectedCodes.length} ${detectedCodes.length === 1 ? detectedCodes[0]!.type : "code(s)"} & extracted text (${langName}).`);
+        if (isEmptyDetection) {
+          toast.info("OCR Scan Complete: No readable text or barcodes detected in this image.");
+        } else if (detectedCodes.length > 0) {
+          toast.success(`OCR Complete! Detected ${detectedCodes.length} code(s) & extracted text (${langName}).`);
         } else {
           toast.success(`Text extracted successfully (${langName})!`);
         }
@@ -8525,6 +7128,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
       const b64 = dataUrl.split(",")[1] || "";
       const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
       setNewSize(Math.max(1, Math.round((b64.length * 3) / 4 - padding)));
+      setOutputDimensions({ width: canvas.width, height: canvas.height });
       setHasProcessed(true);
       setIsEditingSettings(false);
       setProcessing(false);
@@ -9001,7 +7605,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   <img
                     src={processedSrc || imageSrc || undefined}
                     alt="Processed thumbnail"
-                    className="h-full w-full object-cover"
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="h-full w-full object-cover select-none workspace-protected-image"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-white/10 text-amber-400">
@@ -9019,7 +7626,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   </span>
                 ) : (
                   <span className="text-xs font-mono font-bold text-emerald-400 leading-tight">
-                    {formatBytes(newSize || origSize)}
+                    {tool.slug === "resize-image" && (outputDimensions.width || targetWidth) > 0
+                      ? `${outputDimensions.width || targetWidth}×${outputDimensions.height || targetHeight} · ${formatBytes(newSize || origSize)}`
+                      : formatBytes(newSize || origSize)}
                   </span>
                 )}
               </div>
@@ -9147,6 +7756,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <span className="text-xs text-muted-foreground font-semibold">
                       {tool.slug === "square-your-image"
                         ? `${Math.max(dimensions.width || 0, dimensions.height || 0)} × ${Math.max(dimensions.width || 0, dimensions.height || 0)} px`
+                        : tool.slug === "resize-image"
+                        ? `${outputDimensions.width || targetWidth} × ${outputDimensions.height || targetHeight} px (Original: ${dimensions.width} × ${dimensions.height} px)`
                         : `${dimensions.width} × ${dimensions.height} px`}
                     </span>
                   </div>
@@ -9199,7 +7810,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
                   <div className="text-left md:text-right">
                     <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block leading-tight">
-                      {tool.slug === "compress-image" ? "Compressed" : "Processed"}
+                      {tool.slug === "compress-image" ? "Compressed" : tool.slug === "resize-image" ? "Resized Output" : "Processed"}
                     </span>
                     <span className="font-mono text-sm sm:text-base font-bold text-foreground">
                       {formatBytes(newSize || origSize)}
@@ -9282,7 +7893,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               <div className="w-full max-w-4xl flex flex-col gap-3 z-0 mt-8">
                 {(() => {
                   const lines = rawOcrDocumentLines.length > 0 ? rawOcrDocumentLines : (ocrText ? ocrText.split("\n") : []);
-                  const grid = parseOcrTextToGrid(lines, excelParserMode);
+                  const grid = ocrTableGrid.length > 0 ? ocrTableGrid : parseOcrTextToGrid(lines, excelParserMode);
                   const maxCols = Math.max(...grid.map((r) => r.length), 1);
                   const totalCells = grid.reduce((s, r) => s + r.length, 0);
 
@@ -9548,12 +8159,130 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   className="w-full h-80 rounded-2xl border-2 border-border bg-background p-4 font-mono text-xs text-foreground focus:outline-none resize-none shadow-inner leading-relaxed"
                 />
               </div>
+            ) : hasProcessed && tool.slug === "image-to-powerpoint" ? (
+              /* PowerPoint Presentation Slide Live Preview */
+              <div className="w-full max-w-3xl flex flex-col gap-3 z-0 mt-8">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-500/20 text-orange-500">
+                      <MonitorPlay className="h-4 w-4" />
+                    </span>
+                    <span className="text-xs font-black text-foreground">
+                      Microsoft PowerPoint (.pptx) Presentation Slide
+                    </span>
+                    <span className="rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[10px] font-mono font-extrabold text-orange-600 dark:text-orange-400">
+                      {pptxSlideMode === "split" ? "Split Slide" : pptxSlideMode === "text_only" ? "Text Slide" : "Image Slide"} · {pptxTheme}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(ocrText, "Presentation Text")}
+                      className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold hover:bg-foreground hover:text-background transition-all shadow-xs cursor-pointer"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-accent" />
+                      <span>Copy Slide Text</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Styled Presentation Slide Preview Box */}
+                <div className="rounded-2xl border-2 border-border bg-background p-5 shadow-inner space-y-4">
+                  {/* Slide Title Input */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
+                      Slide Title
+                    </label>
+                    <input
+                      type="text"
+                      value={pptxSlideTitle}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        setPptxSlideTitle(newTitle);
+                        const fname = file?.name?.replace(/\.[^.]+$/, "") || "slide";
+                        const updatedBlob = buildPptxFromOcrAndImage(rawOcrDocumentLines, {
+                          mode: pptxSlideMode,
+                          title: newTitle,
+                          theme: pptxTheme,
+                          imageDataUrl: processedSrc || imageSrc || undefined,
+                          imgW: dimensions.width,
+                          imgH: dimensions.height,
+                          filename: fname,
+                        });
+                        setDocumentBlob(updatedBlob);
+                        setNewSize(updatedBlob.size);
+                      }}
+                      placeholder="Auto-detected title from image or type custom slide heading..."
+                      className="w-full rounded-xl border border-border/80 bg-card px-4 py-2 text-sm font-bold text-foreground focus:border-accent focus:outline-none shadow-inner"
+                    />
+                  </div>
+
+                  {/* Slide Content Bullets */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
+                      Slide Bullet Points & Key Takeaways
+                    </label>
+                    <textarea
+                      rows={8}
+                      value={ocrText}
+                      onChange={(e) => {
+                        const newText = e.target.value;
+                        setOcrText(newText);
+                        const updatedLines = newText.split("\n");
+                        setRawOcrDocumentLines(updatedLines);
+                        const fname = file?.name?.replace(/\.[^.]+$/, "") || "slide";
+                        const updatedBlob = buildPptxFromOcrAndImage(updatedLines, {
+                          mode: pptxSlideMode,
+                          title: pptxSlideTitle || undefined,
+                          theme: pptxTheme,
+                          imageDataUrl: processedSrc || imageSrc || undefined,
+                          imgW: dimensions.width,
+                          imgH: dimensions.height,
+                          filename: fname,
+                        });
+                        setDocumentBlob(updatedBlob);
+                        setNewSize(updatedBlob.size);
+                      }}
+                      placeholder="Extracted bullet points will appear here. Edit lines directly to update your PowerPoint presentation slide!"
+                      className="w-full rounded-xl border border-border/80 bg-card p-4 font-sans text-xs text-foreground focus:border-accent focus:outline-none resize-none leading-relaxed shadow-inner"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                    <span>
+                      🖥️ <strong>Live PowerPoint Builder</strong>: Edits will be packaged directly into your downloaded <strong className="text-foreground">.pptx</strong> file.
+                    </span>
+                    <span className="font-mono font-bold">
+                      {rawOcrDocumentLines.length} bullet points
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : hasProcessed && ocrIsEmpty ? (
+              /* Anti-hallucination Clean Empty State Alert */
+              <div className="w-full max-w-xl rounded-2xl border-2 border-amber-500/30 bg-amber-500/10 p-6 flex flex-col items-center text-center gap-3 mt-8 shadow-xs">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-500">
+                  <AlertCircle className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-black text-foreground">
+                    No Readable Text Detected in Image
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
+                    The OCR scan completed cleanly and verified this image does not contain legible text characters. To extract text, please try an image with sharper text, higher contrast, or select a different OCR language in settings.
+                  </p>
+                </div>
+              </div>
             ) : (
               /* Image Preview */
               <img
                 src={showOriginalComparison ? imageSrc || undefined : processedSrc || imageSrc || undefined}
                 alt="Processed Output Preview"
-                className="max-h-[480px] max-w-full object-contain rounded-xl shadow-lg border border-border/50 transition-all duration-200"
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                onContextMenu={(e) => e.preventDefault()}
+                className="max-h-[480px] max-w-full object-contain rounded-xl shadow-lg border border-border/50 transition-all duration-200 select-none workspace-protected-image"
               />
             )}
           </div>
@@ -10528,16 +9257,26 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
+              onContextMenu={(e) => e.preventDefault()}
               className={`relative flex-1 min-h-0 flex items-center justify-center overflow-hidden select-none ${
                 tool.slug === "image-to-text-ocr" || tool.slug === "image-to-binary"
                   ? "p-4 md:p-6 min-h-[560px] bg-background/20"
                   : tool.slug === "watermark-image"
                   ? "p-3 sm:p-5 bg-secondary/15"
+                  : tool.slug === "resize-image"
+                  ? "pt-10 pb-8 pl-6 pr-14 bg-background/20"
                   : "p-4 sm:p-6 md:p-8 bg-background/20"
               }`}
             >
               {/* Image Frame Wrapper */}
-              <div className="relative inline-flex items-center justify-center max-h-full max-w-full">
+              <div
+                onContextMenu={(e) => e.preventDefault()}
+                className={`relative max-w-full ${
+                  tool.slug === "resize-image"
+                    ? "inline-block leading-none"
+                    : "inline-flex items-center justify-center max-h-full"
+                }`}
+              >
                 {/* TOP DIMENSION LINE: Width (Shown ONLY on Resize Tool) */}
                 {tool.slug === "resize-image" && (
                   <div
@@ -10574,7 +9313,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         ? "text-accent scale-105 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]"
                         : "text-accent"
                     }`}
-                    style={{ left: "calc(100% + 14px)", top: 0, bottom: 0, height: "100%" }}
+                    style={{ left: "calc(100% + 8px)", top: 0, bottom: 0, height: "100%" }}
                   >
                     {/* Top tick ─ */}
                     <div className="w-3 h-[1.5px] bg-accent rounded-full" />
@@ -10595,6 +9334,24 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   </div>
                 )}
 
+                {/* BOTTOM-LEFT FLOATING OUTPUT SIZE BADGE (Shown on Resize Tool) */}
+                {tool.slug === "resize-image" && (
+                  <div className="absolute bottom-2.5 left-2.5 pointer-events-none z-10 flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/75 px-3 py-1.5 text-xs font-bold text-white shadow-xl backdrop-blur-md">
+                    <span className="text-[10px] uppercase font-extrabold text-white/70 tracking-wider">Output Size:</span>
+                    <span className="font-mono font-black text-amber-400">
+                      {(targetWidth > 0 ? targetWidth : dimensions.width)} × {(targetHeight > 0 ? targetHeight : dimensions.height)} px
+                    </span>
+                    {origSize > 0 && (
+                      <>
+                        <span className="text-white/40">•</span>
+                        <span className="font-mono font-extrabold text-emerald-400">
+                          {hasProcessed && newSize > 0 ? formatBytes(newSize) : `~${formatBytes(estimatedResizeBytes)}`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* Rotate Image Live Background Fill Backdrop */}
                 {tool.slug === "rotate-image" && imageSrc && (!hasProcessed || isEditingSettings) && (
                   <div
@@ -10608,7 +9365,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <img
                         src={imageSrc}
                         alt="Blurred rotation backdrop"
-                        className="w-full h-full object-cover filter blur-2xl scale-125 opacity-80"
+                        draggable={false}
+                        onDragStart={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
+                        className="w-full h-full object-cover filter blur-2xl scale-125 opacity-80 select-none workspace-protected-image pointer-events-none"
                       />
                     )}
                     {rotateBgMode === "transparent" && (
@@ -10619,7 +9379,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
                 {/* 4a. Square Your Image Live 1:1 Interactive Preview Canvas */}
                 {tool.slug === "square-your-image" && imageSrc && (!hasProcessed || isEditingSettings) ? (
-                  <div className="relative flex flex-col items-center justify-center w-full h-full p-2 sm:p-4">
+                  <div
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="relative flex flex-col items-center justify-center w-full h-full p-2 sm:p-4"
+                  >
                     {/* 1:1 Live Square Frame */}
                     <div
                       className="relative aspect-square w-full max-w-[min(500px,calc(100vh-290px),88vw)] flex items-center justify-center overflow-hidden rounded-2xl border-2 border-border/80 shadow-2xl transition-all duration-300 select-none group"
@@ -10638,7 +9401,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <img
                           src={imageSrc}
                           alt="Square blurred backdrop"
-                          className="absolute inset-0 w-full h-full object-cover scale-125 pointer-events-none select-none transition-all duration-200"
+                          draggable={false}
+                          onDragStart={(e) => e.preventDefault()}
+                          onContextMenu={(e) => e.preventDefault()}
+                          className="absolute inset-0 w-full h-full object-cover scale-125 pointer-events-none select-none transition-all duration-200 workspace-protected-image"
                           style={{
                             filter: `blur(${squareBlurAmount}px)`,
                           }}
@@ -10651,6 +9417,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           ref={imgRef}
                           src={imageSrc}
                           alt="Full bleed 1:1 crop"
+                          draggable={false}
+                          onDragStart={(e) => e.preventDefault()}
+                          onContextMenu={(e) => e.preventDefault()}
                           onLoad={() => {
                             if (imgRef.current) {
                               const rect = imgRef.current.getBoundingClientRect();
@@ -10659,7 +9428,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               }
                             }
                           }}
-                          className="w-full h-full object-cover select-none transition-all duration-200"
+                          className="w-full h-full object-cover select-none transition-all duration-200 workspace-protected-image"
                           style={{
                             transform: `scale(${squareScale / 100})`,
                             borderRadius: squareCornerRadius === 9999 ? "9999px" : `${squareCornerRadius}px`,
@@ -10678,6 +9447,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             ref={imgRef}
                             src={imageSrc}
                             alt="Square foreground"
+                            draggable={false}
+                            onDragStart={(e) => e.preventDefault()}
+                            onContextMenu={(e) => e.preventDefault()}
                             onLoad={() => {
                               if (imgRef.current) {
                                 const rect = imgRef.current.getBoundingClientRect();
@@ -10686,7 +9458,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 }
                               }
                             }}
-                            className="max-w-full max-h-full object-contain transition-all duration-200 block"
+                            className="max-w-full max-h-full object-contain transition-all duration-200 block select-none workspace-protected-image"
                             style={{
                               borderRadius: squareCornerRadius === 9999 ? "9999px" : `${squareCornerRadius}px`,
                               boxShadow:
@@ -10733,6 +9505,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     ref={imgRef}
                     src={(tool.slug === "watermark-image" && (!hasProcessed || isEditingSettings)) || (tool.slug === "rotate-image" && (!hasProcessed || isEditingSettings)) || (tool.slug === "blur-face" && (!hasProcessed || isEditingSettings)) || (tool.slug === "meme-generator" && (!hasProcessed || isEditingSettings)) ? (imageSrc || undefined) : (processedSrc || imageSrc || undefined)}
                     alt="Workspace preview"
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
+                    onContextMenu={(e) => e.preventDefault()}
                     onLoad={() => {
                       if (imgRef.current) {
                         const rect = imgRef.current.getBoundingClientRect();
@@ -10748,14 +9523,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     onMouseEnter={handleImageMouseEnter}
                     onMouseLeave={handleImageMouseLeave}
                     onClick={handleImageClick}
-                    className="max-h-full max-w-full w-auto h-auto object-contain pointer-events-auto shadow-md rounded-md border border-border/40 block"
+                    className="max-h-full max-w-full w-auto h-auto object-contain pointer-events-auto shadow-md rounded-md border border-border/40 block select-none workspace-protected-image"
                     style={{
                       maxHeight: tool.slug === "watermark-image"
                         ? "min(480px, calc(100vh - 250px))"
+                        : tool.slug === "resize-image"
+                        ? "min(500px, calc(100vh - 290px))"
                         : settingsHeight
-                        ? `${Math.max(tool.slug === "image-to-text-ocr" || tool.slug === "image-to-binary" ? 600 : 540, settingsHeight - (tool.slug === "resize-image" ? 110 : 90))}px`
+                        ? `${Math.max(tool.slug === "image-to-text-ocr" || tool.slug === "image-to-binary" ? 600 : 540, settingsHeight - 90)}px`
                         : "580px",
-                      maxWidth: tool.slug === "resize-image" ? "calc(100% - 64px)" : "100%",
+                      maxWidth: "100%",
                       cursor: tool.slug === "color-picker-from-image" ? "crosshair" : "default",
                       transform: tool.slug === "rotate-image"
                         ? `scale(${(() => {
@@ -11760,6 +10537,56 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       </span>
                     </div>
                   </label>
+
+                  {/* Output Size Summary Card */}
+                  <div className="rounded-2xl border-2 border-accent/25 bg-accent/5 p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Output Size Summary
+                      </span>
+                      {hasProcessed && newSize > 0 && (
+                        <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-400">
+                          Resized
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-0.5">
+                      {/* Output Dimensions */}
+                      <div className="bg-background/90 rounded-xl p-2.5 border border-border/80 shadow-2xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">
+                          Output Dimensions
+                        </span>
+                        <div className="font-mono text-sm font-black text-foreground flex items-center gap-1">
+                          <span>{targetWidth > 0 ? targetWidth : dimensions.width}</span>
+                          <span className="text-muted-foreground font-normal">×</span>
+                          <span>{targetHeight > 0 ? targetHeight : dimensions.height}</span>
+                          <span className="text-xs font-bold text-muted-foreground">px</span>
+                        </div>
+                        {dimensions.width > 0 && (
+                          <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5 truncate">
+                            Original: {dimensions.width}×{dimensions.height}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Output File Size */}
+                      <div className="bg-background/90 rounded-xl p-2.5 border border-border/80 shadow-2xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">
+                          {hasProcessed && newSize > 0 ? "Output File Size" : "Estimated File Size"}
+                        </span>
+                        <div className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <span>{formatBytes(hasProcessed && newSize > 0 ? newSize : estimatedResizeBytes)}</span>
+                        </div>
+                        {origSize > 0 && (
+                          <span className="text-[10px] font-semibold text-muted-foreground block mt-0.5 truncate">
+                            Original: {formatBytes(origSize)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -12747,7 +11574,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { id: "full_auto", name: "⚡ Full Auto AI Scan", desc: "Auto-detects all watermarks, logos & AI sparkles", badge: "Recommended" },
-                        { id: "gemini_ai", name: "✨ Gemini & AI Wand2", desc: "Strictly targets AI badges & star glyphs", badge: "Precise" },
+                        { id: "gemini_ai", name: "✨ Gemini AI (Lossless)", desc: "Reverse Alpha Blending: zero blur, exact restoration", badge: "Lossless" },
                         { id: "corners", name: "↘️ Corner Logos & Stamps", desc: "Auto-cleans corner watermarks & timestamps", badge: "Corners" },
                         { id: "stock_grid", name: "🌐 Stock Photo Grid", desc: "Auto-cleans diagonal tiled crosshatches", badge: "Full Grid" },
                       ].map((item) => (
@@ -12773,41 +11600,79 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     </div>
                   </div>
 
-                  {/* 2. AI Inpainting Engine Mode */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block">
-                      AI Inpainting Engine
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: "smart_neural", name: "🧠 Smart Neural", sub: "Directional Gradient" },
-                        { id: "patch_match", name: "🧩 PatchMatch", sub: "Texture Synthesis" },
-                        { id: "smooth_diffusion", name: "🌊 Smooth Blend", sub: "Clean Diffusion" },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setWmInpaintEngine(item.id as any)}
-                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                            wmInpaintEngine === item.id
-                              ? "bg-foreground text-background shadow-md font-black border-foreground scale-[1.02]"
-                              : "border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
-                        >
-                          <span className="text-xs font-black">{item.name}</span>
-                          <span className={`text-[10px] mt-0.5 ${wmInpaintEngine === item.id ? "text-background/80" : "text-muted-foreground"}`}>
-                            {item.sub}
+                  {/* 2. Specialized Gemini Reverse Alpha Settings vs Standard Inpainting Engine */}
+                  {wmRemovalMode === "gemini_ai" ? (
+                    <div className="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3.5">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0 animate-pulse" />
+                        <div>
+                          <p className="text-xs font-bold text-foreground">Reverse Alpha Blending Active</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Mathematically inverts Gemini opacity. Zero smearing, no generative hallucination.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-foreground">
+                            Alpha Opacity Strength Gain
+                          </label>
+                          <span className="text-xs font-mono font-bold text-amber-500">
+                            {wmAlphaGain}%
                           </span>
-                        </button>
-                      ))}
+                        </div>
+                        <input
+                          type="range"
+                          min="70"
+                          max="130"
+                          value={wmAlphaGain}
+                          onChange={(e) => setWmAlphaGain(Number(e.target.value))}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[9px] text-muted-foreground">
+                          <span>Subtle (70%)</span>
+                          <span>Standard (100%)</span>
+                          <span>Strong (130%)</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block">
+                        AI Inpainting Engine
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "smart_neural", name: "🧠 Smart Neural", sub: "Directional Gradient" },
+                          { id: "patch_match", name: "🧩 PatchMatch", sub: "Texture Synthesis" },
+                          { id: "smooth_diffusion", name: "🌊 Smooth Blend", sub: "Clean Diffusion" },
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setWmInpaintEngine(item.id as any)}
+                            className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                              wmInpaintEngine === item.id
+                                ? "bg-foreground text-background shadow-md font-black border-foreground scale-[1.02]"
+                                : "border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <span className="text-xs font-black">{item.name}</span>
+                            <span className={`text-[10px] mt-0.5 ${wmInpaintEngine === item.id ? "text-background/80" : "text-muted-foreground"}`}>
+                              {item.sub}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* 3. Sensitivity / Detection Precision */}
                   <div className="space-y-2 rounded-2xl border border-border bg-muted/20 p-3.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-foreground">
-                        Watermark Detection Sensitivity
+                        {wmRemovalMode === "gemini_ai" ? "Gemini Badge Search Sensitivity" : "Watermark Detection Sensitivity"}
                       </label>
                       <span className="text-xs font-mono font-bold text-accent">
                         <AnimatedCounter value={wmRemovalSensitivity} suffix="%" />
@@ -12824,36 +11689,38 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <div className="flex justify-between text-[10px] text-muted-foreground font-semibold">
                       <span>Light Sparkle (15%)</span>
                       <span>Balanced (55%)</span>
-                      <span>Heavy Text (95%)</span>
+                      <span>Aggressive (95%)</span>
                     </div>
                   </div>
 
                   {/* 4. Texture & Grain Preservation Switch */}
-                  <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3.5 shadow-xs">
-                    <div>
-                      <p className="text-xs font-extrabold text-foreground">Zero Quality Loss &amp; Grain Synthesis</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Synthesizes natural photo grain beneath removed watermark to avoid blurry smudges
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setWmPreserveDetails(!wmPreserveDetails)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        wmPreserveDetails ? "bg-accent" : "bg-muted"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          wmPreserveDetails ? "translate-x-5" : "translate-x-0"
+                  {wmRemovalMode !== "gemini_ai" && (
+                    <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3.5 shadow-xs">
+                      <div>
+                        <p className="text-xs font-extrabold text-foreground">Zero Quality Loss &amp; Grain Synthesis</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Synthesizes natural photo grain beneath removed watermark to avoid blurry smudges
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setWmPreserveDetails(!wmPreserveDetails)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          wmPreserveDetails ? "bg-accent" : "bg-muted"
                         }`}
-                      />
-                    </button>
-                  </div>
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            wmPreserveDetails ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Info Callout */}
                   <div className="rounded-2xl border border-border/80 bg-background/60 p-3 text-[11px] text-muted-foreground leading-relaxed">
-                    ✨ <strong className="text-foreground">100% Automatic Watermark Removal:</strong> Automatically scans and isolates Gemini AI badges, logos, timestamps, and watermarks. 100% of nearby photo elements, clothes, feet, and textures are preserved intact.
+                    ✨ <strong className="text-foreground">Mathematical Reverse Alpha Blending:</strong> Automatically scans and isolates Gemini AI badges, logos, timestamps, and watermarks. 100% of nearby photo elements, clothes, feet, and textures are preserved intact.
                   </div>
                 </div>
               )}
@@ -16692,32 +15559,181 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               {/* 20. IMAGE TO PPTX (POWERPOINT) */}
               {tool.slug === "image-to-powerpoint" && (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 space-y-2">
+                  <div className="rounded-2xl border-2 border-orange-500/40 bg-orange-500/5 p-4 space-y-2">
                     <div className="flex items-center gap-2">
-                      <FileType className="h-5 w-5 text-accent shrink-0" />
+                      <MonitorPlay className="h-5 w-5 text-orange-500 shrink-0" />
                       <h4 className="text-sm font-extrabold text-foreground">
-                        PowerPoint Presentation (.pptx)
+                        PowerPoint Presentation (.pptx) Generator
                       </h4>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Packages your image into an authentic 16:9 widescreen PowerPoint (.pptx) presentation slide preserving full native aspect ratio and color gamut.
+                      Scans text and graphics from your image using neural OCR and generates an authentic, editable 16:9 Microsoft PowerPoint (<strong className="text-foreground">.pptx</strong>) presentation slide with native formatting.
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-border bg-background/60 p-3 space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between text-muted-foreground">
-                      <span className="font-bold">Output Format:</span>
-                      <span className="font-mono font-extrabold text-foreground uppercase">PPTX (Slide)</span>
+                  {/* 1. OCR Recognition Language */}
+                  <div className="space-y-3 rounded-2xl border border-border bg-background/80 p-3.5 sm:p-4 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Languages className="h-4 w-4 text-accent" />
+                        <label className="text-xs font-black text-foreground">
+                          OCR Language
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsOcrLanguageDialogOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-3 py-0.5 text-xs font-extrabold text-accent hover:bg-accent hover:text-accent-foreground transition-all cursor-pointer"
+                      >
+                        <Wand2 className="h-3 w-3" />
+                        <span>Change (60+)</span>
+                      </button>
                     </div>
-                    <div className="flex items-center justify-between text-muted-foreground">
-                      <span className="font-bold">Compatibility:</span>
-                      <span className="text-[11px] text-foreground font-semibold">MS PowerPoint, Google Slides, Keynote</span>
-                    </div>
-                    <div className="flex items-center justify-between text-muted-foreground">
-                      <span className="font-bold">Slide Ratio:</span>
-                      <span className="text-[11px] text-foreground font-semibold">16:9 Widescreen Presentation</span>
+
+                    {/* Active Language Card */}
+                    {(() => {
+                      const activeObj =
+                        ocrLanguage === "custom"
+                          ? { code: ocrCustomLanguage || "custom", name: ocrCustomLanguage || "Custom Code", flag: "⚙️" }
+                          : OCR_SUPPORTED_LANGUAGES.find((l) => l.code === ocrLanguage) || { code: ocrLanguage, name: ocrLanguage, flag: "🌐" };
+                      return (
+                        <div
+                          onClick={() => setIsOcrLanguageDialogOpen(true)}
+                          className="group flex items-center justify-between rounded-xl border border-border bg-card p-2.5 transition-all hover:border-foreground cursor-pointer shadow-2xs"
+                        >
+                          <div className="flex items-center gap-2.5 truncate">
+                            <span className="text-xl shrink-0">{activeObj.flag}</span>
+                            <span className="text-xs font-extrabold text-foreground truncate">{activeObj.name}</span>
+                            <span className="rounded-md bg-accent/15 px-1.5 py-0.2 text-[10px] font-mono font-bold text-accent">
+                              {activeObj.code}
+                            </span>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                        </div>
+                      );
+                    })()}
+
+                    {/* Presets Chips */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {[
+                        { code: "eng", name: "English", flag: "🇺🇸" },
+                        { code: "guj", name: "ગુજરાતી", flag: "🇮🇳" },
+                        { code: "hin", name: "हिन्दी", flag: "🇮🇳" },
+                        { code: "spa", name: "Español", flag: "🇪🇸" },
+                        { code: "fra", name: "Français", flag: "🇫🇷" },
+                        { code: "deu", name: "Deutsch", flag: "🇩🇪" },
+                        { code: "chi_sim", name: "中文", flag: "🇨🇳" },
+                        { code: "ara", name: "العربية", flag: "🇸🇦" },
+                      ].map((item) => (
+                        <button
+                          key={item.code}
+                          type="button"
+                          onClick={() => {
+                            setOcrLanguage(item.code);
+                            toast.success(`OCR language set to ${item.name}`);
+                          }}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold transition-all cursor-pointer ${
+                            ocrLanguage === item.code
+                              ? "bg-foreground text-background font-black shadow-xs"
+                              : "border border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <span>{item.flag}</span>
+                          <span>{item.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
+
+                  {/* 2. Slide Layout Selector */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground block">
+                      Slide Layout & Content Mode:
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "split", label: "Split Slide", sub: "Image + Text" },
+                        { id: "text_only", label: "Text Slide", sub: "Bullets Only" },
+                        { id: "image_only", label: "Image Slide", sub: "Framed Visual" },
+                      ].map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setPptxSlideMode(m.id as any)}
+                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
+                            pptxSlideMode === m.id
+                              ? "border-orange-500 bg-orange-500/10 text-foreground font-bold shadow-xs ring-1 ring-orange-500"
+                              : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <span className="text-xs font-extrabold">{m.label}</span>
+                          <span className="text-[10px] text-muted-foreground">{m.sub}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. Slide Title (Optional Custom Title) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-muted-foreground block">
+                      Custom Slide Title (Optional):
+                    </label>
+                    <input
+                      type="text"
+                      value={pptxSlideTitle}
+                      onChange={(e) => setPptxSlideTitle(e.target.value)}
+                      placeholder="Leave empty for auto-detected title from image"
+                      className="w-full rounded-xl border-2 border-border bg-background px-3 py-2 text-xs font-bold text-foreground focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* 4. Presentation Theme */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-foreground block">
+                      Presentation Theme:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: "modern", name: "Modern Indigo", desc: "Slate & Indigo accents" },
+                        { id: "dark", name: "Studio Dark", desc: "Dark mode presentation" },
+                        { id: "minimal", name: "Minimalist White", desc: "Clean editorial layout" },
+                        { id: "corporate", name: "Corporate Navy", desc: "Executive dark blue" },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setPptxTheme(t.id as any)}
+                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
+                            pptxTheme === t.id
+                              ? "border-orange-500 bg-orange-500/10 text-foreground font-bold shadow-xs ring-1 ring-orange-500"
+                              : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <span className="text-xs font-extrabold">{t.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{t.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live Progress */}
+                  {processing && (
+                    <div className="rounded-2xl border-2 border-orange-500/40 bg-orange-500/5 p-4 space-y-3 animate-pulse">
+                      <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                          <span>{ocrProgressStatus || "Generating PowerPoint Slide…"}</span>
+                        </div>
+                        <span className="font-mono font-black text-orange-500">{ocrProgressPercent}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-orange-500 transition-all duration-300 rounded-full"
+                          style={{ width: `${Math.max(5, ocrProgressPercent)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -17022,7 +16038,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   )}
                 </div>
                 <p className="text-xs text-white/70 font-semibold mt-0.5">
-                  {dimensions.width} × {dimensions.height} px
+                  {hasProcessed && tool.slug === "resize-image"
+                    ? `${outputDimensions.width || targetWidth} × ${outputDimensions.height || targetHeight} px`
+                    : `${dimensions.width} × ${dimensions.height} px`}
                   {origSize > 0 && ` · ${formatBytes(hasProcessed && newSize ? newSize : origSize)}`}
                 </p>
               </div>
@@ -17062,12 +16080,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="relative max-h-[calc(100vh-120px)] max-w-[94vw] flex items-center justify-center cursor-default"
+              onContextMenu={(e) => e.preventDefault()}
+              className="relative max-h-[calc(100vh-120px)] max-w-[94vw] flex items-center justify-center cursor-default select-none"
             >
               <img
                 src={processedSrc || imageSrc || ""}
                 alt="Enlarged preview"
-                className="max-h-[calc(100vh-130px)] max-w-[92vw] object-contain rounded-2xl shadow-2xl border-2 border-white/15 animate-in zoom-in-95 duration-200"
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                onContextMenu={(e) => e.preventDefault()}
+                className="max-h-[calc(100vh-130px)] max-w-[92vw] object-contain rounded-2xl shadow-2xl border-2 border-white/15 animate-in zoom-in-95 duration-200 select-none workspace-protected-image"
                 style={{
                   backgroundImage:
                     "linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.05) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.05) 75%)",

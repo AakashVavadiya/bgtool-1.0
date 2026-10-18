@@ -6,6 +6,8 @@ import { TokenCoin } from "@/components/TokenCoins";
 export interface GuestLoginDialogDetail {
   toolName?: string;
   toolSlug?: string;
+  reason?: "base_exhausted" | "same_tool_exhausted" | "bonus_exhausted";
+  message?: string;
 }
 
 export function openGuestLoginDialog(detail?: GuestLoginDialogDetail) {
@@ -29,12 +31,16 @@ export function GuestLoginDialog({
 }: GuestLoginDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [toolName, setToolName] = useState(initialToolName || "AI Tools");
+  const [dialogDetail, setDialogDetail] = useState<GuestLoginDialogDetail | null>(null);
 
   useEffect(() => {
     const handleOpen = (e: Event) => {
       const customEvt = e as CustomEvent<GuestLoginDialogDetail>;
-      if (customEvt.detail?.toolName) {
-        setToolName(customEvt.detail.toolName);
+      if (customEvt.detail) {
+        setDialogDetail(customEvt.detail);
+        if (customEvt.detail.toolName) {
+          setToolName(customEvt.detail.toolName);
+        }
       }
       setInternalOpen(true);
     };
@@ -59,6 +65,8 @@ export function GuestLoginDialog({
   const currentPath =
     redirectUrl ||
     (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/tools");
+
+  const isSameToolExhausted = dialogDetail?.reason === "same_tool_exhausted";
 
   return (
     <div
@@ -96,7 +104,11 @@ export function GuestLoginDialog({
 
         <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
           <Lock className="h-3 w-3 text-amber-500" />
-          <span>5 Free Guest Uses Completed</span>
+          <span>
+            {isSameToolExhausted
+              ? "5 Free Uses on this Tool Completed"
+              : "Free Guest Usage Completed"}
+          </span>
         </div>
 
         {/* Heading & Subtitle */}
@@ -105,12 +117,25 @@ export function GuestLoginDialog({
             id="guest-dialog-title"
             className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground"
           >
-            Please Log In to Continue Free
+            {isSameToolExhausted
+              ? "Try Another Tool or Sign In Free"
+              : "Please Log In to Continue Free"}
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-            You have used all <strong className="text-foreground">5 free guest tries</strong>. To keep using{" "}
-            <strong className="text-foreground">{toolName}</strong> and all our AI tools, simply log in to claim your{" "}
-            <strong className="text-foreground">10 free daily credits</strong>!
+            {isSameToolExhausted ? (
+              <>
+                You have finished your <strong className="text-foreground">5 free guest tries</strong> on{" "}
+                <strong className="text-foreground">{toolName}</strong>. You can try{" "}
+                <strong className="text-amber-500">another type of tool for 2 bonus chances</strong>, or sign in to get{" "}
+                <strong className="text-foreground">10 free daily credits</strong>!
+              </>
+            ) : (
+              <>
+                You have used all <strong className="text-foreground">free guest tries</strong>. To keep using{" "}
+                <strong className="text-foreground">{toolName}</strong> and all our 130+ tools, simply log in to claim your{" "}
+                <strong className="text-foreground">10 free daily credits</strong>!
+              </>
+            )}
           </p>
         </div>
 
@@ -155,15 +180,26 @@ export function GuestLoginDialog({
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-          <Link
-            to="/login"
-            search={{ redirect: currentPath }}
-            onClick={handleClose}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-sm font-bold text-background shadow-md hover:scale-[1.02] hover:opacity-90 transition-all cursor-pointer"
-          >
-            <span>Log In & Claim 10 Free Credits</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {isSameToolExhausted ? (
+            <Link
+              to="/tools"
+              onClick={handleClose}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-6 py-3.5 text-sm font-bold text-white shadow-md hover:scale-[1.02] hover:opacity-95 transition-all cursor-pointer"
+            >
+              <span>Explore Other Tools (2 Free Bonus)</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              search={{ redirect: currentPath }}
+              onClick={handleClose}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-sm font-bold text-background shadow-md hover:scale-[1.02] hover:opacity-90 transition-all cursor-pointer"
+            >
+              <span>Log In</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
 
           <Link
             to="/signup"
@@ -171,7 +207,7 @@ export function GuestLoginDialog({
             onClick={handleClose}
             className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 py-3.5 text-sm font-semibold text-foreground hover:bg-muted transition-all cursor-pointer"
           >
-            <span>Create Free Account</span>
+            <span>Create Free Account (10 Daily)</span>
           </Link>
         </div>
 

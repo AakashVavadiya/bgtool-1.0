@@ -15,6 +15,7 @@ import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { tools } from "@/lib/tools";
 import { getCurrentWebsiteLanguage, getLocalizedHeroPhrases } from "@/lib/translator";
 import { buildPageMeta, SITE_URL } from "@/lib/seo";
+import { Zap, Maximize2, Layers, Gift } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => {
@@ -90,10 +91,42 @@ function Reveal({
 }
 
 const stats = [
-  { n: "1s", t: "Average cutout.", d: "Edge-aware matting runs in about a second, even on large files." },
-  { n: "4K", t: "Export quality.", d: "Download transparent PNGs at full resolution — no downscaling." },
-  { n: "30+", t: "Studio tools.", d: "Background removal, conversion, compression, and editing all in one place." },
-  { n: "10", t: "Free daily credits.", d: "Free daily allowance automatically replenished every day for creators." },
+  {
+    icon: Zap,
+    tag: "Processing Speed",
+    n: "1s",
+    unit: "avg",
+    t: "Average Cutout",
+    d: "Edge-aware matting runs in about a second, even on large, complex files.",
+    badge: "Sub-second neural inference",
+  },
+  {
+    icon: Maximize2,
+    tag: "Lossless Output",
+    n: "4K",
+    unit: "UHD",
+    t: "Export Quality",
+    d: "Download transparent PNGs at full original resolution with zero downscaling.",
+    badge: "Pixel-perfect alpha transparency",
+  },
+  {
+    icon: Layers,
+    tag: "Creative Suite",
+    n: `${Math.floor(tools.length / 10) * 10}+`,
+    unit: "tools",
+    t: "Studio Tools",
+    d: "Background removal, conversion, compression, and editing all in one place.",
+    badge: "All-in-one creator toolkit",
+  },
+  {
+    icon: Gift,
+    tag: "Daily Allowance",
+    n: "10",
+    unit: "free/day",
+    t: "Free Daily Credits",
+    d: "Generous daily credit allowance replenished every 24 hours for creators.",
+    badge: "Resets automatically at midnight",
+  },
 ];
 
 
@@ -342,27 +375,64 @@ function Index() {
         </p>
       </section>
 
-      {/* Stats Section spanning FULL WIDE across screen */}
-      <section className="grain border-y border-border px-6 py-16 md:px-12 md:py-24 w-full">
-        <div className="w-full px-2 sm:px-6 md:px-10 lg:px-12 xl:px-16">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 w-full">
-            {stats.map((s, i) => (
-              <Reveal key={s.t} delay={i * 90}>
-                <div className="flex h-full flex-col justify-between rounded-3xl border border-border bg-card/80 p-8 md:p-10 shadow-sm transition-all hover:border-foreground/40 hover:shadow-lg">
-                  <div>
-                    <span className="inline-block rounded-full bg-accent/15 px-4 py-1.5 text-xs font-extrabold text-foreground border border-accent/30">
-                      {s.n}
-                    </span>
-                    <h3 className="mt-5 font-display text-2xl font-bold md:text-3xl lg:text-4xl text-foreground">
-                      {s.t}
-                    </h3>
+      {/* Stats Section spanning full width with properly balanced alignment */}
+      <section className="grain border-y border-border px-4 sm:px-6 md:px-8 lg:px-10 py-12 md:py-16 w-full">
+        <div className="w-full">
+          <div className="grid gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-4 w-full">
+            {stats.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <Reveal key={s.t} delay={i * 80}>
+                  <div className="group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-b from-card via-card to-card/60 p-7 md:p-8 shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/5">
+                    {/* Ambient top glowing line on hover */}
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                    {/* Ambient corner radial glow */}
+                    <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-accent/5 blur-2xl transition-all duration-300 group-hover:scale-150 group-hover:bg-accent/15" />
+
+                    <div>
+                      {/* Top Bar: Icon + Category Badge */}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-accent group-hover:text-accent-foreground group-hover:shadow-md group-hover:shadow-accent/20">
+                          <Icon className="h-5 w-5" strokeWidth={2.2} />
+                        </div>
+                        <span className="rounded-full border border-border/70 bg-secondary/80 px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                          {s.tag}
+                        </span>
+                      </div>
+
+                      {/* Hero Stat + Unit Pill */}
+                      <div className="mt-6 flex items-baseline gap-2">
+                        <span className="font-display text-4xl lg:text-5xl font-black tracking-tight text-foreground">
+                          {s.n}
+                        </span>
+                        {s.unit && (
+                          <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-accent border border-accent/20">
+                            {s.unit}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="mt-3 font-display text-xl lg:text-2xl font-bold tracking-tight text-foreground">
+                        {s.t}
+                      </h3>
+
+                      {/* Description */}
+                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                        {s.d}
+                      </p>
+                    </div>
+
+                    {/* Bottom Feature Micro-Indicator */}
+                    <div className="mt-6 pt-5 border-t border-border/50 flex items-center gap-2 text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                      <span>{s.badge}</span>
+                    </div>
                   </div>
-                  <p className="mt-4 text-sm md:text-base leading-relaxed text-muted-foreground">
-                    {s.d}
-                  </p>
-                </div>
-              </Reveal>
-            ))}
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -30,48 +30,63 @@ let cachedUser: CurrentUser | null = null;
 let isInitializing = false;
 let hasInitialized = false;
 
+import { DISABLE_IP_TOOL_LIMIT_FOR_TESTING } from "./security/testing-config";
 const GUEST_CREDITS_KEY = "bg.guest.free_uses.v3";
-export const GUEST_FREE_USES_LIMIT = 5;
+export const GUEST_FREE_USES_LIMIT = DISABLE_IP_TOOL_LIMIT_FOR_TESTING ? 999999 : 5;
+export const GUEST_DIFFERENT_TOOL_BONUS_LIMIT = DISABLE_IP_TOOL_LIMIT_FOR_TESTING ? 999999 : 2;
 
-interface GuestCreditState {
+export interface GuestCreditState {
   date: string;
-  credits: number;
+  credits: number; // base free uses (starts at 5)
+  baseUsedTools?: string[]; // tools used during initial 5 uses
+  bonusTools?: Record<string, number>; // toolSlug -> remaining bonus chances (starts at 2)
 }
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getGuestCreditsFromStorage(): number {
-  if (typeof window === "undefined") return GUEST_FREE_USES_LIMIT;
+export function getGuestState(): GuestCreditState {
+  if (typeof window === "undefined") {
+    return { date: getTodayString(), credits: GUEST_FREE_USES_LIMIT, baseUsedTools: [], bonusTools: {} };
+  }
   try {
     const raw = localStorage.getItem(GUEST_CREDITS_KEY);
     if (!raw) {
-      const initial: GuestCreditState = { date: getTodayString(), credits: GUEST_FREE_USES_LIMIT };
+      const initial: GuestCreditState = {
+        date: getTodayString(),
+        credits: GUEST_FREE_USES_LIMIT,
+        baseUsedTools: [],
+        bonusTools: {},
+      };
       localStorage.setItem(GUEST_CREDITS_KEY, JSON.stringify(initial));
-      return GUEST_FREE_USES_LIMIT;
+      return initial;
     }
     const parsed = JSON.parse(raw) as GuestCreditState;
     if (parsed.date !== getTodayString()) {
-      const resetState: GuestCreditState = { date: getTodayString(), credits: GUEST_FREE_USES_LIMIT };
+      const resetState: GuestCreditState = {
+        date: getTodayString(),
+        credits: GUEST_FREE_USES_LIMIT,
+        baseUsedTools: [],
+        bonusTools: {},
+      };
       localStorage.setItem(GUEST_CREDITS_KEY, JSON.stringify(resetState));
-      return GUEST_FREE_USES_LIMIT;
+      return resetState;
     }
-    return typeof parsed.credits === "number"
-      ? Math.min(GUEST_FREE_USES_LIMIT, Math.max(0, parsed.credits))
-      : GUEST_FREE_USES_LIMIT;
+    return {
+      date: parsed.date,
+      credits: typeof parsed.credits === "number" ? Math.max(0, parsed.credits) : GUEST_FREE_USES_LIMIT,
+      baseUsedTools: Array.isArray(parsed.baseUsedTools) ? parsed.baseUsedTools : [],
+      bonusTools: parsed.bonusTools && typeof parsed.bonusTools === "object" ? parsed.bonusTools : {},
+    };
   } catch {
-    return GUEST_FREE_USES_LIMIT;
+    return { date: getTodayString(), credits: GUEST_FREE_USES_LIMIT, baseUsedTools: [], bonusTools: {} };
   }
 }
 
-function setGuestCreditsInStorage(credits: number): void {
+export function saveGuestState(state: GuestCreditState): void {
   if (typeof window === "undefined") return;
   try {
-    const state: GuestCreditState = {
-      date: getTodayString(),
-      credits: Math.min(GUEST_FREE_USES_LIMIT, Math.max(0, credits)),
-    };
     localStorage.setItem(GUEST_CREDITS_KEY, JSON.stringify(state));
   } catch {}
 }
@@ -128,6 +143,7 @@ export const AuthUser = {
   },
 
   getGuestRemainingUses(): number {
+    if (DISABLE_IP_TOOL_LIMIT_FOR_TESTING) return 999999;
     return getGuestCreditsFromStorage();
   },
 
@@ -502,6 +518,32 @@ export const AuthUser = {
     return this.hasCredits(amount);
   },
 
+  getGuestToolStatus(toolSlug = "tool"): { allowed: boolean; remaining: number; isBonus: boolean; reason?: string } {
+    if (cachedUser) {
+      return { allowed: true, remaining: cachedUser.credits, isBonus: false };
+    }
+    if (DISABLE_IP_TOOL_LIMIT_FOR_TESTING) {
+      return { allowed: true, remaining: 999999, isBonus: false };
+    }
+    const state = getGuestState();
+    if (state.credits >= 1) {
+      return { allowed: true, remaining: state.credits, isBonus: false };
+    }
+    const baseUsed = state.baseUsedTools || [];
+    if (baseUsed.includes(toolSlug)) {
+      return { allowed: false, remaining: 0, isBonus: false, reason: "same_tool_exhausted" };
+    }
+    const bonusRemaining =
+      state.bonusTools?.[toolSlug] !== undefined
+        ? state.bonusTools[toolSlug]!
+        : GUEST_DIFFERENT_TOOL_BONUS_LIMIT;
+
+    if (bonusRemaining >= 1) {
+      return { allowed: true, remaining: bonusRemaining, isBonus: true };
+    }
+    return { allowed: false, remaining: 0, isBonus: true, reason: "bonus_exhausted" };
+  },
+
   deductToken(amount = 1, toolSlug = "tool", isServerDeducted = false): boolean {
     return this.deductCredit(amount, toolSlug, isServerDeducted);
   },
@@ -560,19 +602,66 @@ export const AuthUser = {
       }
     } else {
       // Guest visitor deduction
-      const current = getGuestCreditsFromStorage();
-      if (current < amount) {
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("bg:show_guest_login_dialog", {
-              detail: { toolSlug, remaining: 0 },
-            })
-          );
-        }
-        return false;
+      if (DISABLE_IP_TOOL_LIMIT_FOR_TESTING) {
+        return true;
       }
-      const next = Math.max(0, current - amount);
-      setGuestCreditsInStorage(next);
+      const state = getGuestState();
+
+      if (state.credits >= amount) {
+        // 1. Deduct from base 5 free guest uses
+        state.credits = Math.max(0, state.credits - amount);
+        if (!state.baseUsedTools) state.baseUsedTools = [];
+        if (!state.baseUsedTools.includes(toolSlug)) {
+          state.baseUsedTools.push(toolSlug);
+        }
+        saveGuestState(state);
+      } else {
+        // 2. Base 5 uses exhausted!
+        const baseUsed = state.baseUsedTools || [];
+
+        // If the same tool that was used in the base uses is attempted again: BLOCK IT
+        if (baseUsed.includes(toolSlug)) {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("bg:show_guest_login_dialog", {
+                detail: {
+                  toolSlug,
+                  remaining: 0,
+                  reason: "same_tool_exhausted",
+                  message: "5 Free Guest Uses for this tool completed. Try another tool for 2 bonus chances, or create a free account!",
+                },
+              })
+            );
+          }
+          return false;
+        }
+
+        // 3. DIFFERENT tool: grant up to 2 bonus chances for this different tool
+        if (!state.bonusTools) state.bonusTools = {};
+        const bonusRemaining =
+          state.bonusTools[toolSlug] !== undefined
+            ? state.bonusTools[toolSlug]!
+            : GUEST_DIFFERENT_TOOL_BONUS_LIMIT;
+
+        if (bonusRemaining < amount) {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("bg:show_guest_login_dialog", {
+                detail: {
+                  toolSlug,
+                  remaining: 0,
+                  reason: "bonus_exhausted",
+                  message: "Bonus trial for this tool completed. Please log in or create a free account!",
+                },
+              })
+            );
+          }
+          return false;
+        }
+
+        state.bonusTools[toolSlug] = Math.max(0, bonusRemaining - amount);
+        saveGuestState(state);
+      }
     }
 
     if (typeof window !== "undefined") {
@@ -591,24 +680,15 @@ export const AuthUser = {
   },
 
   addPurchasedCredits(
-    creditsAmount: number,
-    planName: string,
-    amountINR: number,
-    paymentMethod = "UPI"
+    _creditsAmount: number,
+    _planName: string,
+    _amountINR: number,
+    _paymentMethod = "UPI"
   ): string {
-    if (cachedUser) {
-      cachedUser.paidCredits = Math.round(((cachedUser.paidCredits || 0) + creditsAmount) * 100) / 100;
-      cachedUser.credits = Math.round(((cachedUser.freeCredits || 0) + cachedUser.paidCredits) * 100) / 100;
-      if (planName.toLowerCase().includes("pro")) cachedUser.plan = "pro";
-      else if (planName.toLowerCase().includes("lite")) cachedUser.plan = "lite";
-      else if (planName.toLowerCase().includes("enterprise")) cachedUser.plan = "enterprise";
-    }
-
-    const txnId = `TXN_${Date.now().toString(36).toUpperCase()}_${Math.floor(100 + Math.random() * 900)}`;
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "purchase_completed", txnId } }));
-    }
-    return txnId;
+    console.warn(
+      "[Security] Direct client-side token addition is disabled. Tokens are verified and credited strictly via Razorpay server verification."
+    );
+    return "";
   },
 
   addPurchasedTokens(

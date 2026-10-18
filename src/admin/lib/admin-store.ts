@@ -343,7 +343,7 @@ export const DEFAULT_PURCHASE_PLANS: PurchasePlanConfig[] = [
     billingPeriod: "one-time",
     features: [
       "650 Total Credits (500 + 150 Extra Bonus)",
-      "Ultra HD 4K Outputs on All 30+ Tools",
+      "Ultra HD 4K Outputs on All 130+ Tools",
       "Full Access to AI Background Removal & Upscaling",
       "Lifetime Validity — Credits Never Expire",
       "Dedicated High-Speed Processing Engine",
@@ -372,7 +372,7 @@ export const DEFAULT_PURCHASE_PLANS: PurchasePlanConfig[] = [
       "75 high-speed credits",
       "Pay only for what you process",
       "Credits never expire",
-      "All 30+ conversion and editing tools",
+      "All 130+ conversion and editing tools",
     ],
     imageUrl: "/images/celebration-gift-banner.jpg",
     isFestivalOffer: false,
@@ -497,6 +497,31 @@ export interface UiEditSettings {
 
   // Website Layout & Structure
   structure: WebsiteStructureSettings;
+
+  // Guest Tool Limits Configuration
+  guestLimits?: GuestLimitsConfig;
+}
+
+export interface GuestLimitsConfig {
+  guestBaseLimit: number;
+  guestDifferentToolBonus: number;
+  guestDifferentToolBonusEnabled: boolean;
+}
+
+export interface AdminPromoCode {
+  id: string;
+  code: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  minPurchaseAmount: number;
+  maxDiscountAmount: number | null;
+  maxUses: number | null;
+  usedCount: number;
+  expiresAt: string | null;
+  active: boolean;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type SiteDialogType = "info" | "alert" | "warning" | "offer";
@@ -591,6 +616,11 @@ export const DEFAULT_UI_SETTINGS: UiEditSettings = {
     "/contact": true,
     "/terms": true,
     "/privacy": true,
+  },
+  guestLimits: {
+    guestBaseLimit: 5,
+    guestDifferentToolBonus: 2,
+    guestDifferentToolBonusEnabled: true,
   },
 };
 
@@ -1920,6 +1950,86 @@ export const AdminStore = {
       /* ignore */
     }
     return null;
+  },
+
+  // ─── PROMO CODES MANAGEMENT ───
+  async fetchPromoCodes(): Promise<AdminPromoCode[]> {
+    try {
+      const res = await fetch("/api/admin/promocodes", {
+        headers: getAdminAuthHeaders(),
+      });
+      if (res.ok) {
+        return (await res.json()) as AdminPromoCode[];
+      }
+    } catch {}
+    return [];
+  },
+
+  async savePromoCode(promo: Partial<AdminPromoCode>): Promise<{ success: boolean; data?: AdminPromoCode; error?: string }> {
+    try {
+      const res = await fetch("/api/admin/promocodes", {
+        method: "POST",
+        headers: {
+          ...getAdminAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(promo),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data?.error || data?.message || "Failed to save promo code" };
+      }
+      return { success: true, data };
+    } catch (e: any) {
+      return { success: false, error: e?.message || "Network error" };
+    }
+  },
+
+  async deletePromoCode(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/admin/promocodes/${id}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async validatePromoCode(code: string, amount: number) {
+    try {
+      const res = await fetch("/api/promocodes/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, amount }),
+      });
+      return await res.json();
+    } catch {
+      return { valid: false, error: "Validation request failed" };
+    }
+  },
+
+  getGuestLimitsConfig(): GuestLimitsConfig {
+    const ui = this.getUiSettings();
+    return (
+      ui.guestLimits || {
+        guestBaseLimit: 5,
+        guestDifferentToolBonus: 2,
+        guestDifferentToolBonusEnabled: true,
+      }
+    );
+  },
+
+  saveGuestLimitsConfig(config: Partial<GuestLimitsConfig>): UiEditSettings {
+    const current = this.getGuestLimitsConfig();
+    const updated: GuestLimitsConfig = {
+      ...current,
+      ...config,
+    };
+    return this.saveUiSettings({
+      guestLimits: updated,
+    });
   },
 };
 

@@ -18,6 +18,8 @@ export interface CreditGuardResult {
   recordSuccess?: ((durationMs?: number, fileSizeBytes?: number) => void) | undefined;
 }
 
+import { DISABLE_IP_TOOL_LIMIT_FOR_TESTING } from "./testing-config";
+
 function getSigningSecret(): string {
   return process.env["ADMIN_SESSION_SECRET"] || "bg_default_guest_signing_secret_32_bytes_min";
 }
@@ -153,14 +155,32 @@ export async function enforceToolCreditsAndLimits(
   }
 
   // Daily guest allowance is min(5, dailyLimitPerIp)
+  if (DISABLE_IP_TOOL_LIMIT_FOR_TESTING) {
+    return {
+      allowed: true,
+      userId: null,
+      cost: 0,
+      isGuest: true,
+      guestCookieHeader: newCookieHeader,
+      refund: () => {},
+      recordSuccess: () => {},
+    };
+  }
+
   const guestDailyAllowance = Math.min(5, dailyLimitPerIp);
-  const guestCheck = creditLedgerRepo.checkAndDeductGuestLimit(clientIp, toolSlug, guestDailyAllowance);
+  const differentToolBonus = 2;
+  const guestCheck = creditLedgerRepo.checkAndDeductGuestLimit(clientIp, toolSlug, guestDailyAllowance, differentToolBonus);
 
   if (!guestCheck.allowed) {
+    const errorMsg =
+      guestCheck.reason === "same_tool_exhausted"
+        ? `Daily free limit of ${guestDailyAllowance} uses reached for this tool. Try another tool for 2 bonus chances, or sign up for 10 free daily credits!`
+        : `Daily free guest limit reached. Please sign up for 10 free daily credits to continue creating!`;
+
     return {
       allowed: false,
       status: 429,
-      error: `Daily free guest limit reached (${guestDailyAllowance} uses/day). Please sign up for 10 free daily credits!`,
+      error: errorMsg,
       guestCookieHeader: newCookieHeader,
     };
   }

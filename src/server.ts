@@ -49,6 +49,7 @@ import {
   rateLimitsRepo,
   paymentsRepo,
   telemetryRepo,
+  promoCodesRepo,
 } from "./lib/db";
 import { handleApiV1 } from "./lib/api/handler";
 import {
@@ -781,6 +782,87 @@ export default {
       if (request.method === "DELETE") {
         return handleDeletePaymentOrder(request);
       }
+    }
+
+    // 6.7 Promo Code Endpoints
+    if (url.pathname === "/api/promocodes/validate" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const { code, amount } = body;
+        const result = promoCodesRepo.validate(code, Number(amount) || 0);
+        return applySecurityHeaders(
+          new Response(JSON.stringify(result), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      } catch {
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ valid: false, error: "Invalid request payload." }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+    }
+
+    if (url.pathname === "/api/admin/promocodes") {
+      if (!isAuthorizedAdmin(request)) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(401, "Unauthorized: Administrator access required.")
+        );
+      }
+      if (request.method === "GET") {
+        const promos = promoCodesRepo.getAll();
+        return applySecurityHeaders(
+          new Response(JSON.stringify(promos), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      if (request.method === "POST") {
+        try {
+          const body = await request.json();
+          if (body.id) {
+            const updated = promoCodesRepo.update(body.id, body);
+            return applySecurityHeaders(
+              new Response(JSON.stringify(updated), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          } else {
+            const created = promoCodesRepo.create(body);
+            return applySecurityHeaders(
+              new Response(JSON.stringify(created), {
+                status: 201,
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          }
+        } catch (err: any) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(400, err?.message || "Failed to save promo code.")
+          );
+        }
+      }
+    }
+
+    if (url.pathname.startsWith("/api/admin/promocodes/") && request.method === "DELETE") {
+      if (!isAuthorizedAdmin(request)) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(401, "Unauthorized: Administrator access required.")
+        );
+      }
+      const id = url.pathname.replace("/api/admin/promocodes/", "");
+      const deleted = promoCodesRepo.delete(id);
+      return applySecurityHeaders(
+        new Response(JSON.stringify({ success: deleted }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
     }
 
     // 7. /api/contact
