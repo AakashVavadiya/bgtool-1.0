@@ -32,14 +32,14 @@ export function getGeminiTemplate(key: string): { size: number; alpha: Float32Ar
   const grad = new Float32Array(size * size);
   for (let r = 1; r < size - 1; r++) {
     for (let c = 1; c < size - 1; c++) {
-      const g00 = alpha[(r - 1) * size + (c - 1)];
-      const g01 = alpha[(r - 1) * size + c];
-      const g02 = alpha[(r - 1) * size + (c + 1)];
-      const g10 = alpha[r * size + (c - 1)];
-      const g12 = alpha[r * size + (c + 1)];
-      const g20 = alpha[(r + 1) * size + (c - 1)];
-      const g21 = alpha[(r + 1) * size + c];
-      const g22 = alpha[(r + 1) * size + (c + 1)];
+      const g00 = alpha[(r - 1) * size + (c - 1)] ?? 0;
+      const g01 = alpha[(r - 1) * size + c] ?? 0;
+      const g02 = alpha[(r - 1) * size + (c + 1)] ?? 0;
+      const g10 = alpha[r * size + (c - 1)] ?? 0;
+      const g12 = alpha[r * size + (c + 1)] ?? 0;
+      const g20 = alpha[(r + 1) * size + (c - 1)] ?? 0;
+      const g21 = alpha[(r + 1) * size + c] ?? 0;
+      const g22 = alpha[(r + 1) * size + (c + 1)] ?? 0;
 
       const gx = (g02 + 2 * g12 + g22) - (g00 + 2 * g10 + g20);
       const gy = (g20 + 2 * g21 + g22) - (g00 + 2 * g01 + g02);

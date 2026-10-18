@@ -21,6 +21,14 @@ export interface CreditDeductionResult {
   error?: string;
 }
 
+export interface GuestLimitResult {
+  allowed: boolean;
+  remaining: number;
+  usedToday: number;
+  isBonus?: boolean;
+  reason?: "base_exhausted" | "same_tool_exhausted" | "bonus_exhausted";
+}
+
 const GUEST_DAILY_LIMIT = 5; // Default free guest uses per IP per day
 
 export const creditLedgerRepo = {
@@ -177,19 +185,13 @@ export const creditLedgerRepo = {
     toolSlug: string,
     dailyLimit: number = GUEST_DAILY_LIMIT,
     bonusLimit: number = 2
-  ): {
-    allowed: boolean;
-    remaining: number;
-    usedToday: number;
-    isBonus?: boolean;
-    reason?: "base_exhausted" | "same_tool_exhausted" | "bonus_exhausted";
-  } {
+  ): GuestLimitResult {
     const db = getDb();
     const today = new Date().toISOString().slice(0, 10);
     const ledgerId = `cld_gst_${crypto.randomBytes(10).toString("hex")}`;
     const now = new Date().toISOString();
 
-    const guestTx = db.transaction(() => {
+    const guestTx = db.transaction((): GuestLimitResult => {
       // 1. Total usage by this IP today
       const countRow = db
         .prepare(`

@@ -91,6 +91,10 @@ export function saveGuestState(state: GuestCreditState): void {
   } catch {}
 }
 
+export function getGuestCreditsFromStorage(): number {
+  return getGuestState().credits;
+}
+
 export const AuthUser = {
   getCurrentUser(): CurrentUser | null {
     if (typeof window === "undefined") return null;

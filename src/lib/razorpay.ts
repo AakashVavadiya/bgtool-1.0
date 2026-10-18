@@ -129,6 +129,7 @@ export async function initiateRazorpayCheckout({
   credits,
   amountINR,
   currency,
+  promoCode,
   onSuccess,
   onError,
   onCancel,
@@ -182,7 +183,7 @@ export async function initiateRazorpayCheckout({
         credits,
         amount: amountINR,
         currency: activeCurrency,
-        promoCode: options.promoCode || undefined,
+        promoCode: promoCode || undefined,
       }),
     });
 
@@ -212,7 +213,7 @@ export async function initiateRazorpayCheckout({
     };
 
     // Step 2: Open Razorpay Checkout modal
-    const options = {
+    const rzpOptions = {
       key: razorpayKey,
       amount: orderData.amount, // in paise
       currency: orderData.currency || "INR",
@@ -251,7 +252,7 @@ export async function initiateRazorpayCheckout({
               orderId: response.razorpay_order_id,
               paymentId: response.razorpay_payment_id,
               signature: response.razorpay_signature,
-              promoCode: options.promoCode || undefined,
+              promoCode: promoCode || undefined,
             }),
           });
 
@@ -309,7 +310,7 @@ export async function initiateRazorpayCheckout({
       },
     };
 
-    const rzp = new window.Razorpay(options);
+    const rzp = new window.Razorpay(rzpOptions);
     rzp.on("payment.failed", (failedRes: any) => {
       const errReason = failedRes?.error?.description || "Payment failed at bank";
       toast.error(`Payment failed: ${errReason}`);

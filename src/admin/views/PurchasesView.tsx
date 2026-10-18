@@ -156,7 +156,7 @@ export function PurchasesView() {
     setPromoFormMinAmount(promo.minPurchaseAmount || 0);
     setPromoFormMaxDiscount(promo.maxDiscountAmount ?? "");
     setPromoFormMaxUses(promo.maxUses ?? "");
-    setPromoFormExpiresAt(promo.expiresAt ? promo.expiresAt.split("T")[0] : "");
+    setPromoFormExpiresAt((promo.expiresAt ? promo.expiresAt.split("T")[0] : "") || "");
     setPromoFormActive(promo.active);
     setPromoFormDescription(promo.description || "");
     setIsPromoModalOpen(true);
