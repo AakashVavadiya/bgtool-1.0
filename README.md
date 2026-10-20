@@ -1,6 +1,3 @@
-# bg.tools
-
-Production-ready, privacy-first background removal and AI media toolkit (https://bg.tools).
 
 ## Development
 
