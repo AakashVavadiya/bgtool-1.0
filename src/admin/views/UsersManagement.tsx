@@ -23,6 +23,8 @@ import {
   FileText,
   Mail,
   ExternalLink,
+  Bell,
+  Send,
 } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
@@ -34,6 +36,65 @@ export function UsersManagement() {
   const [customCreditAmount, setCustomCreditAmount] = useState<number>(50);
   const [isSyncing, setIsSyncing] = useState(false);
   const [inspectingUser, setInspectingUser] = useState<LoggedUser | null>(null);
+
+  // Send Direct User Notification Modal State
+  const [notifUser, setNotifUser] = useState<LoggedUser | null>(null);
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifMessage, setNotifMessage] = useState("");
+  const [notifType, setNotifType] = useState<"admin" | "token" | "offer" | "security" | "update">("admin");
+  const [notifBadge, setNotifBadge] = useState("Admin Message");
+  const [notifLink, setNotifLink] = useState("");
+  const [notifActionText, setNotifActionText] = useState("");
+  const [isSendingNotif, setIsSendingNotif] = useState(false);
+
+  const handleOpenNotificationModal = (user: LoggedUser) => {
+    setNotifUser(user);
+    setNotifTitle("");
+    setNotifMessage("");
+    setNotifType("admin");
+    setNotifBadge("Admin Message");
+    setNotifLink("");
+    setNotifActionText("");
+  };
+
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notifUser) return;
+    if (!notifTitle.trim() || !notifMessage.trim()) {
+      toast.error("Please provide both a title and message.");
+      return;
+    }
+    setIsSendingNotif(true);
+    try {
+      const payload: {
+        userId: string;
+        title: string;
+        message: string;
+        type?: "admin" | "token" | "offer" | "security" | "update" | undefined;
+        badge?: string | undefined;
+        link?: string | undefined;
+        actionText?: string | undefined;
+      } = {
+        userId: notifUser.id,
+        title: notifTitle.trim(),
+        message: notifMessage.trim(),
+        type: notifType,
+        badge: notifBadge.trim() || "Admin Notice",
+      };
+      if (notifLink.trim()) payload.link = notifLink.trim();
+      if (notifActionText.trim()) payload.actionText = notifActionText.trim();
+
+      const res = await AdminStore.sendUserNotification(payload);
+      if (res.success) {
+        toast.success(`Notification sent directly to ${notifUser.name}!`);
+        setNotifUser(null);
+      } else {
+        toast.error(res.error || "Failed to send notification.");
+      }
+    } finally {
+      setIsSendingNotif(false);
+    }
+  };
 
   const fetchLatest = async (showToast = false) => {
     setIsSyncing(true);
@@ -277,6 +338,14 @@ export function UsersManagement() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => handleOpenNotificationModal(u)}
+                        title={`Send Notification to ${u.name}`}
+                        className="rounded-lg border border-blue-200 dark:border-blue-900/60 p-1.5 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 transition-colors cursor-pointer"
+                      >
+                        <Bell className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleAdjustCredits(u.id, 10)}
                         title="Add 10 Credits"
                         className="rounded-lg border border-border p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
@@ -472,6 +541,144 @@ export function UsersManagement() {
                 Close Profile
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Direct User Notification Modal ─────────────────────────────────── */}
+      {notifUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7 shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-zinc-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-black text-slate-950 dark:text-white">
+                    Send User Notification
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">
+                    Direct notification to <span className="font-bold text-slate-800 dark:text-zinc-200">{notifUser.name}</span> ({notifUser.email})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotifUser(null)}
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendNotification} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                  Notification Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={notifTitle}
+                  onChange={(e) => setNotifTitle(e.target.value)}
+                  placeholder="e.g. VIP Bonus: 50 Permanent Tokens Added!"
+                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 px-3.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                  Message Details *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={notifMessage}
+                  onChange={(e) => setNotifMessage(e.target.value)}
+                  placeholder="Enter message visible to this specific user in their profile..."
+                  className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 p-3 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                    Notification Type
+                  </label>
+                  <select
+                    value={notifType}
+                    onChange={(e) => setNotifType(e.target.value as any)}
+                    className="w-full h-9 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 px-3 text-xs text-slate-900 dark:text-white font-medium focus:outline-none"
+                  >
+                    <option value="admin">Admin Notice</option>
+                    <option value="token">Token Credit / Bonus</option>
+                    <option value="offer">Special Offer</option>
+                    <option value="security">Security Alert</option>
+                    <option value="update">System Update</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                    Badge Label
+                  </label>
+                  <input
+                    type="text"
+                    value={notifBadge}
+                    onChange={(e) => setNotifBadge(e.target.value)}
+                    placeholder="e.g. VIP Notice"
+                    className="w-full h-9 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 px-3 text-xs text-slate-900 dark:text-white font-medium focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                    Action Link (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={notifLink}
+                    onChange={(e) => setNotifLink(e.target.value)}
+                    placeholder="e.g. /pricing or /account"
+                    className="w-full h-9 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 px-3 text-xs text-slate-900 dark:text-white font-medium focus:outline-none font-mono text-[11px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                    Action Button Text
+                  </label>
+                  <input
+                    type="text"
+                    value={notifActionText}
+                    onChange={(e) => setNotifActionText(e.target.value)}
+                    placeholder="e.g. View Offer"
+                    className="w-full h-9 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 px-3 text-xs text-slate-900 dark:text-white font-medium focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setNotifUser(null)}
+                  className="rounded-xl border border-slate-200 dark:border-zinc-800 px-4 py-2 text-xs font-bold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingNotif}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-5 py-2 text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span>{isSendingNotif ? "Dispatching..." : "Send to User"}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

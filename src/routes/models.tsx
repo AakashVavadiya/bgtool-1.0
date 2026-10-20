@@ -41,14 +41,32 @@ const modelFaqs = [
   },
 ];
 
-import { buildPageMeta } from "@/lib/seo";
+import { buildPageMeta, buildFaqSchema, buildBreadcrumbsSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/models")({
   head: () => {
+    const faqSchema = buildFaqSchema(modelFaqs);
+    const breadcrumbsSchema = buildBreadcrumbsSchema([
+      { name: "Home", path: "/" },
+      { name: "AI Models", path: "/models" },
+    ]);
+
     const seo = buildPageMeta({
-      title: "AI Models Suite & Specs | bg.tools",
-      description: "Explore the bg.tools specialized neural models: Karudi Universal, Ganga Matting, Brahmaputra Converter, Narmada OCR, and Saraswati Research Engine.",
+      title: "AI Neural Models & Engine Specs (Ganga, Karudi, Brahmaputra) | bg.tools",
+      description: "Explore the proprietary AI neural models powering bg.tools: Karudi Master Model, Ganga Sub-Pixel Matting, Brahmaputra Format Converter, and Narmada OCR Engine.",
       path: "/models",
+      keywords: [
+        "ai models",
+        "ganga model",
+        "karudi prime",
+        "brahmaputra engine",
+        "sub pixel matting model",
+        "neural network specs",
+      ],
+      jsonLd: [
+        breadcrumbsSchema,
+        ...(faqSchema ? [faqSchema] : []),
+      ],
     });
     return {
       meta: seo.meta,

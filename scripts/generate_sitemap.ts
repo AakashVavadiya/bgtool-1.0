@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 import { tools } from "../src/lib/tools";
+import { getNewsArticles } from "../src/lib/news";
 
 const BASE_URL = (process.env["SITE_URL"] || "https://bg.tools").replace(/\/+$/, "");
 const fallbackDate = new Date().toISOString().split("T")[0]!;
@@ -61,6 +62,9 @@ const staticRoutes = [
   { path: "/api", changefreq: "weekly", priority: "0.8", file: "src/routes/api.index.tsx" },
   { path: "/docs/api", changefreq: "weekly", priority: "0.8", file: "src/routes/docs.api.tsx" },
   { path: "/models", changefreq: "weekly", priority: "0.8", file: "src/routes/models.tsx" },
+  { path: "/news", changefreq: "daily", priority: "0.9", file: "src/routes/news.index.tsx" },
+  { path: "/search", changefreq: "daily", priority: "0.8", file: "src/routes/search.tsx" },
+  { path: "/developer", changefreq: "monthly", priority: "0.7", file: "src/routes/developer.tsx" },
   { path: "/contact", changefreq: "monthly", priority: "0.7", file: "src/routes/contact.tsx" },
   { path: "/privacy", changefreq: "monthly", priority: "0.6", file: "src/routes/privacy.tsx" },
   { path: "/terms", changefreq: "monthly", priority: "0.6", file: "src/routes/terms.tsx" },
@@ -113,6 +117,28 @@ for (const tool of tools) {
   includedCount++;
 }
 
+// 3. Add all separate in-depth news & guide articles (one comprehensive guide per tool)
+const articles = getNewsArticles();
+const newsFileDate = getGitLastMod("src/lib/news.ts");
+const seenArticleSlugs = new Set<string>();
+
+for (const art of articles) {
+  if (!art.slug || seenArticleSlugs.has(art.slug)) continue;
+  seenArticleSlugs.add(art.slug);
+
+  const articleUrl = `/news/${art.slug}`;
+  if (!isSafePublicRoute(articleUrl)) continue;
+
+  xml += `  <url>
+    <loc>${BASE_URL}${articleUrl}</loc>
+    <lastmod>${art.updatedAt || newsFileDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+`;
+  includedCount++;
+}
+
 xml += `</urlset>
 `;
 
@@ -124,7 +150,7 @@ if (!fs.existsSync(publicDir)) {
 fs.writeFileSync(path.join(publicDir, "sitemap.xml"), xml, "utf-8");
 console.log(`Generated public/sitemap.xml with ${includedCount} verified public URLs for ${BASE_URL} (Admin panel strictly excluded).`);
 
-// 3. Update robots.txt with strict security disallows
+// 4. Update robots.txt with strict security disallows
 const robotsTxt = `# robots.txt for https://bg.tools
 User-agent: Googlebot
 Allow: /
@@ -141,6 +167,10 @@ Allow: /
 User-agent: *
 Allow: /
 Allow: /tools/
+Allow: /news
+Allow: /news/
+Allow: /search
+Allow: /developer
 Allow: /pricing
 Allow: /faq
 Allow: /download

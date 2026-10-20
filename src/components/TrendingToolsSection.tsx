@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { tools, type Tool } from "@/lib/tools";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { Flame, ArrowRight, Wrench, Layers } from "lucide-react";
+import { Flame, ArrowRight, Wrench, Layers, BookOpen } from "lucide-react";
 
 // Curated list of top trending tool slugs
 const TRENDING_SLUGS: string[] = [
@@ -154,10 +154,8 @@ export function TrendingToolsSection() {
           const isEnabled = AdminStore.isToolEnabled(tool.slug);
 
           return (
-            <Link
+            <div
               key={tool.slug}
-              to="/tools/$slug"
-              params={{ slug: tool.slug }}
               className="tool-card group relative flex flex-col justify-between rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-foreground/40 hover:shadow-xl hover:shadow-accent/5"
             >
               <div>
@@ -174,35 +172,58 @@ export function TrendingToolsSection() {
                   ) : null}
                 </div>
 
-                {/* Tool Icon & Title */}
-                <div className="mt-5 flex items-center gap-3.5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-secondary transition-all duration-300 group-hover:scale-105 group-hover:bg-foreground group-hover:text-background shadow-inner">
-                    <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
+                {/* Stretched Link for Tool */}
+                <Link
+                  to="/tools/$slug"
+                  params={{ slug: tool.slug }}
+                  className="block focus:outline-none after:absolute after:inset-0 after:z-0"
+                >
+                  {/* Tool Icon & Title */}
+                  <div className="mt-5 flex items-center gap-3.5">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-secondary transition-all duration-300 group-hover:scale-105 group-hover:bg-foreground group-hover:text-background shadow-inner">
+                      <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate font-display text-base font-semibold leading-tight transition-colors group-hover:text-accent">
+                        {tool.name}
+                      </h3>
+                      <span className="block truncate text-[0.68rem] text-muted-foreground">
+                        {tool.accepts} → {tool.outputs}
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate font-display text-base font-semibold leading-tight transition-colors group-hover:text-accent">
-                      {tool.name}
-                    </h3>
-                    <span className="block truncate text-[0.68rem] text-muted-foreground">
-                      {tool.accepts} → {tool.outputs}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Tool Description */}
-                <p className="mt-3.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {tool.blurb}
-                </p>
+                  {/* Tool Description */}
+                  <p className="mt-3.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                    {tool.blurb}
+                  </p>
+                </Link>
               </div>
 
-              {/* Card Footer */}
-              <div className="mt-5 border-t border-border/50 pt-4 flex items-center justify-end text-xs">
-                <span className="inline-flex items-center gap-1 font-semibold text-foreground group-hover:text-accent transition-all group-hover:gap-2">
+              {/* Card Footer with Read Article Link & Open Tool */}
+              <div className="mt-5 border-t border-border/50 pt-4 flex items-center justify-between text-xs relative z-10">
+                {/* Read Article Link */}
+                <Link
+                  to="/news/$slug"
+                  params={{ slug: tool.slug }}
+                  title={`Read full article & guide: ${tool.name}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 hover:bg-accent/10 hover:border-accent/40 px-2.5 py-1 text-[0.72rem] font-semibold text-muted-foreground hover:text-accent transition-all cursor-pointer shadow-2xs group/art"
+                >
+                  <BookOpen className="h-3.5 w-3.5 text-accent shrink-0 transition-transform group-hover/art:scale-110" />
+                  <span>Read Article</span>
+                </Link>
+
+                {/* Open Tool Link */}
+                <Link
+                  to="/tools/$slug"
+                  params={{ slug: tool.slug }}
+                  className="inline-flex items-center gap-1 font-semibold text-foreground group-hover:text-accent transition-all group-hover:gap-2"
+                >
                   <span>Open</span>
                   <ArrowRight className="h-3.5 w-3.5" />
-                </span>
+                </Link>
               </div>
-            </Link>
+            </div>
           );
         })}
       </div>

@@ -23,6 +23,7 @@ export interface SafeUser {
   phone?: string | null | undefined;
   countryCode?: string | null | undefined;
   country?: string | null | undefined;
+  avatar?: string | null | undefined;
 }
 
 export interface AdminSessionPayload {

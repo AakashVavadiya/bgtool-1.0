@@ -63,6 +63,28 @@ export interface PurchasePlanConfig {
   sortOrder: number;
 }
 
+export interface CoffeeSupporter {
+  id: string;
+  order_id: string;
+  payment_id: string | null;
+  user_id: string | null;
+  user_name: string | null;
+  user_email: string | null;
+  plan_name: string;
+  plan_type: string;
+  credits: number;
+  amount_inr: number;
+  currency: string;
+  status: string;
+  payment_method: string | null;
+  receipt: string | null;
+  created_at: string;
+  updated_at: string;
+  avatar?: string | null;
+  currentCredits?: number;
+  currentPaidCredits?: number;
+}
+
 export interface AdminToolConfig {
   slug: string;
   name: string;
@@ -899,6 +921,36 @@ export const AdminStore = {
     }
     return users;
   },
+  async sendUserNotification(params: {
+    userId: string;
+    title: string;
+    message: string;
+    type?: string | undefined;
+    badge?: string | undefined;
+    link?: string | undefined;
+    actionText?: string | undefined;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await fetch("/api/admin/notifications/send", {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+        body: JSON.stringify(params),
+      });
+      const data = await res.json();
+      if (data?.success) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(REALTIME_EVENT_NAME, { detail: { type: "user_notification_sent", ...params } })
+          );
+        }
+        return { success: true };
+      }
+      return { success: false, error: data?.error || "Failed to send notification" };
+    } catch (err: any) {
+      return { success: false, error: err?.message || "Network error" };
+    }
+  },
 
   // Purchases (Real transactions only)
   getPurchases(): PurchaseTransaction[] {
@@ -971,6 +1023,49 @@ export const AdminStore = {
       return true;
     } catch {
       return false;
+    }
+  },
+
+  async fetchCoffeeSupporters(): Promise<CoffeeSupporter[]> {
+    try {
+      const res = await fetch("/api/admin/coffee/supporters", {
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return Array.isArray(data.supporters) ? data.supporters : [];
+      }
+    } catch {}
+    return [];
+  },
+
+  async awardCoffeeGift(params: {
+    userId: string;
+    amount: number;
+    note?: string | undefined;
+  }): Promise<{ success: boolean; message?: string; newBalance?: number; error?: string }> {
+    try {
+      const res = await fetch("/api/admin/coffee/gift", {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+        body: JSON.stringify(params),
+      });
+      const data = await res.json();
+      if (data?.success) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(REALTIME_EVENT_NAME, {
+              detail: { type: "user_credits_updated", userId: params.userId, newBalance: data.newBalance },
+            })
+          );
+        }
+        return { success: true, message: data.message, newBalance: data.newBalance };
+      }
+      return { success: false, error: data?.error || data?.message || "Failed to award gift." };
+    } catch (err: any) {
+      return { success: false, error: err?.message || "Network error while awarding gift." };
     }
   },
 

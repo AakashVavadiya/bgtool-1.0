@@ -1112,26 +1112,6 @@ export const tools: Tool[] = [
     },
   },
   {
-    slug: "image-to-text",
-    name: "Image To Text",
-    category: "Format Converters",
-    icon: ScanText,
-    blurb: "Extract raw readable text strings and characters embedded inside images.",
-    accepts: "Any image",
-    outputs: "Plain text",
-    seo: {
-      title: "Image to Text Converter Online Free — Extract Text from Photos",
-      description: "Extract text from photos, scans, and screenshots online for free.",
-      keywords: ["image to text", "extract text photo", "image text extractor"],
-      article: {
-        intro: "Extract editable text from photographs, documents, and screenshots.",
-        howTo: ["Upload your image.", "Click Process Image.", "Copy extracted text."],
-        benefits: [{ heading: "Instant Text Extraction", body: "Copy plain text without typing manually." }],
-        faqs: [{ q: "What language is supported?", a: "Supports all standard alphanumeric text." }],
-      },
-    },
-  },
-  {
     slug: "hex-to-image",
     name: "Hex To Image",
     category: "Format Converters",
@@ -4942,4 +4922,5 @@ export const tools: Tool[] = [
 
 export const getTool = (slug: string) =>
   tools.find((t) => t.slug === slug) ||
-  (slug === "images-to-pdf" ? tools.find((t) => t.slug === "image-to-pdf") : undefined);
+  (slug === "images-to-pdf" ? tools.find((t) => t.slug === "image-to-pdf") : undefined) ||
+  (slug === "image-to-text" ? tools.find((t) => t.slug === "image-to-text-ocr") : undefined);

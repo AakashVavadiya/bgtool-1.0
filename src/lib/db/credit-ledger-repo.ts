@@ -176,6 +176,59 @@ export const creditLedgerRepo = {
   },
 
   /**
+   * Admin grant Gold coin credits to a user (e.g. coffee support reward gift).
+   */
+  adminGrantCredits(
+    userId: string,
+    amount: number,
+    reason: string = "Founder Coffee Gift"
+  ): { success: boolean; newBalance: number; error?: string } {
+    const db = getDb();
+    const now = new Date().toISOString();
+    const ledgerId = `cld_gift_${crypto.randomBytes(10).toString("hex")}`;
+
+    const grantTx = db.transaction(() => {
+      const user = db
+        .prepare("SELECT * FROM users WHERE id = ?")
+        .get(userId) as DbUser | undefined;
+
+      if (!user) {
+        return { success: false, newBalance: 0, error: "User not found." };
+      }
+
+      // Add to paid_credits (Gold coins)
+      const newPaid = Math.round(((user.paid_credits || 0) + amount) * 100) / 100;
+      const newTotal = Math.round(((user.credits || 0) + amount) * 100) / 100;
+
+      db.prepare(`
+        UPDATE users
+        SET credits = ?, paid_credits = ?
+        WHERE id = ?
+      `).run(newTotal, newPaid, userId);
+
+      db.prepare(`
+        INSERT INTO credit_ledger (
+          id, user_id, ip, amount, balance_after, type, tool_slug, description, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        ledgerId,
+        userId,
+        null,
+        amount,
+        newTotal,
+        "admin_grant",
+        "gift-coffee",
+        reason,
+        now
+      );
+
+      return { success: true, newBalance: newTotal };
+    });
+
+    return grantTx();
+  },
+
+  /**
    * Enforce and check daily guest IP usage:
    * - 5 base free uses across tools without login.
    * - If 5 uses are finished, when user switches to a different tool, grant 2 bonus chances for that new tool.

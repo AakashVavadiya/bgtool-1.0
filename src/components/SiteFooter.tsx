@@ -237,20 +237,16 @@ export function SiteFooter() {
             </ul>
           </div>
 
-          {/* Legal & Support */}
+          {/* Support & API */}
           <div>
             <h4 className="font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Support & Legal
+              Support &amp; API
             </h4>
             <ul className="mt-4 space-y-2.5 text-sm font-semibold">
               <li>
-                <Link to="/terms" className="hover:text-accent transition-colors">
-                  Terms & Conditions
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="hover:text-accent transition-colors">
-                  Privacy Policy
+                <Link to="/api" className="hover:text-accent transition-colors flex items-center gap-1.5 font-bold text-accent">
+                  <span>API Platform &amp; Docs</span>
+                  <span className="rounded-full bg-accent/15 text-accent border border-accent/25 px-1.5 py-0.2 text-[9px] font-bold">REST</span>
                 </Link>
               </li>
               <li>
@@ -259,13 +255,19 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link to="/pricing" hash="faq" className="hover:text-accent transition-colors">
-                  General FAQs
+                <Link to="/news" className="hover:text-accent transition-colors">
+                  News &amp; Guides
                 </Link>
               </li>
               <li>
-                <Link to="/models" hash="model-faq" className="hover:text-accent transition-colors">
-                  Model Technical Specs
+                <Link to="/developer" className="hover:text-accent transition-colors flex items-center gap-1.5 font-bold text-amber-500">
+                  <span>Meet the Developers</span>
+                  <span className="rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 px-1.5 py-0.2 text-[9px] font-bold">Upanishad</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/pricing" hash="faq" className="hover:text-accent transition-colors">
+                  General FAQs
                 </Link>
               </li>
             </ul>
@@ -307,12 +309,15 @@ export function SiteFooter() {
       <div className="border-t border-border bg-background px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-6 sm:py-8">
         <div className="w-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-xs md:text-sm font-semibold text-muted-foreground">
           <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
-            <span>© {new Date().getFullYear()} bg Inc. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} Upanishad. All rights reserved.</span>
             <LanguageTranslator variant="footer" />
             <CurrencySwitcher variant="footer" />
           </div>
 
           <div className="flex flex-wrap items-center gap-3.5 sm:gap-6">
+            <Link to="/developer" className="hover:text-foreground transition-colors font-bold text-foreground/80 flex items-center gap-1">
+              <span>Upanishad Team</span>
+            </Link>
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Notice</Link>
             <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>

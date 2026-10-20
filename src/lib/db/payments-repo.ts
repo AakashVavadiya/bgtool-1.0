@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { getDb } from "./client";
 import { DbUser } from "./users-repo";
+import { notificationsRepo } from "./notifications-repo";
 
 export interface DbPayment {
   id: string;
@@ -221,6 +222,19 @@ export const paymentsRepo = {
             `Razorpay Purchase: ${order.plan_name} (${order.credits} Gold Tokens) - Ref: ${params.paymentId}`,
             now
           );
+
+          // 6. Automatically generate purchase slip & payment notification for user
+          try {
+            notificationsRepo.create({
+              userId: user.id,
+              title: "Payment Successful — Tokens Credited",
+              message: `Your payment of ₹${order.amount_inr} for ${order.plan_name} (${order.credits} Gold Tokens) was completed successfully. Your official payment slip is available in your account.`,
+              type: "purchase",
+              badge: "Payment Slip",
+              link: "/account?tab=purchases",
+              actionText: "View Slip",
+            });
+          } catch {}
         }
       }
 
@@ -272,5 +286,23 @@ export const paymentsRepo = {
       .prepare("DELETE FROM payments WHERE order_id = ? OR payment_id = ? OR id = ?")
       .run(orderIdOrPaymentId, orderIdOrPaymentId, orderIdOrPaymentId);
     return result.changes > 0;
+  },
+
+  /**
+   * Get all coffee supporters with joined user details
+   */
+  getCoffeeSupporters(limit = 150): Array<DbPayment & { avatar?: string | null; currentCredits?: number; currentPaidCredits?: number }> {
+    const db = getDb();
+    const rows = db
+      .prepare(`
+        SELECT p.*, u.avatar, u.credits as currentCredits, u.paid_credits as currentPaidCredits
+        FROM payments p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.plan_type = 'coffee' OR p.plan_name LIKE '%Coffee%'
+        ORDER BY p.created_at DESC
+        LIMIT ?
+      `)
+      .all(limit) as Array<DbPayment & { avatar?: string | null; currentCredits?: number; currentPaidCredits?: number }>;
+    return rows;
   },
 };

@@ -15,8 +15,10 @@ import { Route as R500RouteImport } from './routes/500'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DeveloperRouteImport } from './routes/developer'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -25,6 +27,7 @@ import { Route as ModelsRouteImport } from './routes/models'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
@@ -43,6 +46,8 @@ import { Route as ApiUsersRouteImport } from './routes/api/users'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 import { Route as DocsApiRouteImport } from './routes/docs.api'
+import { Route as NewsIndexRouteImport } from './routes/news.index'
+import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as ToolsIndexRouteImport } from './routes/tools.index'
 import { Route as ToolsSlugRouteImport } from './routes/tools.$slug'
 
@@ -76,6 +81,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -84,6 +94,11 @@ const ChatRoute = ChatRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeveloperRoute = DeveloperRouteImport.update({
+  id: '/developer',
+  path: '/developer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DownloadRoute = DownloadRouteImport.update({
@@ -124,6 +139,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -216,6 +236,16 @@ const DocsApiRoute = DocsApiRouteImport.update({
   path: '/docs/api',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewsIndexRoute = NewsIndexRouteImport.update({
+  id: '/news/',
+  path: '/news/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsSlugRoute = NewsSlugRouteImport.update({
+  id: '/news/$slug',
+  path: '/news/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolsIndexRoute = ToolsIndexRouteImport.update({
   id: '/tools/',
   path: '/tools/',
@@ -234,8 +264,10 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
   '/chat': typeof ChatRouteWithChildren
   '/contact': typeof ContactRoute
+  '/developer': typeof DeveloperRoute
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -244,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -260,9 +293,11 @@ export interface FileRoutesByFullPath {
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/docs/api': typeof DocsApiRoute
+  '/news/$slug': typeof NewsSlugRoute
   '/tools/$slug': typeof ToolsSlugRoute
   '/api/': typeof ApiIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/news/': typeof NewsIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -272,7 +307,9 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
   '/contact': typeof ContactRoute
+  '/developer': typeof DeveloperRoute
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -281,6 +318,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -297,9 +335,11 @@ export interface FileRoutesByTo {
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/docs/api': typeof DocsApiRoute
+  '/news/$slug': typeof NewsSlugRoute
   '/tools/$slug': typeof ToolsSlugRoute
   '/api': typeof ApiIndexRoute
   '/chat': typeof ChatIndexRoute
+  '/news': typeof NewsIndexRoute
   '/tools': typeof ToolsIndexRoute
 }
 export interface FileRoutesById {
@@ -310,8 +350,10 @@ export interface FileRoutesById {
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
   '/chat': typeof ChatRouteWithChildren
   '/contact': typeof ContactRoute
+  '/developer': typeof DeveloperRoute
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -320,6 +362,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
@@ -336,9 +379,11 @@ export interface FileRoutesById {
   '/api/users': typeof ApiUsersRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/docs/api': typeof DocsApiRoute
+  '/news/$slug': typeof NewsSlugRoute
   '/tools/$slug': typeof ToolsSlugRoute
   '/api/': typeof ApiIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/news/': typeof NewsIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
 export interface FileRouteTypes {
@@ -350,8 +395,10 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/auth'
+    | '/cart'
     | '/chat'
     | '/contact'
+    | '/developer'
     | '/download'
     | '/faq'
     | '/forgot-password'
@@ -360,6 +407,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/reset-password'
+    | '/search'
     | '/signup'
     | '/terms'
     | '/verify-email'
@@ -376,9 +424,11 @@ export interface FileRouteTypes {
     | '/api/users'
     | '/chat/$threadId'
     | '/docs/api'
+    | '/news/$slug'
     | '/tools/$slug'
     | '/api/'
     | '/chat/'
+    | '/news/'
     | '/tools/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -388,7 +438,9 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/auth'
+    | '/cart'
     | '/contact'
+    | '/developer'
     | '/download'
     | '/faq'
     | '/forgot-password'
@@ -397,6 +449,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/reset-password'
+    | '/search'
     | '/signup'
     | '/terms'
     | '/verify-email'
@@ -413,9 +466,11 @@ export interface FileRouteTypes {
     | '/api/users'
     | '/chat/$threadId'
     | '/docs/api'
+    | '/news/$slug'
     | '/tools/$slug'
     | '/api'
     | '/chat'
+    | '/news'
     | '/tools'
   id:
     | '__root__'
@@ -425,8 +480,10 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/auth'
+    | '/cart'
     | '/chat'
     | '/contact'
+    | '/developer'
     | '/download'
     | '/faq'
     | '/forgot-password'
@@ -435,6 +492,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/reset-password'
+    | '/search'
     | '/signup'
     | '/terms'
     | '/verify-email'
@@ -451,9 +509,11 @@ export interface FileRouteTypes {
     | '/api/users'
     | '/chat/$threadId'
     | '/docs/api'
+    | '/news/$slug'
     | '/tools/$slug'
     | '/api/'
     | '/chat/'
+    | '/news/'
     | '/tools/'
   fileRoutesById: FileRoutesById
 }
@@ -464,8 +524,10 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  CartRoute: typeof CartRoute
   ChatRoute: typeof ChatRouteWithChildren
   ContactRoute: typeof ContactRoute
+  DeveloperRoute: typeof DeveloperRoute
   DownloadRoute: typeof DownloadRoute
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -474,6 +536,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
@@ -488,8 +551,10 @@ export interface RootRouteChildren {
   ApiToolsConfigRoute: typeof ApiToolsConfigRoute
   ApiUsersRoute: typeof ApiUsersRoute
   DocsApiRoute: typeof DocsApiRoute
+  NewsSlugRoute: typeof NewsSlugRoute
   ToolsSlugRoute: typeof ToolsSlugRoute
   ApiIndexRoute: typeof ApiIndexRoute
+  NewsIndexRoute: typeof NewsIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
 }
 
@@ -537,6 +602,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat': {
       id: '/chat'
       path: '/chat'
@@ -549,6 +621,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/developer': {
+      id: '/developer'
+      path: '/developer'
+      fullPath: '/developer'
+      preLoaderRoute: typeof DeveloperRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/download': {
@@ -605,6 +684,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -733,6 +819,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsApiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/news/': {
+      id: '/news/'
+      path: '/news'
+      fullPath: '/news/'
+      preLoaderRoute: typeof NewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news/$slug': {
+      id: '/news/$slug'
+      path: '/news/$slug'
+      fullPath: '/news/$slug'
+      preLoaderRoute: typeof NewsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/': {
       id: '/tools/'
       path: '/tools'
@@ -780,8 +880,10 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  CartRoute: CartRoute,
   ChatRoute: ChatRouteWithChildren,
   ContactRoute: ContactRoute,
+  DeveloperRoute: DeveloperRoute,
   DownloadRoute: DownloadRoute,
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
@@ -790,6 +892,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
@@ -804,8 +907,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiToolsConfigRoute: ApiToolsConfigRoute,
   ApiUsersRoute: ApiUsersRoute,
   DocsApiRoute: DocsApiRoute,
+  NewsSlugRoute: NewsSlugRoute,
   ToolsSlugRoute: ToolsSlugRoute,
   ApiIndexRoute: ApiIndexRoute,
+  NewsIndexRoute: NewsIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -50,6 +50,8 @@ import {
   paymentsRepo,
   telemetryRepo,
   promoCodesRepo,
+  notificationsRepo,
+  toSafeUser,
 } from "./lib/db";
 import { handleApiV1 } from "./lib/api/handler";
 import {
@@ -709,7 +711,7 @@ export default {
       return handleResetPassword(request, clientIp);
     }
 
-    if (url.pathname === "/api/auth/profile" && request.method === "PUT") {
+    if (url.pathname === "/api/auth/profile" && (request.method === "PUT" || request.method === "POST")) {
       return handleUpdateProfile(request);
     }
 
@@ -742,6 +744,223 @@ export default {
 
     if (url.pathname === "/api/user/api-keys/rotate") {
       return handleUserApiKeyAction(request, "rotate");
+    }
+
+    // 6.52 User Notifications Endpoint
+    if (url.pathname === "/api/user/notifications") {
+      const auth = getUserFromRequest(request);
+      const reqUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
+      const effectiveUserId = auth?.user?.id || (reqUserId && usersRepo.findById(reqUserId) ? reqUserId : null);
+
+      if (request.method === "GET") {
+        if (!effectiveUserId) {
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, notifications: [], unreadCount: 0 }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        }
+        const notifs = notificationsRepo.getUserNotifications(effectiveUserId, 50);
+        const unreadCount = notificationsRepo.getUnreadCount(effectiveUserId);
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ success: true, notifications: notifs, unreadCount }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+
+      if (request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          if (body.all && effectiveUserId) {
+            notificationsRepo.markAllAsRead(effectiveUserId);
+            return applySecurityHeaders(
+              new Response(JSON.stringify({ success: true }), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          }
+          if (body.id) {
+            notificationsRepo.markAsRead(String(body.id));
+            return applySecurityHeaders(
+              new Response(JSON.stringify({ success: true }), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          }
+          return applySecurityHeaders(createSafeErrorResponse(400, "Missing notification ID."));
+        } catch {
+          return applySecurityHeaders(createSafeErrorResponse(400, "Invalid notification request."));
+        }
+      }
+
+      if (request.method === "DELETE") {
+        const notifId = url.searchParams.get("id");
+        if (notifId) {
+          notificationsRepo.delete(notifId);
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        }
+        return applySecurityHeaders(createSafeErrorResponse(400, "Missing notification ID."));
+      }
+    }
+
+    // 6.53 Admin Send User-Specific Notification
+    if (url.pathname === "/api/admin/notifications/send" && request.method === "POST") {
+      if (!isAuthorizedAdmin(request)) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(401, "Unauthorized: Administrator access required.")
+        );
+      }
+      try {
+        const body = await request.json().catch(() => ({}));
+        if (!body.title || !body.message) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(400, "Title and message are required.")
+          );
+        }
+        const notif = notificationsRepo.create({
+          userId: body.userId || null,
+          title: String(body.title),
+          message: String(body.message),
+          type: body.type || "admin",
+          badge: body.badge || "Admin Message",
+          link: body.link || null,
+          actionText: body.actionText || null,
+        });
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ success: true, notification: notif }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      } catch (err: any) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(500, err?.message || "Failed to dispatch notification.")
+        );
+      }
+    }
+
+    // 6.54 User Payments & Slips Endpoint
+    if (url.pathname === "/api/user/payments" && request.method === "GET") {
+      const auth = getUserFromRequest(request);
+      const reqUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
+      const effectiveUserId = auth?.user?.id || (reqUserId && usersRepo.findById(reqUserId) ? reqUserId : null);
+
+      if (!effectiveUserId) {
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ success: true, payments: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+
+      const payments = paymentsRepo.getUserPayments(effectiveUserId, 100);
+      return applySecurityHeaders(
+        new Response(JSON.stringify({ success: true, payments }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }
+
+    // 6.55 User Credit Statement / Ledger Endpoint
+    if (url.pathname === "/api/user/statement" && request.method === "GET") {
+      const auth = getUserFromRequest(request);
+      const reqUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
+      const effectiveUserId = auth?.user?.id || (reqUserId && usersRepo.findById(reqUserId) ? reqUserId : null);
+
+      if (!effectiveUserId) {
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ success: true, ledger: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+
+      const ledger = creditLedgerRepo.getUserHistory(effectiveUserId, 200);
+      return applySecurityHeaders(
+        new Response(JSON.stringify({ success: true, ledger }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }
+
+    // 6.56 User Tool Activity Calendar Events Endpoint
+    if (url.pathname === "/api/user/activity") {
+      const clientIp = extractClientIp(request);
+      const auth = getUserFromRequest(request);
+      const reqUserId = url.searchParams.get("userId") || request.headers.get("x-user-id");
+      const effectiveUserId = auth?.user?.id || (reqUserId && usersRepo.findById(reqUserId) ? reqUserId : null);
+
+      if (request.method === "GET") {
+        try {
+          let toolRecords: any[] = [];
+          if (effectiveUserId) {
+            const ledgerEntries = creditLedgerRepo.getUserHistory(effectiveUserId, 200)
+              .filter(e => e.type === "tool_usage" || e.tool_slug);
+            toolRecords = ledgerEntries.map(e => ({
+              id: e.id,
+              toolSlug: e.tool_slug || "tool",
+              toolName: e.description?.replace("Credit deduction for ", "") || e.tool_slug || "Image Tool",
+              cost: Math.abs(e.amount),
+              createdAt: e.created_at,
+              status: "success",
+            }));
+          }
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, activities: toolRecords }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        } catch {
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, activities: [] }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        }
+      }
+
+      if (request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const toolSlug = String(body.toolSlug || "tool");
+          const toolName = String(body.toolName || toolSlug);
+          const durationMs = Number(body.durationMs) || 0;
+
+          toolUsageRepo.record({
+            toolSlug,
+            toolName,
+            userId: effectiveUserId || undefined,
+            ip: clientIp,
+            durationMs,
+            success: true,
+          });
+
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            })
+          );
+        } catch {
+          return applySecurityHeaders(createSafeErrorResponse(400, "Failed to record tool activity."));
+        }
+      }
     }
 
     // 6.55 Location and Country Geolocation Endpoint
@@ -781,6 +1000,92 @@ export default {
       }
       if (request.method === "DELETE") {
         return handleDeletePaymentOrder(request);
+      }
+    }
+
+    // 6.61 Admin Coffee Supporters & Gift Endpoints
+    if (url.pathname === "/api/admin/coffee/supporters" && request.method === "GET") {
+      if (!isAuthorizedAdmin(request)) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(401, "Unauthorized: Administrator access required.")
+        );
+      }
+      try {
+        const supporters = paymentsRepo.getCoffeeSupporters(150);
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ success: true, supporters }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      } catch (err: any) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(500, err?.message || "Failed to load coffee supporters.")
+        );
+      }
+    }
+
+    if (url.pathname === "/api/admin/coffee/gift" && request.method === "POST") {
+      if (!isAuthorizedAdmin(request)) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(401, "Unauthorized: Administrator access required.")
+        );
+      }
+      try {
+        const body = await request.json().catch(() => ({}));
+        const { userId, amount, note } = body;
+        const numAmount = Number(amount);
+        if (!userId || isNaN(numAmount) || numAmount <= 0) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(400, "Valid userId and positive gift amount are required.")
+          );
+        }
+
+        const grantResult = creditLedgerRepo.adminGrantCredits(
+          userId,
+          numAmount,
+          note || "Founder Coffee Gift (Gold Coins)"
+        );
+
+        if (!grantResult.success) {
+          return applySecurityHeaders(
+            createSafeErrorResponse(400, grantResult.error || "Failed to gift credits.")
+          );
+        }
+
+        // Send instant notification to user
+        try {
+          notificationsRepo.create({
+            userId,
+            title: `🎁 Founder's Gift: +${numAmount} Gold Coins!`,
+            message: note || `A special thank-you gift from Aakash & Piyush for your coffee support! We added ${numAmount} Gold Coins to your account balance.`,
+            type: "token",
+            badge: "Founder Gift",
+            link: "/account",
+            actionText: "View Balance",
+          });
+        } catch {}
+
+        const user = usersRepo.findById(userId);
+
+        return applySecurityHeaders(
+          new Response(
+            JSON.stringify({
+              success: true,
+              message: `Gifted ${numAmount} Gold Coins successfully.`,
+              newBalance: grantResult.newBalance,
+              user: user ? toSafeUser(user) : null,
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }
+          )
+        );
+      } catch (err: any) {
+        return applySecurityHeaders(
+          createSafeErrorResponse(500, err?.message || "Failed to award gift.")
+        );
       }
     }
 

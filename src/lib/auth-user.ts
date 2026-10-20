@@ -15,6 +15,7 @@ export interface CurrentUser {
   phone?: string | null | undefined;
   countryCode?: string | null | undefined;
   country?: string | null | undefined;
+  avatar?: string | null | undefined;
 }
 
 export interface AuthResult {
@@ -337,17 +338,34 @@ export const AuthUser = {
     }
   },
 
-  async updateProfile(name: string): Promise<{ success: boolean; user?: CurrentUser; error?: string }> {
-    const cleanName = name.trim();
-    if (!cleanName) {
-      return { success: false, error: "Name cannot be empty." };
+  async updateProfile(
+    params: string | { name?: string | undefined; avatar?: string | null | undefined }
+  ): Promise<{ success: boolean; user?: CurrentUser; error?: string }> {
+    const payload: { name?: string; avatar?: string | null } = {};
+    if (typeof params === "string") {
+      const cleanName = params.trim();
+      if (!cleanName) {
+        return { success: false, error: "Name cannot be empty." };
+      }
+      payload.name = cleanName;
+    } else {
+      if (params.name !== undefined) {
+        const cleanName = params.name.trim();
+        if (!cleanName) {
+          return { success: false, error: "Name cannot be empty." };
+        }
+        payload.name = cleanName;
+      }
+      if (params.avatar !== undefined) {
+        payload.avatar = params.avatar;
+      }
     }
 
     try {
       const res = await fetch("/api/auth/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: cleanName }),
+        body: JSON.stringify(payload),
         credentials: "same-origin",
       });
 
@@ -367,6 +385,10 @@ export const AuthUser = {
     } catch {
       return { success: false, error: "Network error updating profile." };
     }
+  },
+
+  async updateAvatar(avatar: string | null): Promise<{ success: boolean; user?: CurrentUser; error?: string }> {
+    return this.updateProfile({ avatar });
   },
 
   async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string; message?: string }> {

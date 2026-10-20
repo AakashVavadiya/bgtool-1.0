@@ -13,3 +13,4 @@ export * from "./security-events-repo";
 export * from "./telemetry-repo";
 export * from "./api-keys-repo";
 export * from "./promo-codes-repo";
+export * from "./notifications-repo";

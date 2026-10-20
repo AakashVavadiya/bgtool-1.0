@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminStore, type PurchasePlanConfig, type UiEditSettings } from "@/admin/lib/admin-store";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings, Key } from "lucide-react";
+import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings, Key, Search } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
+import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
+import { NotificationPopover } from "@/components/NotificationPopover";
+import { getAvatarUrl } from "@/lib/profile-avatars";
 
 const links = [
   { label: "Home.", to: "/" },
@@ -14,7 +17,6 @@ const links = [
   { label: "Tools.", to: "/tools" },
   { label: "Pricing.", to: "/pricing" },
   { label: "Download.", to: "/download" },
-  { label: "API.", to: "/api" },
   { label: "FAQ.", to: "/pricing", hash: "faq" },
 ] as const;
 
@@ -23,13 +25,6 @@ function renderTabLabel(label: string) {
     return (
       <span className="notranslate">
         FAQ<span className="text-accent font-bold">.</span>
-      </span>
-    );
-  }
-  if (label === "API.") {
-    return (
-      <span className="notranslate">
-        API<span className="text-accent font-bold">.</span>
       </span>
     );
   }
@@ -53,13 +48,26 @@ const announcementColors: Record<string, string> = {
 };
 
 export function SiteHeader({ floating = false }: { floating?: boolean }) {
+  const navigate = useNavigate();
+  const routerState = useRouterState();
+  const isSearchPage = routerState.location.pathname === "/search";
+
   const [uiSettings, setUiSettings] = useState<UiEditSettings>(() => AdminStore.getUiSettings());
   const [activeOffer, setActiveOffer] = useState<PurchasePlanConfig | null>(() => AdminStore.getActiveFestivalOffer());
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleSearchToggle = () => {
+    if (isSearchPage) {
+      window.dispatchEvent(new CustomEvent("close-search-page"));
+    } else {
+      navigate({ to: "/search" });
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -80,14 +88,27 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
     };
     window.addEventListener("mousedown", handleClickOutside);
 
+    const handleGlobalSearchKey = (e: KeyboardEvent) => {
+      const isInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.isContentEditable;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        navigate({ to: "/search" });
+      }
+    };
+    window.addEventListener("keydown", handleGlobalSearchKey);
+
     return () => {
       window.removeEventListener(REALTIME_EVENT_NAME, update);
       window.removeEventListener("storage", update);
       window.removeEventListener("focus", update);
       document.removeEventListener("visibilitychange", update);
       window.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleGlobalSearchKey);
     };
-  }, []);
+  }, [navigate]);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -127,9 +148,6 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
     }
     if (l.to === "/download") {
       return AdminStore.isPageEnabled("/download");
-    }
-    if (l.to === "/api") {
-      return AdminStore.isPageEnabled("/api");
     }
     return AdminStore.isPageEnabled(l.to);
   });
@@ -206,6 +224,41 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
         </Link>
 
         <div className="relative z-30 flex items-center gap-1.5 sm:gap-2.5 py-4">
+          {/* Quick Global Dedicated Search / Close Trigger Icon Button with Open/Close Morph Animation */}
+          <button
+            type="button"
+            onClick={handleSearchToggle}
+            aria-label={isSearchPage ? "Close search page" : "Search tools, models and guides"}
+            title={isSearchPage ? "Close search page (Esc)" : "Search 130+ tools, models & guides (Ctrl+K)"}
+            className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-300 cursor-pointer group hover:scale-105 active:scale-95 ${
+              isSearchPage
+                ? "border-rose-500/50 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:border-rose-500/70 shadow-xs ring-2 ring-rose-500/20"
+                : "border-border/80 bg-card text-foreground hover:bg-muted hover:border-accent/40 shadow-2xs"
+            }`}
+          >
+            <div className="relative h-4 w-4 flex items-center justify-center overflow-hidden">
+              {/* Search Icon (morphs out when on search page) */}
+              <Search
+                className={`absolute inset-0 h-4 w-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isSearchPage
+                    ? "opacity-0 -rotate-90 scale-50 pointer-events-none"
+                    : "opacity-100 rotate-0 scale-100 text-muted-foreground group-hover:text-accent group-hover:scale-110"
+                }`}
+              />
+              {/* Close (X) Icon (morphs in when on search page) */}
+              <X
+                className={`absolute inset-0 h-4 w-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isSearchPage
+                    ? "opacity-100 rotate-0 scale-100 text-rose-500 group-hover:rotate-90"
+                    : "opacity-0 rotate-90 scale-50 pointer-events-none text-muted-foreground"
+                }`}
+              />
+            </div>
+          </button>
+
+          {/* Real-time Notifications Popover Button */}
+          <NotificationPopover />
+
           {uiSettings.showThemeToggle && (
             <div className="hidden md:flex">
               <ThemeToggle />
@@ -221,9 +274,17 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2 rounded-full border border-border bg-card p-1 sm:pr-3 text-xs font-bold text-foreground hover:bg-muted transition-colors cursor-pointer shadow-2xs"
               >
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background font-black text-xs">
-                  {currentUser.name.charAt(0).toUpperCase()}
-                </div>
+                {getAvatarUrl(currentUser.avatar) ? (
+                  <img
+                    src={getAvatarUrl(currentUser.avatar)!}
+                    alt={currentUser.name}
+                    className="h-7 w-7 rounded-full object-cover ring-1 ring-border shadow-2xs"
+                  />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background font-black text-xs">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <span className="hidden sm:inline max-w-[100px] truncate">{currentUser.name}</span>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:inline" />
               </button>
@@ -236,9 +297,17 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                 >
                   {/* User Profile Header */}
                   <div className="flex items-center gap-3 p-2 border-b border-border/60">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background font-display text-lg font-bold shadow-xs">
-                      {currentUser.name.charAt(0).toUpperCase()}
-                    </div>
+                    {getAvatarUrl(currentUser.avatar) ? (
+                      <img
+                        src={getAvatarUrl(currentUser.avatar)!}
+                        alt={currentUser.name}
+                        className="h-11 w-11 shrink-0 rounded-2xl object-cover ring-2 ring-border shadow-xs"
+                      />
+                    ) : (
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background font-display text-lg font-bold shadow-xs">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-sm text-foreground truncate">{currentUser.name}</p>
                       <p className="font-mono text-[11px] text-muted-foreground truncate">{currentUser.email}</p>
@@ -417,6 +486,19 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
               </button>
             </div>
 
+            {/* Quick search in mobile drawer */}
+            <Link
+              to="/search"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full flex items-center justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Search className="h-4 w-4 text-orange-500" />
+                <span>Search 130+ AI tools...</span>
+              </div>
+              <span className="text-xs font-mono font-bold text-orange-500">⌘K</span>
+            </Link>
+
             {/* Navigation links */}
             <nav className="flex flex-col gap-1">
               {visibleLinks.map((l) =>
@@ -509,6 +591,9 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
         </div>,
         document.body
       )}
+
+      {/* Global Command Palette & Search Dialog */}
+      <GlobalSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </header>
   );
 }

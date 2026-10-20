@@ -73,6 +73,7 @@ function initSchema(db: Database.Database): void {
   try { db.exec("ALTER TABLE users ADD COLUMN phone TEXT;"); } catch {}
   try { db.exec("ALTER TABLE users ADD COLUMN country_code TEXT;"); } catch {}
   try { db.exec("ALTER TABLE users ADD COLUMN country TEXT;"); } catch {}
+  try { db.exec("ALTER TABLE users ADD COLUMN avatar TEXT;"); } catch {}
 
   db.exec(`
 
@@ -317,6 +318,22 @@ function initSchema(db: Database.Database): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_api_idempotency_expires ON api_idempotency(expires_at);
+
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'system',
+      badge TEXT,
+      link TEXT,
+      action_text TEXT,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_notifications_created ON user_notifications(created_at);
   `);
 
   // Migrate existing users table if columns are missing

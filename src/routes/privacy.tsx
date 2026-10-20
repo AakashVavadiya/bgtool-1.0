@@ -13,22 +13,20 @@ import {
   Mail,
   UserCheck,
 } from "lucide-react";
-import { buildPageMeta } from "@/lib/seo";
+import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => {
-    const seo = buildPageMeta({
+  head: () =>
+    buildPageMeta({
       title: "Privacy Notice & Zero-Retention Policy | bg.tools",
       description:
         "Official Privacy Notice for bg.tools. Details on our zero image retention guarantee, ephemeral in-memory processing, no AI model training, data security, and GDPR/DPDP user rights.",
       path: "/privacy",
-    });
-    return {
-      meta: seo.meta,
-      links: seo.links,
-      scripts: seo.scripts,
-    };
-  },
+      jsonLd: buildBreadcrumbsSchema([
+        { name: "Home", path: "/" },
+        { name: "Privacy Policy", path: "/privacy" },
+      ]),
+    }),
   component: PrivacyPage,
 });
 

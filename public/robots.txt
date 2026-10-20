@@ -14,6 +14,10 @@ Allow: /
 User-agent: *
 Allow: /
 Allow: /tools/
+Allow: /news
+Allow: /news/
+Allow: /search
+Allow: /developer
 Allow: /pricing
 Allow: /faq
 Allow: /download

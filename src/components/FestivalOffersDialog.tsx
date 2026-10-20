@@ -106,24 +106,10 @@ export function FestivalOffersDialog({
   };
 
   const handleClaimOffer = () => {
-    setIsClaiming(true);
-    initiateRazorpayCheckout({
-      planName: offer.name,
-      planType: "festival",
-      credits: totalCredits,
-      amountINR: offer.priceINR,
-      currency: currentCurrency,
-      onSuccess: () => {
-        setIsClaiming(false);
-        handleClose();
-      },
-      onError: () => {
-        setIsClaiming(false);
-      },
-      onCancel: () => {
-        setIsClaiming(false);
-      },
-    });
+    handleClose();
+    if (typeof window !== "undefined") {
+      window.location.href = `/cart?plan=${encodeURIComponent(offer.name)}&planType=festival&credits=${totalCredits}&price=${offer.priceINR}`;
+    }
   };
 
   const bannerImg = offer.imageUrl || "/images/festival-offer-banner.jpg";

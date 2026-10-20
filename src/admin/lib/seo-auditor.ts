@@ -1,4 +1,5 @@
 import { tools, type Tool } from "@/lib/tools";
+import { getNewsArticles } from "@/lib/news";
 import {
   AdminStore,
   type SeoPageAudit,
@@ -22,11 +23,46 @@ export const CORE_PAGES: CorePageMeta[] = [
     keywords: ["background remover", "free bg remover", "remove background from image", "ai photo editor", "compress image", "pdf editor free"],
   },
   {
-    url: "/chat",
-    title: "AI Chat & Creative Assistant — Powered by Karudi 1.0 Prime",
-    category: "AI Chat",
-    description: "Chat with multi-modal AI models for instant image editing, code generation, document summarization, and automated workflows.",
-    keywords: ["ai chat", "creative assistant", "chatgpt alternative", "ai image assistant", "karudi ai"],
+    url: "/tools",
+    title: "All 130+ Free Online AI Tools & Creative Utilities | bg.tools",
+    category: "Directory & Suite",
+    description: "Complete catalog of 130+ browser-based AI image processing, document converting, and PDF optimization tools.",
+    keywords: ["all tools", "ai tools directory", "online utilities", "creative image tools"],
+  },
+  {
+    url: "/news",
+    title: "News, Tutorials & Practical Masterclasses for 130+ AI Tools",
+    category: "News & Guides",
+    description: "In-depth step-by-step masterclasses, pro tips, workflow comparisons, and technical tutorials for every creative tool.",
+    keywords: ["ai news", "image editing tutorials", "guides", "how to articles", "tips"],
+  },
+  {
+    url: "/search",
+    title: "Search 130+ AI Tools, Neural Models & Guides | bg.tools",
+    category: "Search Hub",
+    description: "Universal discovery hub across all 130+ AI image processing tools, neural cutout engines, developer REST API documentation, and step-by-step guides.",
+    keywords: ["search tools", "ai directory search", "find tool", "neural models search"],
+  },
+  {
+    url: "/models",
+    title: "AI Neural Models & Engine Specs — Karudi, Ganga, Brahmaputra",
+    category: "AI Engines",
+    description: "Discover our specialized proprietary AI models engineered for hair matting, edge accuracy, and batch performance.",
+    keywords: ["ai models", "neural network specs", "ganga model", "karudi prime"],
+  },
+  {
+    url: "/download",
+    title: "Download Offline Desktop Apps & Extensions (Windows / Mac)",
+    category: "Desktop & Apps",
+    description: "Download high-performance desktop apps for offline batch background removal and photo upscaling with zero cloud upload.",
+    keywords: ["download app", "desktop background remover", "offline photo editor", "windows app", "mac app"],
+  },
+  {
+    url: "/developer",
+    title: "Meet the Developers — Upanishad Team & Story",
+    category: "About & Team",
+    description: "Learn about Upanishad software studio, developer Aakash Vavadiya, and co-owner Piyush Chodvadiya.",
+    keywords: ["upanishad", "developers", "aakash vavadiya", "about us"],
   },
   {
     url: "/pricing",
@@ -34,6 +70,27 @@ export const CORE_PAGES: CorePageMeta[] = [
     category: "Billing & Plans",
     description: "Flexible pay-as-you-go credits and unlimited pro plans with instant high-resolution processing and API access.",
     keywords: ["image tools pricing", "ai background remover credits", "pro plan", "unlimited photo editor"],
+  },
+  {
+    url: "/faq",
+    title: "Frequently Asked Questions (General FAQs) | bg.tools",
+    category: "Support & Help",
+    description: "Answers about privacy guarantees, token expiration, refund policies, and batch processing limits.",
+    keywords: ["faq", "help", "questions", "privacy guarantee", "zero storage"],
+  },
+  {
+    url: "/api",
+    title: "Developer REST API & SDK Integration Documentation",
+    category: "Developer API",
+    description: "High-throughput API endpoints for automated background removal, watermarks, face blur, and conversions.",
+    keywords: ["rest api", "developer docs", "image api", "api keys", "python sdk"],
+  },
+  {
+    url: "/docs/api",
+    title: "Interactive REST API Reference & Code Samples",
+    category: "Developer API",
+    description: "Detailed endpoint parameters, cURL examples, JavaScript & Python code snippets.",
+    keywords: ["api reference", "api endpoints", "curl examples"],
   },
   {
     url: "/contact",
@@ -387,6 +444,17 @@ export function getSeoRoutesCatalog(): Array<{
     });
   }
 
+  // All 130+ In-Depth News & Guide Articles
+  for (const art of getNewsArticles()) {
+    list.push({
+      url: `/news/${art.slug}`,
+      category: "News & Guides",
+      fallbackTitle: art.title,
+      fallbackDesc: art.description,
+      fallbackKeywords: art.keywords,
+    });
+  }
+
   return list;
 }
 
@@ -537,6 +605,10 @@ export function generateRobotsTxt(siteBaseUrl = "https://bg.tools"): string {
 User-agent: *
 Allow: /
 Allow: /tools/
+Allow: /news
+Allow: /news/
+Allow: /search
+Allow: /developer
 Allow: /pricing
 Allow: /faq
 Allow: /models

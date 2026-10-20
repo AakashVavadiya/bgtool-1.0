@@ -138,37 +138,43 @@ export async function getSharedOcrWorker(
   }
 
   workerInitPromise = (async () => {
-    if (activeOcrWorker) {
-      try {
-        await activeOcrWorker.worker.terminate();
-      } catch {}
-      activeOcrWorker = null;
-    }
-
-    const Tesseract = await import("tesseract.js");
-    const worker = await Tesseract.createWorker(ocrLang, 1, {
-      logger: (m: any) => {
-        if (onProgress && m) {
-          const progress = typeof m.progress === "number" ? Math.round(m.progress * 100) : 0;
-          let label = "Processing OCR";
-          if (m.status === "loading tesseract core") label = "Loading OCR core";
-          else if (m.status === "initializing tesseract") label = "Initializing OCR engine";
-          else if (m.status === "loading language traineddata") label = `Loading language model (${ocrLang})`;
-          else if (m.status === "initializing api") label = "Setting up recognition";
-          else if (m.status === "recognizing text") label = `Recognizing text (${progress}%)`;
-          onProgress(label, progress);
-        }
-      },
-    });
-
     try {
-      await worker.setParameters({
-        preserve_interword_spaces: "1",
-      });
-    } catch {}
+      if (activeOcrWorker) {
+        try {
+          await activeOcrWorker.worker.terminate();
+        } catch {}
+        activeOcrWorker = null;
+      }
 
-    activeOcrWorker = { worker, lang: ocrLang };
-    return worker;
+      const Tesseract = await import("tesseract.js");
+      const worker = await Tesseract.createWorker(ocrLang, 1, {
+        logger: (m: any) => {
+          if (onProgress && m) {
+            const progress = typeof m.progress === "number" ? Math.round(m.progress * 100) : 0;
+            let label = "Processing OCR";
+            if (m.status === "loading tesseract core") label = "Loading OCR core";
+            else if (m.status === "initializing tesseract") label = "Initializing OCR engine";
+            else if (m.status === "loading language traineddata") label = `Loading language model (${ocrLang})`;
+            else if (m.status === "initializing api") label = "Setting up recognition";
+            else if (m.status === "recognizing text") label = `Recognizing text (${progress}%)`;
+            onProgress(label, progress);
+          }
+        },
+      });
+
+      try {
+        await worker.setParameters({
+          preserve_interword_spaces: "1",
+        });
+      } catch {}
+
+      activeOcrWorker = { worker, lang: ocrLang };
+      return worker;
+    } catch (workerErr) {
+      workerInitPromise = null;
+      activeOcrWorker = null;
+      throw workerErr;
+    }
   })();
 
   return workerInitPromise;
@@ -200,6 +206,10 @@ export function preprocessCanvasForOcr(
   outCanvas.height = targetH;
   const ctx = outCanvas.getContext("2d");
   if (!ctx) return canvas;
+
+  // Fill solid white background so transparent PNGs and dark text remain high-contrast & legible
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, targetW, targetH);
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
@@ -440,31 +450,46 @@ export const performAdvancedOcr = async (
 
   try {
     const worker = await getSharedOcrWorker(ocrLang, options.onProgress);
-    const result = await worker.recognize(workCanvas, {}, { tsv: true, blocks: true });
+    // Explicitly include text: true so Tesseract populates result.data.text
+    const result = await worker.recognize(
+      workCanvas,
+      {},
+      { text: true, tsv: true, blocks: true, hocr: false }
+    );
 
     if (result && result.data) {
       const rawText = result.data.text || "";
       const confidence = typeof result.data.confidence === "number" ? result.data.confidence : 0;
-      const rawLines = rawText
+      let rawLines = rawText
         .split("\n")
         .map((l: string) => l.trim())
         .filter((l: string) => l.length > 0);
 
-      // Extract all alphanumeric words
+      // Check lines array if rawText was empty
+      if (rawLines.length === 0 && Array.isArray((result.data as any).lines)) {
+        rawLines = (result.data as any).lines
+          .map((l: any) => (l.text || "").trim())
+          .filter((l: string) => l.length > 0);
+      }
+
+      // Extract words
       const words: string[] = [];
-      rawLines.forEach((l: string) => {
-        l.split(/\s+/).forEach((w: string) => {
-          if (w.trim()) words.push(w.trim());
+      if (Array.isArray((result.data as any).words) && (result.data as any).words.length > 0) {
+        (result.data as any).words.forEach((w: any) => {
+          const t = (w.text || "").trim();
+          if (t) words.push(t);
         });
-      });
+      }
+      if (words.length === 0) {
+        rawLines.forEach((l: string) => {
+          l.split(/\s+/).forEach((w: string) => {
+            if (w.trim()) words.push(w.trim());
+          });
+        });
+      }
 
-      // Filter meaningful linguistic / numeric tokens
-      const validWords = words.filter(
-        (w) => /[\p{L}\p{N}]{2,}/u.test(w) || /^\d+([.,]\d+)?%?$/.test(w)
-      );
-
-      // Anti-hallucination guard: if image has NO readable text, return clean empty state
-      if (validWords.length === 0 || (validWords.length < 2 && confidence < 35)) {
+      // If genuine empty (no lines and no words), return clean empty state
+      if (rawLines.length === 0 && words.length === 0) {
         return {
           textLines: [],
           rawWords: [],

@@ -26,19 +26,49 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/api/")({
-  head: () => ({
-    meta: [
-      { title: "Public REST API for Background Removal & Image AI | bg.tools" },
-      {
-        name: "description",
-        content:
-          "Integrate ultra-fast AI background removal, watermark erasing, face blur, and image optimization into your apps with the bg.tools developer REST API.",
+  head: () => {
+    const apiSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebAPI",
+      name: "bg.tools Developer REST API",
+      description: "High-throughput REST API for automated AI background removal, watermark removal, and image processing.",
+      documentation: `${SITE_URL}/docs/api`,
+      provider: {
+        "@type": "Organization",
+        name: "bg.tools",
+        url: SITE_URL,
       },
-      { name: "keywords", content: "background removal api, remove bg api, image processing api, watermark remover api, face blur api" },
-    ],
-  }),
+    };
+
+    const breadcrumbsSchema = buildBreadcrumbsSchema([
+      { name: "Home", path: "/" },
+      { name: "Developer API", path: "/api" },
+    ]);
+
+    const seo = buildPageMeta({
+      title: "Developer REST API for AI Background Removal & Image Processing | bg.tools",
+      description: "Integrate ultra-fast AI background removal, watermark erasing, face blur, and image optimization into your apps with the bg.tools developer REST API. 99.9% uptime SLA.",
+      path: "/api",
+      keywords: [
+        "background removal api",
+        "remove bg api",
+        "image processing rest api",
+        "watermark remover api",
+        "face blur api",
+        "curl python javascript image api",
+      ],
+      jsonLd: [apiSchema, breadcrumbsSchema],
+    });
+
+    return {
+      meta: seo.meta,
+      links: seo.links,
+      scripts: seo.scripts,
+    };
+  },
   component: ApiMarketingPage,
 });
 

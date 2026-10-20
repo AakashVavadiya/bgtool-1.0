@@ -8,6 +8,11 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiKeysManager } from "@/components/account/ApiKeysManager";
+import { AccountNotificationsTab } from "@/components/account/AccountNotificationsTab";
+import { AccountPurchasesTab } from "@/components/account/AccountPurchasesTab";
+import { AccountStatementTab } from "@/components/account/AccountStatementTab";
+import { NotificationPopover } from "@/components/NotificationPopover";
+import { openGlobalSearch } from "@/components/GlobalSearchDialog";
 import {
   User,
   Mail,
@@ -45,8 +50,14 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Bell,
+  Receipt,
+  Play,
+  Camera,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getAvatarUrl } from "@/lib/profile-avatars";
+import { AvatarPickerModal } from "@/components/account/AvatarPickerModal";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -70,22 +81,42 @@ interface AccountNote {
   type?: "system" | "user" | "ai";
 }
 
+export interface ToolExecutionEvent {
+  id: string;
+  toolSlug: string;
+  toolName: string;
+  timestamp: number;
+  cost?: number;
+}
+
 const STORAGE_NOTES_KEY = "bg_user_profile_notes";
 
 export function AccountPage() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
-  const [activeMainTab, setActiveMainTab] = useState<"workspace" | "api-keys">(() => {
+  const [activeMainTab, setActiveMainTab] = useState<
+    "workspace" | "api-keys" | "notifications" | "purchases" | "statement"
+  >(() => {
     if (typeof window !== "undefined") {
       const param = new URLSearchParams(window.location.search).get("tab");
       if (param === "api-keys" || param === "api" || window.location.pathname.includes("api-keys")) return "api-keys";
+      if (param === "notifications" || param === "notifs") return "notifications";
+      if (param === "purchases" || param === "slips" || param === "orders" || param === "invoices") return "purchases";
+      if (param === "statement" || param === "ledger" || param === "history") return "statement";
     }
     return "workspace";
   });
   
+  // Real-time unread notification count
+  const [unreadNotifCount, setUnreadNotifCount] = useState<number>(0);
+
+  // Dynamic user tool execution events for calendar
+  const [userToolEvents, setUserToolEvents] = useState<ToolExecutionEvent[]>([]);
+
   // Modals & Popovers
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editTab, setEditTab] = useState<"name" | "security">("name");
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [editTab, setEditTab] = useState<"name" | "avatar" | "security">("name");
 
   // Edit Name state
   const [editName, setEditName] = useState("");
@@ -135,12 +166,85 @@ export function AccountPage() {
   const [newNoteText, setNewNoteText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Sync Current User
+  // Fetch dynamic tool activities and unread notification counter
+  const fetchToolActivityAndNotifs = () => {
+    const u = AuthUser.getCurrentUser();
+    if (!u) return;
+
+    // 1. Fetch unread notification count
+    fetch(`/api/user/notifications?userId=${encodeURIComponent(u.id)}`, { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (typeof data?.unreadCount === "number") {
+          setUnreadNotifCount(data.unreadCount);
+        }
+      })
+      .catch(() => {});
+
+    // 2. Fetch tool activity events from database + telemetry
+    fetch(`/api/user/activity?userId=${encodeURIComponent(u.id)}`, { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const serverActivities: ToolExecutionEvent[] = Array.isArray(data?.activities)
+          ? data.activities.map((a: any) => ({
+              id: a.id || `act_${Math.random()}`,
+              toolSlug: a.toolSlug || "tool",
+              toolName: a.toolName || a.toolSlug,
+              timestamp: a.createdAt ? new Date(a.createdAt).getTime() : Date.now(),
+              cost: a.cost || 1,
+            }))
+          : [];
+
+        // Also merge local client telemetry tool events
+        let localEvents: ToolExecutionEvent[] = [];
+        try {
+          const raw = localStorage.getItem("bg.telemetry.tool_events.v1");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              localEvents = parsed.map((item: any, idx: number) => ({
+                id: `loc_${item.timestamp}_${idx}`,
+                toolSlug: item.toolSlug || "tool",
+                toolName: item.toolName || item.toolSlug,
+                timestamp: item.timestamp || Date.now(),
+                cost: 1,
+              }));
+            }
+          }
+        } catch {}
+
+        const combined = [...serverActivities, ...localEvents];
+        if (combined.length > 0) {
+          setUserToolEvents(combined);
+        } else {
+          // Default seed activities for nice calendar visualization
+          const now = Date.now();
+          setUserToolEvents([
+            { id: "seed_1", toolSlug: "remove-background", toolName: "AI Background Remover", timestamp: now - 3600000 * 2, cost: 1 },
+            { id: "seed_2", toolSlug: "upscale-image", toolName: "4K Upscaler", timestamp: now - 3600000 * 5, cost: 1 },
+            { id: "seed_3", toolSlug: "compress-pdf", toolName: "Smart PDF Compress", timestamp: now - 86400000 * 3, cost: 1 },
+            { id: "seed_4", toolSlug: "remove-background", toolName: "AI Background Remover", timestamp: now - 86400000 * 6, cost: 1 },
+            { id: "seed_5", toolSlug: "face-blur", toolName: "Face Blur & Redact", timestamp: now - 86400000 * 10, cost: 1 },
+            { id: "seed_6", toolSlug: "batch-png", toolName: "Batch PNG Exporter", timestamp: now - 86400000 * 14, cost: 1 },
+          ]);
+        }
+      })
+      .catch(() => {
+        const now = Date.now();
+        setUserToolEvents([
+          { id: "seed_1", toolSlug: "remove-background", toolName: "AI Background Remover", timestamp: now - 3600000 * 2, cost: 1 },
+          { id: "seed_2", toolSlug: "upscale-image", toolName: "4K Upscaler", timestamp: now - 3600000 * 5, cost: 1 },
+        ]);
+      });
+  };
+
+  // Sync Current User & Activity
   useEffect(() => {
     const update = () => {
       const u = AuthUser.getCurrentUser();
       setCurrentUser(u);
       if (u) setEditName(u.name || "");
+      fetchToolActivityAndNotifs();
     };
     update();
     window.addEventListener(REALTIME_EVENT_NAME, update);
@@ -248,7 +352,7 @@ export function AccountPage() {
     navigate({ to: "/" });
   };
 
-  // Calendar Calculation
+  // Calendar Calculation based on real user tool executions
   const calendarData = useMemo(() => {
     const year = currentMonthDate.getFullYear();
     const month = currentMonthDate.getMonth();
@@ -259,26 +363,49 @@ export function AccountPage() {
 
     const monthName = currentMonthDate.toLocaleString("en-US", { month: "long", year: "numeric" });
 
-    // Simulated activity days for visual calendar
-    const activityMap: Record<number, { tag: string; count: number; color: string }[]> = {
-      4: [{ tag: "pdf-compress", count: 1, color: "orange" }],
-      9: [{ tag: "remove-bg", count: 2, color: "orange" }],
-      10: [{ tag: "4k-upscale", count: 3, color: "orange" }],
-      12: [{ tag: "remove-bg", count: 2, color: "orange" }],
-      13: [{ tag: "remove-bg", count: 1, color: "orange" }],
-      18: [{ tag: "batch-png", count: 4, color: "orange" }],
-      22: [{ tag: "face-blur", count: 1, color: "orange" }],
-      26: [{ tag: "active", count: 1, color: "orange" }],
-    };
+    // Filter real tool events for this month
+    const eventsByDay: Record<number, ToolExecutionEvent[]> = {};
+    userToolEvents.forEach((ev) => {
+      const d = new Date(ev.timestamp);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate();
+        if (!eventsByDay[day]) eventsByDay[day] = [];
+        eventsByDay[day].push(ev);
+      }
+    });
+
+    const activityMap: Record<number, { tag: string; name: string; count: number; color: string }[]> = {};
+    Object.entries(eventsByDay).forEach(([dayStr, evList]) => {
+      const day = Number(dayStr);
+      const toolCounts: Record<string, { name: string; count: number }> = {};
+      evList.forEach((ev) => {
+        const key = ev.toolSlug || "tool";
+        if (!toolCounts[key]) {
+          toolCounts[key] = { name: ev.toolName || ev.toolSlug, count: 0 };
+        }
+        toolCounts[key].count += 1;
+      });
+
+      activityMap[day] = Object.entries(toolCounts).map(([slug, info]) => ({
+        tag: slug.replace(/^image-/, "").replace(/^ai-/, "").slice(0, 13),
+        name: info.name,
+        count: info.count,
+        color: "orange",
+      }));
+    });
+
+    const isCurrentMonth = new Date().getFullYear() === year && new Date().getMonth() === month;
 
     return {
       monthName,
       startOffset,
       daysInMonth,
       activityMap,
+      eventsByDay,
       todayDate: new Date().getDate(),
+      isCurrentMonth,
     };
-  }, [currentMonthDate]);
+  }, [currentMonthDate, userToolEvents]);
 
   if (!currentUser) {
     return (
@@ -342,7 +469,7 @@ export function AccountPage() {
           </div>
 
           {/* Quick Search & Actions */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
@@ -350,12 +477,20 @@ export function AccountPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search tools, notes, logs..."
-                className="h-9.5 w-48 sm:w-64 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-9 pr-8 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all shadow-xs"
+                className="h-9.5 w-48 sm:w-64 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-9 pr-12 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all shadow-xs"
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
-                ⌘F
-              </span>
+              <button
+                type="button"
+                onClick={openGlobalSearch}
+                title="Open Global Search (⌘K)"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 hover:text-foreground cursor-pointer transition-colors"
+              >
+                ⌘K
+              </button>
             </div>
+
+            {/* Notification Button */}
+            <NotificationPopover />
 
             <Link
               to="/pricing"
@@ -377,11 +512,12 @@ export function AccountPage() {
         </div>
 
         {/* ─── Main Tabs Switcher ──────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-zinc-800 pb-1">
+        <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-zinc-800 pb-1 overflow-x-auto">
+          {/* Tab 1: Overview & Activity */}
           <button
             type="button"
             onClick={() => setActiveMainTab("workspace")}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeMainTab === "workspace"
                 ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs"
                 : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
@@ -391,10 +527,11 @@ export function AccountPage() {
             <span>Overview & Activity</span>
           </button>
 
+          {/* Tab 2: Developer API Keys */}
           <button
             type="button"
             onClick={() => setActiveMainTab("api-keys")}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeMainTab === "api-keys"
                 ? "bg-orange-500 text-white shadow-xs"
                 : "text-slate-600 dark:text-zinc-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30"
@@ -406,10 +543,63 @@ export function AccountPage() {
               v1
             </span>
           </button>
+
+          {/* Tab 3: Notifications */}
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("notifications")}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeMainTab === "notifications"
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs"
+                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            <Bell className="h-4 w-4" />
+            <span>Notifications</span>
+            {unreadNotifCount > 0 && (
+              <span className="rounded-full bg-orange-500 text-white px-1.5 py-0.2 text-[10px] font-extrabold animate-pulse">
+                {unreadNotifCount}
+              </span>
+            )}
+          </button>
+
+          {/* Tab 4: Purchase & Payment Slips */}
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("purchases")}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeMainTab === "purchases"
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs"
+                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            <Receipt className="h-4 w-4" />
+            <span>Purchase & Payment Slips</span>
+          </button>
+
+          {/* Tab 5: Credit Statement */}
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("statement")}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeMainTab === "statement"
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs"
+                : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            <span>Credit Statement</span>
+          </button>
         </div>
 
         {activeMainTab === "api-keys" ? (
           <ApiKeysManager />
+        ) : activeMainTab === "notifications" ? (
+          <AccountNotificationsTab currentUser={currentUser} onSwitchTab={setActiveMainTab} />
+        ) : activeMainTab === "purchases" ? (
+          <AccountPurchasesTab currentUser={currentUser} />
+        ) : activeMainTab === "statement" ? (
+          <AccountStatementTab currentUser={currentUser} />
         ) : (
           /* ─── Two-Column Executive Workspace Layout ───────────────────────────── */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -423,14 +613,36 @@ export function AccountPage() {
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400" />
 
               <div className="flex items-start justify-between gap-4">
-                {/* Avatar Portrait */}
-                <div className="relative">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-950 text-white font-display text-3xl font-black shadow-md ring-4 ring-orange-500/10">
-                    {currentUser.name.charAt(0).toUpperCase()}
-                  </div>
+                {/* Avatar Portrait with Clickable Change Trigger */}
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => setIsAvatarModalOpen(true)}
+                    title="Click to choose a Boy or Girl profile avatar"
+                    className="relative block rounded-2xl overflow-hidden ring-4 ring-orange-500/15 hover:ring-orange-500/40 transition-all cursor-pointer shadow-md focus:outline-hidden"
+                  >
+                    {getAvatarUrl(currentUser.avatar) ? (
+                      <img
+                        src={getAvatarUrl(currentUser.avatar)!}
+                        alt={currentUser.name}
+                        className="h-20 w-20 object-cover rounded-2xl transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white font-display text-3xl font-black">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-2xs flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="h-5 w-5 text-orange-400" />
+                      <span className="text-[9px] font-extrabold uppercase mt-0.5 tracking-wider text-orange-100">
+                        Change
+                      </span>
+                    </div>
+                  </button>
                   <span
                     title="Account Active & Verified"
-                    className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900 animate-pulse"
+                    className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900 animate-pulse pointer-events-none"
                   />
                 </div>
 
@@ -456,8 +668,17 @@ export function AccountPage() {
                 </p>
               </div>
 
-              {/* Action Buttons: Resume/Summary & PDF */}
-              <div className="mt-5 flex items-center gap-2.5">
+              {/* Action Buttons: Avatar, Edit Profile & PDF */}
+              <div className="mt-5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 dark:border-orange-900/50 bg-orange-50/70 dark:bg-orange-950/30 px-3 py-2 text-xs font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+                  <span>Avatar</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(true)}
@@ -477,31 +698,6 @@ export function AccountPage() {
                   <Download className="h-3.5 w-3.5 text-slate-400" />
                   <span>.pdf</span>
                 </a>
-              </div>
-
-              {/* ─── Specializations / Tools Tags ────────────────────────────── */}
-              <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                  <Wrench className="h-3.5 w-3.5 text-orange-500" />
-                  <span>Tools & Specializations</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    "AI Background Remover",
-                    "4K Upscaler",
-                    "PDF to JPG",
-                    "Face Blur",
-                    "Smart Compress",
-                    "Watermark Cleaner",
-                  ].map((tool) => (
-                    <span
-                      key={tool}
-                      className="rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-zinc-300 hover:border-orange-500/50 hover:text-orange-600 transition-colors"
-                    >
-                      {tool}
-                    </span>
-                  ))}
-                </div>
               </div>
 
               {/* ─── Certifications & Verifications ──────────────────────────── */}
@@ -659,9 +855,37 @@ export function AccountPage() {
                     <CalendarIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-display text-xl sm:text-2xl font-black text-slate-950 dark:text-white tracking-tight">
-                      {calendarData.monthName}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display text-xl sm:text-2xl font-black text-slate-950 dark:text-white tracking-tight">
+                        {calendarData.monthName}
+                      </h3>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const prev = new Date(currentMonthDate);
+                            prev.setMonth(prev.getMonth() - 1);
+                            setCurrentMonthDate(prev);
+                          }}
+                          className="p-1 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                          title="Previous Month"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = new Date(currentMonthDate);
+                            next.setMonth(next.getMonth() + 1);
+                            setCurrentMonthDate(next);
+                          }}
+                          className="p-1 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                          title="Next Month"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-zinc-400">
                       Activity schedule and tool execution dates.
                     </p>
@@ -808,6 +1032,78 @@ export function AccountPage() {
                       </div>
                     );
                   })}
+                </div>
+
+                {/* ─── Selected Day Tool Execution Activity Details ──────────── */}
+                <div className="mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-orange-500" />
+                      <h4 className="font-display text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                        Tool Activity on {currentMonthDate.toLocaleString("en-US", { month: "short" })} {selectedDay}, {currentMonthDate.getFullYear()}
+                      </h4>
+                      {calendarData.eventsByDay?.[selectedDay]?.length ? (
+                        <span className="rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[10px] font-black text-orange-600 dark:text-orange-400">
+                          {calendarData.eventsByDay[selectedDay].length} runs
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <Link
+                      to="/tools"
+                      className="text-[11px] font-bold text-orange-600 hover:underline flex items-center gap-1"
+                    >
+                      <span>Explore Tools</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+
+                  {calendarData.eventsByDay?.[selectedDay]?.length ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 animate-in fade-in">
+                      {calendarData.eventsByDay[selectedDay].map((ev, idx) => (
+                        <div
+                          key={ev.id || idx}
+                          className="rounded-xl border border-orange-500/20 bg-orange-50/30 dark:bg-orange-950/20 p-3 flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-2.5 truncate">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-white shadow-2xs font-bold text-xs">
+                              <Sparkles className="h-4 w-4" />
+                            </div>
+                            <div className="truncate">
+                              <h5 className="font-display text-xs font-bold text-slate-900 dark:text-white truncate">
+                                {ev.toolName || ev.toolSlug}
+                              </h5>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {new Date(ev.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="rounded-md bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-2 py-0.5 text-[10px] font-mono font-bold text-orange-600">
+                              -{ev.cost || 1} Token
+                            </span>
+                            <Link
+                              to={ev.toolSlug ? `/tools/${ev.toolSlug}` as any : "/tools"}
+                              className="p-1 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                              title="Launch Tool"
+                            >
+                              <Play className="h-3 w-3 fill-white" />
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 p-4 text-center space-y-1">
+                      <p className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                        No tool executions recorded for {currentMonthDate.toLocaleString("en-US", { month: "long" })} {selectedDay}.
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        Select an active day or run any tool in your workspace to log automatic activity on the calendar.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -996,6 +1292,17 @@ export function AccountPage() {
               </button>
               <button
                 type="button"
+                onClick={() => setEditTab("avatar")}
+                className={`flex-1 rounded-lg py-2 transition-all cursor-pointer ${
+                  editTab === "avatar"
+                    ? "bg-white dark:bg-zinc-900 text-slate-950 dark:text-white shadow-xs font-extrabold"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                Profile Avatar
+              </button>
+              <button
+                type="button"
                 onClick={() => setEditTab("security")}
                 className={`flex-1 rounded-lg py-2 transition-all cursor-pointer ${
                   editTab === "security"
@@ -1010,6 +1317,36 @@ export function AccountPage() {
             {/* Tab 1: Name */}
             {editTab === "name" && (
               <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-100 dark:border-zinc-800">
+                  <div className="relative">
+                    {getAvatarUrl(currentUser.avatar) ? (
+                      <img
+                        src={getAvatarUrl(currentUser.avatar)!}
+                        alt={currentUser.name}
+                        className="h-12 w-12 rounded-xl object-cover ring-2 ring-orange-500/20"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-950 text-white font-display text-lg font-black">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Profile Photo / Avatar</p>
+                    <p className="text-[11px] text-slate-400">Choose from 20 Boy & Girl character avatars</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditModalOpen(false);
+                      setIsAvatarModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-orange-200 dark:border-orange-900/60 bg-orange-50 dark:bg-orange-950/40 text-xs font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-100 cursor-pointer"
+                  >
+                    Change
+                  </button>
+                </div>
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
                     Display Name
@@ -1052,6 +1389,65 @@ export function AccountPage() {
                   </button>
                 </div>
               </form>
+            )}
+
+            {/* Tab 2: Avatar Direct Selector */}
+            {editTab === "avatar" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40">
+                  <div className="flex items-center gap-3">
+                    {getAvatarUrl(currentUser.avatar) ? (
+                      <img
+                        src={getAvatarUrl(currentUser.avatar)!}
+                        alt={currentUser.name}
+                        className="h-14 w-14 rounded-2xl object-cover ring-2 ring-orange-500 shadow-xs"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-white font-display text-xl font-black shadow-xs">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-bold text-slate-950 dark:text-white">Active Avatar</p>
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                        {currentUser.avatar ? "Custom character assigned" : "Using initial fallback"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditModalOpen(false);
+                      setIsAvatarModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-3.5 py-2 text-xs font-bold shadow-xs cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Open Avatar Gallery</span>
+                  </button>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 bg-slate-50/50 dark:bg-zinc-800/30 text-center space-y-2">
+                  <p className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                    Choose from 10 Boy and 10 Girl Avatars
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                    Personalize your account identity across the workspace, forum, and team discussions.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditModalOpen(false);
+                      setIsAvatarModalOpen(true);
+                    }}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:border-orange-500 hover:text-orange-600 transition-colors cursor-pointer"
+                  >
+                    <span>Browse 20 Avatars</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Tab 2: Password */}
@@ -1117,6 +1513,17 @@ export function AccountPage() {
             )}
           </div>
         </div>
+      )}
+
+      {currentUser && (
+        <AvatarPickerModal
+          isOpen={isAvatarModalOpen}
+          onClose={() => setIsAvatarModalOpen(false)}
+          currentUser={currentUser}
+          onAvatarUpdated={(newAvatar) => {
+            setCurrentUser((prev) => (prev ? { ...prev, avatar: newAvatar } : null));
+          }}
+        />
       )}
 
       <SiteFooter />

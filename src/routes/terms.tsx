@@ -14,22 +14,20 @@ import {
   Mail,
   ExternalLink,
 } from "lucide-react";
-import { buildPageMeta } from "@/lib/seo";
+import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/terms")({
-  head: () => {
-    const seo = buildPageMeta({
+  head: () =>
+    buildPageMeta({
       title: "Terms of Service | bg.tools",
       description:
         "Official Terms of Service for bg.tools. Details on token usage, Bronze/Silver/Gold credit lifecycle, asset ownership, acceptable use policy, and zero data archiving.",
       path: "/terms",
-    });
-    return {
-      meta: seo.meta,
-      links: seo.links,
-      scripts: seo.scripts,
-    };
-  },
+      jsonLd: buildBreadcrumbsSchema([
+        { name: "Home", path: "/" },
+        { name: "Terms of Service", path: "/terms" },
+      ]),
+    }),
   component: TermsPage,
 });
 

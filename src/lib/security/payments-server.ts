@@ -126,6 +126,10 @@ export async function handleCreatePaymentOrder(
         expectedInrAmount = matched.priceINR;
         expectedCredits = matched.credits + (matched.bonusCredits || 0);
       }
+    } else if (planType === "coffee" || planType === "donation") {
+      // Custom developer coffee donations (Admin awards credit gifts manually via admin panel)
+      expectedInrAmount = numAmount > 0 ? numAmount : 99;
+      expectedCredits = 0;
     } else {
       // Pack matching
       const VALID_PACKS = [

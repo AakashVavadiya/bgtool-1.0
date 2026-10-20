@@ -11,7 +11,7 @@ import { ToolMaintenanceDialog } from "@/components/ToolMaintenanceDialog";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { CheckCircle2, ShieldAlert, Wrench, UploadCloud, Download, Zap, Sliders, Sparkles } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Wrench, UploadCloud, Download, Zap, Sliders, Sparkles, BookOpen, ArrowRight } from "lucide-react";
 import { MandalaDecor, MandalaCorner } from "@/components/decorations/MandalaDecor";
 
 import { ToolLimitReachedDialog } from "@/components/ToolLimitReachedDialog";
@@ -79,7 +79,12 @@ function getStepMeta(step: string, i: number, total: number) {
   return { title, Icon };
 }
 
-import { buildPageMeta } from "@/lib/seo";
+import {
+  buildPageMeta,
+  buildBreadcrumbsSchema,
+  buildFaqSchema,
+  buildHowToSchema,
+} from "@/lib/seo";
 
 export const Route = createFileRoute("/tools/$slug")({
   loader: ({ params }) => {
@@ -95,7 +100,10 @@ export const Route = createFileRoute("/tools/$slug")({
     }
     const tool = getTool(loaderData.slug);
     const seo = tool?.seo;
-    const title = seo?.title ? `${seo.title.slice(0, 48)} | bg.tools` : `${loaderData.name} | bg.tools`;
+    
+    // Preserve rich keyword-targeted title without destructive character slicing
+    const rawTitle = seo?.title || `${loaderData.name} Online Free — Fast, Secure & No Watermark`;
+    const title = rawTitle.includes("bg.tools") ? rawTitle : `${rawTitle} | bg.tools`;
     const description = seo?.description || loaderData.blurb || `Free online ${loaderData.name} tool on bg.tools with zero tracking.`;
 
     const toolSchema = {
@@ -112,18 +120,38 @@ export const Route = createFileRoute("/tools/$slug")({
       description,
     };
 
+    const breadcrumbsSchema = buildBreadcrumbsSchema([
+      { name: "Home", path: "/" },
+      { name: "Tools", path: "/tools" },
+      { name: loaderData.name, path: `/tools/${loaderData.slug}` },
+    ]);
+
+    const faqSchema = seo?.article?.faqs ? buildFaqSchema(seo.article.faqs) : null;
+    const howToSchema = seo?.article?.howTo
+      ? buildHowToSchema({
+          name: loaderData.name,
+          description,
+          steps: seo.article.howTo,
+        })
+      : null;
+
+    const allSchemas = [
+      toolSchema,
+      breadcrumbsSchema,
+      ...(faqSchema ? [faqSchema] : []),
+      ...(howToSchema ? [howToSchema] : []),
+    ];
+
     const pageMeta = buildPageMeta({
       title,
       description,
       path: `/tools/${loaderData.slug}`,
-      jsonLd: toolSchema,
+      keywords: seo?.keywords,
+      jsonLd: allSchemas,
     });
 
     return {
-      meta: [
-        ...pageMeta.meta,
-        ...(seo?.keywords ? [{ name: "keywords", content: seo.keywords.join(", ") }] : []),
-      ],
+      meta: pageMeta.meta,
       links: pageMeta.links,
       scripts: pageMeta.scripts,
     };
@@ -581,6 +609,30 @@ function ToolPage() {
                     </span>
                   ))}
                 </div>
+              </div>
+
+              {/* Comprehensive Guide & Masterclass Callout */}
+              <div className="mt-10 rounded-2xl border border-accent/30 bg-accent/5 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-xs">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-accent uppercase tracking-wider">
+                    <BookOpen className="h-4 w-4" />
+                    <span>In-Depth Masterclass Guide</span>
+                  </div>
+                  <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
+                    Want to master {tool.name}?
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
+                    Read our complete 4,000+ word masterclass guide with step-by-step pro tips, common workflows, and expert recommendations.
+                  </p>
+                </div>
+                <Link
+                  to="/news/$slug"
+                  params={{ slug: tool.slug }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-xs font-bold text-background transition-all hover:bg-foreground/90 shrink-0 shadow-md group"
+                >
+                  <span>Read Full Article</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
               </div>
             </div>
           </article>

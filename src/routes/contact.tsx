@@ -17,9 +17,12 @@ import {
   Zap,
   Bug,
   X,
+  Sparkles,
+  Briefcase,
+  ShieldCheck,
+  MoreHorizontal,
 } from "lucide-react";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { buildPageMeta } from "@/lib/seo";
 
 interface ContactTopic {
   id: string;
@@ -58,21 +61,66 @@ const CONTACT_TOPICS: ContactTopic[] = [
     icon: Bug,
     badge: "Technical",
   },
+  {
+    id: "Feature Request",
+    label: "Feature Request & Suggestions",
+    desc: "Propose new AI tools, export formats, or workflow improvements",
+    icon: Sparkles,
+    badge: "Ideas",
+  },
+  {
+    id: "Partnership & Business",
+    label: "Partnership & Collaborations",
+    desc: "Affiliate programs, creator sponsorships, or enterprise integration",
+    icon: Briefcase,
+    badge: "Business",
+  },
+  {
+    id: "Account & Security",
+    label: "Account, Security & Privacy",
+    desc: "Data deletion requests, privacy inquiries, or security reports",
+    icon: ShieldCheck,
+    badge: "Security",
+  },
+  {
+    id: "Other",
+    label: "Other Inquiries & Custom Requests",
+    desc: "Questions, press inquiries, or feedback not covered above",
+    icon: MoreHorizontal,
+    badge: "Other",
+  },
 ];
 
+import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
+
 export const Route = createFileRoute("/contact")({
-  head: () => {
-    const seo = buildPageMeta({
-      title: "Contact Us & Support | bg.tools",
-      description: "Contact the bg.tools team for API integration, enterprise high-volume processing, billing inquiries, and technical support.",
+  head: () =>
+    buildPageMeta({
+      title: "Contact Us & Support — Enterprise, API & Customer Help | bg.tools",
+      description:
+        "Contact the bg.tools team for high-volume enterprise API keys, billing inquiries, technical support, bug reports, and partnership inquiries.",
       path: "/contact",
-    });
-    return {
-      meta: seo.meta,
-      links: seo.links,
-      scripts: seo.scripts,
-    };
-  },
+      keywords: [
+        "contact bg.tools",
+        "bg tools support",
+        "api sales contact",
+        "enterprise background remover",
+        "customer help desk",
+      ],
+      jsonLd: [
+        buildBreadcrumbsSchema([
+          { name: "Home", path: "/" },
+          { name: "Contact & Support", path: "/contact" },
+        ]),
+        {
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          name: "Contact bg.tools Support & Sales",
+          url: `${SITE_URL}/contact`,
+          description: "Reach our customer engineering and enterprise sales support team.",
+        },
+      ],
+    }),
   component: ContactPage,
 });
 
@@ -80,6 +128,7 @@ function ContactPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("General Support");
+  const [customSubject, setCustomSubject] = useState("");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isTopicOpen, setIsTopicOpen] = useState(false);
@@ -130,13 +179,18 @@ function ContactPage() {
       toast.error("Please complete all required fields.");
       return;
     }
+
+    const finalSubject =
+      subject === "Other" && customSubject.trim()
+        ? `Other: ${customSubject.trim()}`
+        : subject;
     
     // Save to server persistence
     try {
       await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, subject, message }),
+        body: JSON.stringify({ name, email, subject: finalSubject, message }),
       });
     } catch (err) {
       console.warn("Failed to post to /api/contact directly:", err);
@@ -144,11 +198,11 @@ function ContactPage() {
 
     // Save to Admin Support Desk Inbox
     import("@/admin/lib/admin-store").then(({ AdminStore }) => {
-      AdminStore.addContactInquiry(name, email, subject, message);
+      AdminStore.addContactInquiry(name, email, finalSubject, message);
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent(REALTIME_EVENT_NAME, {
-            detail: { type: "contact_submission", name, email, subject },
+            detail: { type: "contact_submission", name, email, subject: finalSubject },
           })
         );
       }
@@ -163,16 +217,16 @@ function ContactPage() {
       <div>
         <SiteHeader />
 
-        <main className="mx-auto max-w-6xl px-6 py-16 md:px-12 md:py-24">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-6">
+        <main className="w-full px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 2xl:px-20 py-10 md:py-16">
+          <nav className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-8">
             <Link to="/" className="hover:underline">Home</Link>
             <span>/</span>
             <span className="text-foreground">Contact Us</span>
-          </div>
+          </nav>
 
-          <div className="grid gap-12 lg:grid-cols-2 items-start">
+          <div className="grid gap-8 lg:gap-12 xl:gap-16 lg:grid-cols-12 items-start w-full">
             {/* Left Contact Info */}
-            <div>
+            <div className="lg:col-span-5 xl:col-span-5 w-full">
               <h1 className="font-display text-4xl font-extrabold sm:text-5xl md:text-6xl tracking-tight">
                 Get in Touch with Team bg.tools<span className="text-accent">.</span>
               </h1>
@@ -216,7 +270,7 @@ function ContactPage() {
             </div>
 
             {/* Right Contact Form */}
-            <div className="rounded-3xl border-2 border-border bg-card p-8 md:p-10 shadow-xl">
+            <div className="lg:col-span-7 xl:col-span-7 rounded-3xl border-2 border-border bg-card p-6 sm:p-8 md:p-10 shadow-xl w-full">
               {submitted ? (
                 <div className="py-12 text-center rise-in">
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-500 shadow-md">
@@ -302,7 +356,7 @@ function ContactPage() {
                       <div
                         role="listbox"
                         aria-label="Select Inquiry Topic"
-                        className="fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-5 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh] pb-8 sm:fixed-none sm:absolute sm:inset-auto sm:top-full sm:mt-2 sm:left-0 sm:right-0 sm:z-50 sm:w-full sm:rounded-2xl sm:border sm:border-border/80 sm:p-2 sm:pb-2 sm:max-h-[380px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 overflow-hidden"
+                        className="fixed inset-x-0 bottom-0 z-[99999] w-full rounded-t-[32px] border-t border-border bg-card/98 p-5 text-foreground shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh] pb-8 sm:fixed-none sm:absolute sm:inset-auto sm:top-full sm:mt-2 sm:left-0 sm:right-0 sm:z-50 sm:w-full sm:rounded-2xl sm:border sm:border-border/80 sm:p-2 sm:pb-2 sm:max-h-[440px] sm:animate-in sm:fade-in sm:zoom-in-95 sm:duration-150 overflow-hidden"
                       >
                         {/* Mobile Pull Handle */}
                         <div className="pt-0.5 pb-3 sm:hidden flex justify-center shrink-0">
@@ -335,7 +389,7 @@ function ContactPage() {
                         </div>
 
                         {/* Options List */}
-                        <div className="space-y-1.5 pt-2 sm:pt-0 overflow-y-auto max-h-[60vh] sm:max-h-none">
+                        <div className="space-y-1.5 pt-2 sm:pt-0 overflow-y-auto max-h-[60vh] sm:max-h-[390px] sm:pr-1">
                           {CONTACT_TOPICS.map((topic) => {
                             const isSelected = subject === topic.id;
                             const Icon = topic.icon;
@@ -394,6 +448,21 @@ function ContactPage() {
                       </div>
                     )}
                   </div>
+
+                  {subject === "Other" && (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+                        Specify Subject / Topic <span className="text-muted-foreground/60 font-normal normal-case">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customSubject}
+                        onChange={(e) => setCustomSubject(e.target.value)}
+                        placeholder="e.g. Press & Media, Suggestion, Collaboration..."
+                        className="w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-sm font-semibold text-foreground focus:border-foreground focus:outline-none"
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">Message</label>

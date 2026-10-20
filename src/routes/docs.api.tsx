@@ -24,17 +24,43 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
+
 export const Route = createFileRoute("/docs/api")({
-  head: () => ({
-    meta: [
-      { title: "API Reference & Developer Documentation | bg.tools" },
-      {
-        name: "description",
-        content:
-          "Comprehensive API reference and documentation for bg.tools public REST API. Endpoints, code examples, schemas, error codes, and authentication.",
-      },
-    ],
-  }),
+  head: () =>
+    buildPageMeta({
+      title: "API Reference & Developer Documentation — bg.tools Public REST API",
+      description:
+        "Comprehensive API documentation for bg.tools public REST API. Endpoints, cURL/Python/Node.js code examples, JSON schemas, error codes, and API key authentication.",
+      path: "/docs/api",
+      keywords: [
+        "bg.tools api",
+        "background removal api",
+        "image processing api",
+        "rest api documentation",
+        "ai photo api",
+        "image upscaler api",
+      ],
+      jsonLd: [
+        buildBreadcrumbsSchema([
+          { name: "Home", path: "/" },
+          { name: "API", path: "/api" },
+          { name: "Documentation", path: "/docs/api" },
+        ]),
+        {
+          "@context": "https://schema.org",
+          "@type": "TechArticle",
+          headline: "bg.tools Public REST API Documentation & Reference",
+          description:
+            "Complete reference for authenticating, removing image backgrounds, upscaling images, and batch processing via the bg.tools REST API.",
+          url: "https://bg.tools/docs/api",
+          author: {
+            "@type": "Organization",
+            name: "bg.tools",
+          },
+        },
+      ],
+    }),
   component: ApiDocsPage,
 });
 

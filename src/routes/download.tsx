@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { buildPageMeta } from "@/lib/seo";
 import { toast } from "sonner";
 import {
   Monitor,
@@ -25,6 +24,8 @@ import {
   Layers,
 } from "lucide-react";
 
+import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
+
 export const Route = createFileRoute("/download")({
   head: () => {
     const softwareSchema = {
@@ -40,19 +41,26 @@ export const Route = createFileRoute("/download")({
       },
     };
 
-    const seo = buildPageMeta({
-      title: "Apps & Chrome Extension (Coming Soon) | bg.tools",
+    return buildPageMeta({
+      title: "Download Desktop & Mobile Apps, Chrome Extension — bg.tools",
       description:
-        "Official bg.tools apps for Windows, macOS, Linux, Android, iOS, and Google Chrome Extension. Powered by online AI models with real-time cloud sync. Coming soon!",
+        "Official bg.tools applications for Windows, macOS, Linux, Android, iOS, and Google Chrome Extension. Powered by neural AI models with real-time cloud sync.",
       path: "/download",
-      jsonLd: softwareSchema,
+      keywords: [
+        "bg.tools app",
+        "background remover app",
+        "chrome extension background remover",
+        "download bg tools",
+        "ai image editor desktop app",
+      ],
+      jsonLd: [
+        buildBreadcrumbsSchema([
+          { name: "Home", path: "/" },
+          { name: "Download", path: "/download" },
+        ]),
+        softwareSchema,
+      ],
     });
-
-    return {
-      meta: seo.meta,
-      links: seo.links,
-      scripts: seo.scripts,
-    };
   },
   component: DownloadPage,
 });

@@ -17,11 +17,13 @@ import { OlderReportsView } from "@/admin/views/OlderReportsView";
 import { ProSettingsView } from "@/admin/views/ProSettingsView";
 import { ToolGearView } from "@/admin/views/ToolGearView";
 import { ApiManagementView } from "@/admin/views/ApiManagementView";
+import { CoffeeSupportersView } from "@/admin/views/CoffeeSupportersView";
 import { AdminStore } from "@/admin/lib/admin-store";
 import {
   Activity,
   Users,
   CreditCard,
+  Coffee,
   Wrench,
   AlertTriangle,
   Inbox,
@@ -46,6 +48,7 @@ export type AdminTab =
   | "overview"
   | "users"
   | "purchases"
+  | "coffee"
   | "tool-gear"
   | "tools"
   | "pro-settings"
@@ -63,6 +66,7 @@ const VALID_TABS: AdminTab[] = [
   "overview",
   "users",
   "purchases",
+  "coffee",
   "tool-gear",
   "tools",
   "pro-settings",
@@ -106,6 +110,7 @@ const navTabs = [
   { id: "overview" as const, label: "Traffic & Overview", icon: Activity },
   { id: "users" as const, label: "Logged Users & Credits", icon: Users },
   { id: "purchases" as const, label: "Purchases & Plans", icon: CreditCard },
+  { id: "coffee" as const, label: "Coffee Supporters & Gifts", icon: Coffee },
   { id: "tool-gear" as const, label: "Tool Gear", icon: Cog },
   { id: "tools" as const, label: "Tools Limits & Toggles", icon: Wrench },
   { id: "pro-settings" as const, label: "Pro Settings & Page Tree", icon: Sliders },
@@ -312,6 +317,7 @@ export function AdminLayout() {
           {activeTab === "overview" && <DashboardOverview />}
           {activeTab === "users" && <UsersManagement />}
           {activeTab === "purchases" && <PurchasesView />}
+          {activeTab === "coffee" && <CoffeeSupportersView />}
           {activeTab === "tool-gear" && <ToolGearView />}
           {activeTab === "tools" && <ToolsConfigView />}
           {activeTab === "pro-settings" && <ProSettingsView />}

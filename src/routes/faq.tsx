@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Faq, faqs, type FaqItem } from "@/components/Faq";
-import { buildPageMeta, SITE_URL } from "@/lib/seo";
+import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/faq")({
   head: () => {
@@ -19,18 +19,26 @@ export const Route = createFileRoute("/faq")({
       })),
     };
 
-    const seo = buildPageMeta({
-      title: "FAQ & Help Center | bg.tools",
-      description: "Find answers about free daily credits, background removal models, file formats, and privacy guarantees on bg.tools.",
+    return buildPageMeta({
+      title: "FAQ & Help Center — Answers to Background Removal & Credit Questions | bg.tools",
+      description:
+        "Find answers about free daily credits, background removal models, high-resolution downloads, file formats, and zero-retention privacy guarantees on bg.tools.",
       path: "/faq",
-      jsonLd: faqSchema,
+      keywords: [
+        "bg.tools faq",
+        "free background remover questions",
+        "ai model differences",
+        "bg tools credit system",
+        "is bg tools safe",
+      ],
+      jsonLd: [
+        buildBreadcrumbsSchema([
+          { name: "Home", path: "/" },
+          { name: "FAQ", path: "/faq" },
+        ]),
+        faqSchema,
+      ],
     });
-
-    return {
-      meta: seo.meta,
-      links: seo.links,
-      scripts: seo.scripts,
-    };
   },
   component: FaqPage,
 });

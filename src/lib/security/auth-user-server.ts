@@ -749,13 +749,26 @@ export async function handleUpdateProfile(request: Request): Promise<Response> {
 
   try {
     const body = (await request.json()) as any;
-    const name = String(body.name || "").trim();
+    const hasName = body.name !== undefined;
+    const hasAvatar = body.avatar !== undefined;
 
-    if (!name || name.length < 2) {
-      return applySecurityHeaders(createSafeErrorResponse(400, "Please provide a valid name."));
+    if (!hasName && !hasAvatar) {
+      return applySecurityHeaders(createSafeErrorResponse(400, "Please provide profile details to update."));
     }
 
-    usersRepo.updateName(auth.user.id, name);
+    if (hasName) {
+      const name = String(body.name || "").trim();
+      if (!name || name.length < 2) {
+        return applySecurityHeaders(createSafeErrorResponse(400, "Please provide a valid name (at least 2 characters)."));
+      }
+      usersRepo.updateName(auth.user.id, name);
+    }
+
+    if (hasAvatar) {
+      const avatar = body.avatar ? String(body.avatar).trim() : null;
+      usersRepo.updateAvatar(auth.user.id, avatar);
+    }
+
     const updated = usersRepo.findById(auth.user.id);
 
     return applySecurityHeaders(

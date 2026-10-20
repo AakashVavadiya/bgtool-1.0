@@ -834,3 +834,66 @@ font[class*="goog-text-highlight"] {
   user-select: none !important;
 }
 
+/* Lazy expand animation opening from search icon into page */
+@keyframes searchLazyExpandFromIcon {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(-24px);
+    filter: blur(10px);
+  }
+  50% {
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+  }
+}
+
+.animate-search-lazy-expand {
+  animation: searchLazyExpandFromIcon 0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: 82% 0%;
+}
+
+@keyframes searchLazyCollapseToIcon {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+    filter: blur(8px);
+  }
+}
+
+.animate-search-lazy-collapse {
+  animation: searchLazyCollapseToIcon 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+  transform-origin: 82% 0%;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .animate-search-lazy-expand,
+  .animate-search-lazy-collapse {
+    transform-origin: center top;
+  }
+}
+
+@keyframes typewriterCursor {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-typewriter-cursor {
+  animation: typewriterCursor 0.85s ease-in-out infinite;
+}
+
+
+

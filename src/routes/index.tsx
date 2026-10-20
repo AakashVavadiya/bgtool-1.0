@@ -14,7 +14,12 @@ import { AdminStore, type UiEditSettings } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { tools } from "@/lib/tools";
 import { getCurrentWebsiteLanguage, getLocalizedHeroPhrases } from "@/lib/translator";
-import { buildPageMeta, SITE_URL } from "@/lib/seo";
+import {
+  buildPageMeta,
+  buildWebSiteSchema,
+  buildOrganizationSchema,
+  SITE_URL,
+} from "@/lib/seo";
 import { Zap, Maximize2, Layers, Gift } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -38,7 +43,18 @@ export const Route = createFileRoute("/")({
       title: "bg.tools — Free Online AI Background Remover & 4K Export",
       description: "Remove image backgrounds online in 1-click with bg.tools. Sub-pixel edge matting, 4K exports, free daily credits, and zero data tracking.",
       path: "/",
-      jsonLd: webAppSchema,
+      keywords: [
+        "background remover",
+        "free background remover online",
+        "remove background from image",
+        "ai photo editor",
+        "upscale image 4k",
+        "compress image online",
+        "pdf editor free",
+        "sub pixel matting",
+        "transparent png",
+      ],
+      jsonLd: [webAppSchema, buildWebSiteSchema(), buildOrganizationSchema()],
     });
 
     return {

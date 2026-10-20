@@ -82,11 +82,14 @@ import { getCurrentCurrency, type CurrencyCode } from "./currency";
 
 export interface CheckoutOptions {
   planName: string;
-  planType?: "pack" | "subscription" | "festival" | undefined;
+  planType?: "pack" | "subscription" | "festival" | "coffee" | "donation" | undefined;
   credits: number;
   amountINR: number;
   currency?: CurrencyCode | undefined;
   promoCode?: string | undefined;
+  supporterName?: string | undefined;
+  supporterEmail?: string | undefined;
+  customDescription?: string | undefined;
   onSuccess?: ((paymentId: string) => void) | undefined;
   onError?: ((error: string) => void) | undefined;
   onCancel?: (() => void) | undefined;
@@ -130,22 +133,22 @@ export async function initiateRazorpayCheckout({
   amountINR,
   currency,
   promoCode,
+  supporterName,
+  supporterEmail,
+  customDescription,
   onSuccess,
   onError,
   onCancel,
 }: CheckoutOptions): Promise<void> {
   const currentUser = AuthUser.getCurrentUser();
 
+  const isDonationOrCoffee = planType === "coffee" || planType === "donation";
+
   if (!currentUser) {
-    toast.error("Please sign in or create an account to purchase tokens so they are permanently saved to your profile.", {
-      action: {
-        label: "Sign In",
-        onClick: () => {
-          window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
-        },
-      },
-      duration: 6000,
-    });
+    if (typeof window !== "undefined") {
+      const redirectUrl = window.location.pathname + window.location.search;
+      window.location.href = `/login?redirect=${encodeURIComponent(redirectUrl)}`;
+    }
     onError?.("Authentication required");
     return;
   }
@@ -162,7 +165,7 @@ export async function initiateRazorpayCheckout({
         action: {
           label: "Retry",
           onClick: () => {
-            initiateRazorpayCheckout({ planName, planType, credits, amountINR, currency: activeCurrency, onSuccess, onError, onCancel });
+            initiateRazorpayCheckout({ planName, planType, credits, amountINR, currency: activeCurrency, supporterName, supporterEmail, customDescription, onSuccess, onError, onCancel });
           },
         },
       });
@@ -170,7 +173,7 @@ export async function initiateRazorpayCheckout({
       return;
     }
 
-    const cleanPlanName = sanitizeRazorpayNoteText(planName, 40) || "Token Plan";
+    const cleanPlanName = sanitizeRazorpayNoteText(planName, 40) || (isDonationOrCoffee ? "Coffee Donation" : "Token Plan");
 
     // Step 1: Create Order on backend
     const createRes = await fetch("/api/payments/create-order", {
@@ -202,14 +205,18 @@ export async function initiateRazorpayCheckout({
     const razorpayKey = orderData.keyId || getRazorpayKeyId();
 
     const safeDescription = sanitizeRazorpayNoteText(
-      `${credits.toLocaleString("en-IN")} Gold Tokens - ${cleanPlanName}`,
+      customDescription ||
+        (isDonationOrCoffee
+          ? `Support Developer Coffee - Upanishad (${cleanPlanName})`
+          : `${credits.toLocaleString("en-IN")} Gold Tokens - ${cleanPlanName}`),
       120
     );
 
     const safeNotes: Record<string, string> = {
-      userId: sanitizeRazorpayNoteText(currentUser.id, 40) || "guest",
+      userId: currentUser ? (sanitizeRazorpayNoteText(currentUser.id, 40) || "user") : "guest_supporter",
       credits: String(credits),
       planName: cleanPlanName,
+      supporter: supporterName ? sanitizeRazorpayNoteText(supporterName, 40) : "",
     };
 
     // Step 2: Open Razorpay Checkout modal
@@ -217,17 +224,17 @@ export async function initiateRazorpayCheckout({
       key: razorpayKey,
       amount: orderData.amount, // in paise
       currency: orderData.currency || "INR",
-      name: "bg.tools",
+      name: "Upanishad (bg.tools)",
       description: safeDescription,
       image: "https://bg.tools/favicon.ico",
       order_id: orderData.orderId,
       prefill: {
-        name: sanitizeRazorpayNoteText(currentUser.name || "", 50),
-        email: sanitizeRazorpayNoteText(currentUser.email || "", 60),
+        name: sanitizeRazorpayNoteText(currentUser?.name || supporterName || "", 50),
+        email: sanitizeRazorpayNoteText(currentUser?.email || supporterEmail || "", 60),
       },
       notes: safeNotes,
       theme: {
-        color: "#f59e0b", // Gold / Amber theme for Gold Tokens
+        color: isDonationOrCoffee ? "#f97316" : "#f59e0b", // Warm Coffee Orange or Gold
       },
       modal: {
         ondismiss: () => {
@@ -240,7 +247,7 @@ export async function initiateRazorpayCheckout({
         razorpay_order_id: string;
         razorpay_signature: string;
       }) => {
-        const verifyToastId = toast.loading("Verifying payment with bank & crediting tokens...");
+        const verifyToastId = toast.loading("Verifying payment with bank & thanking supporter...");
 
         try {
           // Step 3: Verify signature on backend
@@ -268,26 +275,28 @@ export async function initiateRazorpayCheckout({
           const verifyData = await verifyRes.json();
           toast.dismiss(verifyToastId);
 
-          // Refresh user session so header token counter updates instantly
-          await AuthUser.refreshSession();
+          if (currentUser) {
+            // Refresh user session so header token counter updates instantly
+            await AuthUser.refreshSession();
 
-          // Sync transaction into admin store cache for visibility
-          const newTxn = {
-            id: response.razorpay_payment_id,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            userEmail: currentUser.email,
-            type: planType === "subscription" ? ("subscription" as const) : ("pack" as const),
-            planName,
-            creditsPurchased: credits,
-            amountINR,
-            currency: "INR",
-            status: "completed" as const,
-            paymentMethod: "UPI" as const,
-            date: new Date().toISOString(),
-          };
-          const existingPurchases = AdminStore.getPurchases();
-          AdminStore.savePurchases([newTxn, ...existingPurchases]);
+            // Sync transaction into admin store cache for visibility
+            const newTxn = {
+              id: response.razorpay_payment_id,
+              userId: currentUser.id,
+              userName: currentUser.name,
+              userEmail: currentUser.email,
+              type: planType === "subscription" ? ("subscription" as const) : ("pack" as const),
+              planName,
+              creditsPurchased: credits,
+              amountINR,
+              currency: "INR",
+              status: "completed" as const,
+              paymentMethod: "UPI" as const,
+              date: new Date().toISOString(),
+            };
+            const existingPurchases = AdminStore.getPurchases();
+            AdminStore.savePurchases([newTxn, ...existingPurchases]);
+          }
 
           window.dispatchEvent(
             new CustomEvent(REALTIME_EVENT_NAME, {
@@ -295,10 +304,17 @@ export async function initiateRazorpayCheckout({
             })
           );
 
-          toast.success(
-            `🎉 Payment Successful! Added ${credits.toLocaleString("en-IN")} Gold Tokens to your account! (Ref: ${response.razorpay_payment_id})`,
-            { duration: 7000 }
-          );
+          if (isDonationOrCoffee) {
+            toast.success(
+              `☕ Payment Successful! Huge thanks for fueling our team with coffee! (Ref: ${response.razorpay_payment_id})`,
+              { duration: 8000 }
+            );
+          } else {
+            toast.success(
+              `🎉 Payment Successful! Added ${credits.toLocaleString("en-IN")} Gold Tokens to your account! (Ref: ${response.razorpay_payment_id})`,
+              { duration: 7000 }
+            );
+          }
 
           onSuccess?.(response.razorpay_payment_id);
         } catch (verifyErr: any) {

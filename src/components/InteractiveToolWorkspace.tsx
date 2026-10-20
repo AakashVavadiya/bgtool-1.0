@@ -7757,7 +7757,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       {tool.slug === "square-your-image"
                         ? `${Math.max(dimensions.width || 0, dimensions.height || 0)} × ${Math.max(dimensions.width || 0, dimensions.height || 0)} px`
                         : tool.slug === "resize-image"
-                        ? `${outputDimensions.width || targetWidth} × ${outputDimensions.height || targetHeight} px (Original: ${dimensions.width} × ${dimensions.height} px)`
+                        ? `${formatBytes(newSize || origSize)} · Ready to download`
                         : `${dimensions.width} × ${dimensions.height} px`}
                     </span>
                   </div>
@@ -7797,6 +7797,34 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     </span>
                   </div>
                 </div>
+              ) : tool.slug === "resize-image" || tool.slug === "crop-image" ? (
+                <div className="w-full md:w-auto flex items-center justify-between md:justify-end gap-3.5 sm:gap-5 bg-secondary/50 px-4 py-2.5 rounded-2xl border border-border/80 shadow-xs">
+                  <div className="text-left md:text-right">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block leading-tight">Original</span>
+                    <span className="font-mono text-xs sm:text-sm font-semibold text-muted-foreground">
+                      {dimensions.width} × {dimensions.height} px
+                    </span>
+                  </div>
+
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+
+                  <div className="text-left md:text-right">
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block leading-tight">
+                      {tool.slug === "crop-image" ? "Cropped Output" : "Resized Output"}
+                    </span>
+                    <span className="font-mono text-sm sm:text-base font-bold text-foreground">
+                      {outputDimensions.width || targetWidth || dimensions.width} × {outputDimensions.height || targetHeight || dimensions.height} px
+                    </span>
+                  </div>
+
+                  {newSize > 0 && (
+                    <div className="pl-2 border-l border-border/70 flex items-center">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 text-xs font-bold shadow-xs">
+                        <span>{formatBytes(newSize || origSize)}</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="w-full md:w-auto flex items-center justify-between md:justify-end gap-3.5 sm:gap-5 bg-secondary/50 px-4 py-2.5 rounded-2xl border border-border/80 shadow-xs">
                   <div className="text-left md:text-right">
@@ -7810,7 +7838,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
                   <div className="text-left md:text-right">
                     <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block leading-tight">
-                      {tool.slug === "compress-image" ? "Compressed" : tool.slug === "resize-image" ? "Resized Output" : "Processed"}
+                      {tool.slug === "compress-image" ? "Compressed" : "Processed"}
                     </span>
                     <span className="font-mono text-sm sm:text-base font-bold text-foreground">
                       {formatBytes(newSize || origSize)}

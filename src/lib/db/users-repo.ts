@@ -21,6 +21,7 @@ export interface DbUser {
   phone?: string | null;
   country_code?: string | null;
   country?: string | null;
+  avatar?: string | null;
 }
 
 export function toSafeUser(user: DbUser): SafeUser {
@@ -43,6 +44,7 @@ export function toSafeUser(user: DbUser): SafeUser {
     countryCode: user.country_code || null,
     country: user.country || null,
     location: user.country || undefined,
+    avatar: user.avatar || null,
   };
 }
 
@@ -280,6 +282,15 @@ export const usersRepo = {
     const cleanName = name.trim().slice(0, 100);
     const runTx = db.transaction(() => {
       db.prepare("UPDATE users SET name = ? WHERE id = ?").run(cleanName, userId);
+    });
+    runTx();
+  },
+
+  updateAvatar(userId: string, avatar: string | null): void {
+    const db = getDb();
+    const cleanAvatar = avatar ? avatar.trim().slice(0, 500) : null;
+    const runTx = db.transaction(() => {
+      db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(cleanAvatar, userId);
     });
     runTx();
   },

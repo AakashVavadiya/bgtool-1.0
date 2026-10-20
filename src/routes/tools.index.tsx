@@ -14,17 +14,52 @@ import {
   Wrench,
   Layers,
   Cpu,
+  BookOpen,
 } from "lucide-react";
 
-import { buildPageMeta } from "@/lib/seo";
+import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/tools/")({
   head: () => {
+    const collectionSchema = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: "All 130+ Free Online AI Tools & Utilities",
+      url: `${SITE_URL}/tools`,
+      description: "Complete directory of 130+ free online image, document, and PDF tools on bg.tools with zero tracking.",
+      mainEntity: {
+        "@type": "ItemList",
+        numberOfItems: tools.length,
+        itemListElement: tools.slice(0, 40).map((t, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: `${SITE_URL}/tools/${t.slug}`,
+          name: t.name,
+          description: t.blurb,
+        })),
+      },
+    };
+
+    const breadcrumbsSchema = buildBreadcrumbsSchema([
+      { name: "Home", path: "/" },
+      { name: "Tools", path: "/tools" },
+    ]);
+
     const seo = buildPageMeta({
-      title: "All 130+ Free Online AI Tools | bg.tools",
-      description: "Explore 130+ free online image, document, and PDF tools on bg.tools. Background removal, conversion, upscaling, OCR, compression, and zero tracking.",
+      title: "All 130+ Free Online AI Tools & Image Utilities | bg.tools",
+      description: "Explore 130+ free online AI image editing, document processing, and PDF tools on bg.tools. 100% privacy-first, zero tracking, and no watermark.",
       path: "/tools",
+      keywords: [
+        "all ai tools",
+        "free online tools directory",
+        "image tools",
+        "pdf tools online",
+        "convert tools",
+        "photo editor online",
+      ],
+      jsonLd: [collectionSchema, breadcrumbsSchema],
     });
+
     return {
       meta: seo.meta,
       links: seo.links,
@@ -214,10 +249,8 @@ export function ToolsDirectoryPage() {
                 const Icon = tool.icon;
 
                 return (
-                  <Link
+                  <div
                     key={tool.slug}
-                    to="/tools/$slug"
-                    params={{ slug: tool.slug }}
                     className="tool-card group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-foreground/40 hover:shadow-lg"
                   >
                     <div>
@@ -234,35 +267,58 @@ export function ToolsDirectoryPage() {
                         ) : null}
                       </div>
 
-                      {/* Icon & Title */}
-                      <div className="mt-5 flex items-center gap-3.5">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-secondary transition-all duration-300 group-hover:scale-105 group-hover:bg-foreground group-hover:text-background shadow-inner">
-                          <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
+                      {/* Main Tool Link covering the card body */}
+                      <Link
+                        to="/tools/$slug"
+                        params={{ slug: tool.slug }}
+                        className="block focus:outline-none after:absolute after:inset-0 after:z-0"
+                      >
+                        {/* Icon & Title */}
+                        <div className="mt-5 flex items-center gap-3.5">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-secondary transition-all duration-300 group-hover:scale-105 group-hover:bg-foreground group-hover:text-background shadow-inner">
+                            <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
+                          </div>
+                          <div className="min-w-0">
+                            <h2 className="truncate font-display text-base font-semibold leading-tight transition-colors group-hover:text-accent">
+                              {tool.name}
+                            </h2>
+                            <span className="block truncate text-[0.68rem] text-muted-foreground">
+                              {tool.accepts} → {tool.outputs}
+                            </span>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h2 className="truncate font-display text-base font-semibold leading-tight transition-colors group-hover:text-accent">
-                            {tool.name}
-                          </h2>
-                          <span className="block truncate text-[0.68rem] text-muted-foreground">
-                            {tool.accepts} → {tool.outputs}
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Blurb */}
-                      <p className="mt-3.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                        {tool.blurb}
-                      </p>
+                        {/* Blurb */}
+                        <p className="mt-3.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                          {tool.blurb}
+                        </p>
+                      </Link>
                     </div>
 
-                    {/* Bottom CTA */}
-                    <div className="mt-4 border-t border-border/50 pt-3 flex items-center justify-end text-xs">
-                      <span className="inline-flex items-center gap-1 font-semibold text-foreground group-hover:text-accent text-[0.72rem] transition-all group-hover:gap-1.5">
+                    {/* Bottom CTA with Read Article Icon & Open Link */}
+                    <div className="mt-4 border-t border-border/50 pt-3 flex items-center justify-between text-xs relative z-10">
+                      {/* Read Article Link */}
+                      <Link
+                        to="/news/$slug"
+                        params={{ slug: tool.slug }}
+                        title={`Read full article & guide: ${tool.name}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 hover:bg-accent/10 hover:border-accent/40 px-2.5 py-1 text-[0.72rem] font-semibold text-muted-foreground hover:text-accent transition-all cursor-pointer shadow-2xs group/art"
+                      >
+                        <BookOpen className="h-3.5 w-3.5 text-accent shrink-0 transition-transform group-hover/art:scale-110" />
+                        <span>Read Article</span>
+                      </Link>
+
+                      {/* Open Tool Link */}
+                      <Link
+                        to="/tools/$slug"
+                        params={{ slug: tool.slug }}
+                        className="inline-flex items-center gap-1 font-semibold text-foreground group-hover:text-accent text-[0.72rem] transition-all group-hover:gap-1.5"
+                      >
                         <span>Open</span>
                         <ArrowRight className="h-3.5 w-3.5" />
-                      </span>
+                      </Link>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
