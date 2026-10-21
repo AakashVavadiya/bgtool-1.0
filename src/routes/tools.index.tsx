@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { tools, TOOL_CATEGORIES, type ToolCategory } from "@/lib/tools";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -15,6 +15,7 @@ import {
   Layers,
   Cpu,
   BookOpen,
+  TrendingUp,
 } from "lucide-react";
 
 import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
@@ -69,10 +70,132 @@ export const Route = createFileRoute("/tools/")({
   component: ToolsDirectoryPage,
 });
 
+const TOOL_SEARCH_SUGGESTIONS = [
+  "Background Remover",
+  "Compress Image (Lossless)",
+  "Rotate & Batch Multi-Image",
+  "Extract Text with OCR",
+  "Convert PDF to Image",
+  "Square Photo 1:1",
+  "Face & Privacy Blur",
+  "Meme Generator",
+  "Watermark Image",
+  "Image to Excel Table",
+  "Crop & Resize Photos",
+  "Color Picker from Image",
+];
+
+const POPULAR_SEARCH_TAGS = [
+  { label: "Background Remover", query: "background" },
+  { label: "Compress Image", query: "compress" },
+  { label: "Rotate & Flip", query: "rotate" },
+  { label: "PDF Tools", query: "pdf" },
+  { label: "OCR Extractor", query: "ocr" },
+  { label: "Face Blur", query: "blur" },
+  { label: "Square Photo", query: "square" },
+  { label: "Meme Generator", query: "meme" },
+];
+
+function SmoothSearchTicker({
+  suggestions,
+  isPaused,
+}: {
+  suggestions: string[];
+  isPaused: boolean;
+}) {
+  const [index, setIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(true);
+
+  // Append first item to create seamless infinite loop without jump
+  const items = useMemo(() => [...suggestions, suggestions[0]!], [suggestions]);
+
+  useEffect(() => {
+    if (isPaused) return;
+
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setIndex((prev) => prev + 1);
+    }, 3200);
+
+    return () => clearInterval(interval);
+  }, [isPaused, suggestions.length]);
+
+  useEffect(() => {
+    if (index !== suggestions.length) {
+      return;
+    }
+    // Reached duplicate: after the 650ms transition finishes, seamlessly snap to 0 without animation
+    const timer = setTimeout(() => {
+      setIsTransitioning(false);
+      setIndex(0);
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [index, suggestions.length]);
+
+  return (
+    <div className="h-6 sm:h-7 overflow-hidden relative w-full pointer-events-none select-none [mask-image:linear-gradient(to_bottom,transparent_0%,black_18%,black_82%,transparent_100%)]">
+      <div
+        className={`flex flex-col will-change-transform ${
+          isTransitioning
+            ? "transition-transform duration-650 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            : ""
+        }`}
+        style={{
+          transform: `translateY(-${(index * 100) / items.length}%)`,
+        }}
+      >
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="h-6 sm:h-7 shrink-0 flex items-center gap-1.5 text-sm sm:text-base leading-none"
+          >
+            <span className="text-muted-foreground/70 font-normal shrink-0">Search</span>
+            <span className="font-semibold text-foreground/85 truncate tracking-tight">
+              &ldquo;{item}&rdquo;
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ToolsDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<"All" | ToolCategory>("All");
   const [, setTick] = useState(0);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isMac = typeof window !== "undefined" && navigator.platform?.toUpperCase().includes("MAC");
+
+  // Global hotkeys (Ctrl+K, Cmd+K, /)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      } else if (
+        e.key === "/" &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      } else if (e.key === "Escape" && document.activeElement === inputRef.current) {
+        if (searchQuery) {
+          setSearchQuery("");
+        } else {
+          inputRef.current?.blur();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchQuery]);
 
   useEffect(() => {
     AdminStore.syncToolsConfigFromServer().then(() => setTick((t) => t + 1));
@@ -141,27 +264,150 @@ export function ToolsDirectoryPage() {
               Explore our full ecosystem of specialized image processors, neural AI models, document utilities, and PDF converters. Search instantly or filter by category below.
             </p>
 
-            {/* Live Search Bar */}
+            {/* Animated Search Bar with 60fps Liquid Border Beam & Smooth Ticker */}
             <div className="mt-7 w-full max-w-3xl">
-              <div className="relative flex items-center">
-                <Search className="absolute left-4.5 h-5 w-5 text-muted-foreground pointer-events-none" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search any tool (e.g. background remover, pdf, crop, watermark, ocr)..."
-                  className="w-full rounded-2xl border-2 border-border bg-card/90 py-3.5 sm:py-4 pl-12 pr-12 text-sm font-medium placeholder:text-muted-foreground focus:border-foreground focus:outline-none focus:ring-4 focus:ring-accent/10 shadow-sm transition-all"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    aria-label="Clear search"
-                    className="absolute right-4 rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
+              <div
+                className="relative group"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              >
+                {/* 1. Subtle, Clean Ambient Halo (Light & Refined, Zero Heavy Orange Smudge) */}
+                <div className="pointer-events-none absolute -inset-0.5 rounded-full bg-accent/15 blur-md opacity-0 group-hover:opacity-30 group-focus-within:opacity-50 transition-opacity duration-500" />
+
+                {/* 2. Rotating Border Beam Container (Subtle, Light Sheen) */}
+                <div
+                  onClick={() => inputRef.current?.focus()}
+                  className={`relative p-[1.5px] rounded-full overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 cursor-text ${
+                    isFocused
+                      ? "ring-2 ring-accent/25 scale-[1.004]"
+                      : "hover:scale-[1.002]"
+                  }`}
+                >
+                  {/* Subtle, soft light beam without heavy saturation */}
+                  <div className="absolute inset-[-200%] animate-border-beam pointer-events-none bg-[conic-gradient(from_0deg,transparent_0_280deg,hsl(var(--accent)/0.12)_315deg,hsl(var(--accent)/0.35)_350deg,transparent_360deg)] opacity-35 group-hover:opacity-65 group-focus-within:opacity-80 transition-opacity duration-500" />
+
+                  {/* Inner Search Pill Body */}
+                  <div className="relative flex items-center rounded-full bg-card dark:bg-card/90 backdrop-blur-xl border border-border/80 dark:border-border/60 w-full transition-colors duration-300">
+                    {/* Left Search Icon with Micro-Interactions */}
+                    <div className="pl-4 sm:pl-5 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-accent transition-colors duration-300 shrink-0">
+                      <div className="relative flex items-center justify-center">
+                        <Search
+                          className={`h-5 w-5 sm:h-5.5 sm:w-5.5 transition-all duration-300 ${
+                            isFocused ? "scale-110 rotate-6 text-accent" : "group-hover:scale-105"
+                          }`}
+                        />
+                        {/* Active typing pulse pip */}
+                        {searchQuery && (
+                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-accent animate-ping" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Input Element & Smooth Ticker Overlay */}
+                    <div className="relative flex-1 flex items-center min-w-0">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
+                        aria-label="Search tools"
+                        className="w-full bg-transparent py-3.5 sm:py-4.5 pl-3 sm:pl-4 pr-3 text-sm sm:text-base font-semibold text-foreground placeholder:text-transparent focus:outline-none"
+                      />
+
+                      {/* Smooth Vertical Sliding Ticker Placeholder */}
+                      {!searchQuery && (
+                        <div className="absolute left-3 sm:left-4 inset-y-0 flex items-center pointer-events-none select-none max-w-[calc(100%-80px)] sm:max-w-[calc(100%-120px)] w-full">
+                          <SmoothSearchTicker
+                            suggestions={TOOL_SEARCH_SUGGESTIONS}
+                            isPaused={isFocused || isHovered}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Side: Results Match Pill, Clear Button & Keyboard Shortcut Badge */}
+                    <div className="pr-3.5 sm:pr-4.5 flex items-center gap-2 shrink-0">
+                      {/* Live Match Counter Badge */}
+                      {searchQuery && (
+                        <div className="flex items-center gap-1.5 rounded-full bg-secondary/80 border border-border/60 px-2.5 py-1 text-[11px] font-mono font-bold text-foreground animate-in zoom-in-75 fade-in duration-200 shadow-2xs">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              filteredTools.length > 0 ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                            }`}
+                          />
+                          <span>
+                            {filteredTools.length} {filteredTools.length === 1 ? "match" : "matches"}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Animated Clear X Button */}
+                      {searchQuery ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSearchQuery("");
+                            inputRef.current?.focus();
+                          }}
+                          aria-label="Clear search"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-muted/80 hover:bg-destructive/15 hover:text-destructive text-muted-foreground transition-all cursor-pointer group/clear animate-in zoom-in-75 duration-200"
+                          title="Clear search (Esc)"
+                        >
+                          <X className="h-4 w-4 group-hover/clear:rotate-90 group-hover/clear:scale-110 transition-transform duration-200" />
+                        </button>
+                      ) : (
+                        /* Keyboard Shortcut Badge */
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            inputRef.current?.focus();
+                          }}
+                          className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border border-border/80 bg-secondary/50 text-[11px] font-mono font-bold text-muted-foreground shadow-2xs group-hover:border-foreground/30 transition-colors cursor-pointer select-none"
+                          title="Press / or Ctrl+K to search"
+                        >
+                          <span className="text-[10px] opacity-70">{isMac ? "⌘" : "Ctrl"}</span>
+                          <span>K</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Interactive Trending / Popular Quick-Filter Chips */}
+              <div className="mt-3.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground shrink-0 pr-1 select-none">
+                  <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/80" />
+                  <span>Popular:</span>
+                </span>
+                {POPULAR_SEARCH_TAGS.map((tag) => {
+                  const isActive = searchQuery.toLowerCase().trim() === tag.query.toLowerCase();
+                  return (
+                    <button
+                      key={tag.label}
+                      type="button"
+                      onClick={() => {
+                        if (isActive) {
+                          setSearchQuery("");
+                        } else {
+                          setSearchQuery(tag.query);
+                          inputRef.current?.focus();
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer active:scale-95 shadow-2xs ${
+                        isActive
+                          ? "bg-accent text-accent-foreground shadow-sm scale-105 ring-2 ring-accent/30 font-bold"
+                          : "border border-border/70 bg-card/60 text-muted-foreground hover:border-foreground/40 hover:text-foreground hover:bg-secondary/60 hover:-translate-y-0.5"
+                      }`}
+                    >
+                      <span>{tag.label}</span>
+                      {isActive && <CheckCircle2 className="h-3 w-3" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

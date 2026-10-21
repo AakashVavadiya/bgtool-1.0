@@ -882,18 +882,46 @@ font[class*="goog-text-highlight"] {
   }
 }
 
-@keyframes typewriterCursor {
+@keyframes borderBeamSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-border-beam {
+  animation: borderBeamSpin 6s linear infinite;
+  will-change: transform;
+}
+
+@keyframes ambientPulseGlow {
   0%, 100% {
-    opacity: 1;
+    opacity: 0.45;
+    transform: scale(1);
   }
   50% {
-    opacity: 0;
+    opacity: 0.8;
+    transform: scale(1.015);
   }
 }
 
-.animate-typewriter-cursor {
-  animation: typewriterCursor 0.85s ease-in-out infinite;
+.animate-ambient-glow {
+  animation: ambientPulseGlow 4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 
-
+/* Header & Navigation unselectable protection (prevents accidental blue selection highlight) */
+header,
+header nav,
+header nav a,
+header a,
+header button {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

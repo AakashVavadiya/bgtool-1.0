@@ -179,23 +179,23 @@ function ModelsPage() {
                 }`}
               >
                 {/* Header: Name, Badge & Specialty */}
-                <div className="flex items-start justify-between gap-2 pb-3 border-b border-border/60">
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div className="space-y-2 pb-3 border-b border-border/60">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
                       <h3 className="font-display text-lg font-bold text-foreground">
                         {m.name}
                       </h3>
                       {m.id === "karudi" && (
-                        <span className="rounded-full bg-foreground text-background px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
+                        <span className="inline-flex items-center whitespace-nowrap shrink-0 rounded-full bg-foreground text-background px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
                           Universal Master
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-semibold text-accent mt-0.5">{m.specialty}</p>
+                    <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-[10px] font-bold text-foreground">
+                      {m.id === "karudi" ? "Supreme Master Pipeline" : "Dedicated GPU"}
+                    </span>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-muted px-2.5 py-1 text-[10px] font-bold text-foreground">
-                    {m.id === "karudi" ? "Supreme Master Pipeline" : "Dedicated GPU"}
-                  </span>
+                  <p className="text-xs font-semibold text-accent">{m.specialty}</p>
                 </div>
 
                 {/* Body: Capabilities & Output */}
@@ -263,13 +263,15 @@ function ModelsPage() {
                         : "hover:bg-muted/30"
                     }`}
                   >
-                    <td className="px-8 py-6 font-bold text-base flex items-center gap-2">
-                      {m.name}
-                      {m.id === "karudi" ? (
-                        <span className="rounded-full bg-foreground text-background px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
-                          Universal Master
-                        </span>
-                      ) : null}
+                    <td className="px-8 py-6 font-bold text-base">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>{m.name}</span>
+                        {m.id === "karudi" ? (
+                          <span className="inline-flex items-center whitespace-nowrap shrink-0 rounded-full bg-foreground text-background px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                            Universal Master
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-8 py-6 text-foreground font-semibold">{m.specialty}</td>
                     <td className="px-8 py-6 text-muted-foreground">

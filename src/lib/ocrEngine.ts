@@ -435,7 +435,54 @@ export interface AdvancedOcrResult {
   isEmpty: boolean;
 }
 
-// ── 8. Core performAdvancedOcr Function ──────────────────────────────────────
+export function createInvertedCanvas(srcCanvas: HTMLCanvasElement): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = srcCanvas.width;
+  c.height = srcCanvas.height;
+  const ctx = c.getContext("2d");
+  if (!ctx) return srcCanvas;
+  ctx.drawImage(srcCanvas, 0, 0);
+  try {
+    const imgData = ctx.getImageData(0, 0, c.width, c.height);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      d[i] = 255 - (d[i] ?? 0);
+      d[i + 1] = 255 - (d[i + 1] ?? 0);
+      d[i + 2] = 255 - (d[i + 2] ?? 0);
+    }
+    ctx.putImageData(imgData, 0, 0);
+  } catch {}
+  return c;
+}
+
+export function createHighContrastCanvas(srcCanvas: HTMLCanvasElement): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = srcCanvas.width;
+  c.height = srcCanvas.height;
+  const ctx = c.getContext("2d");
+  if (!ctx) return srcCanvas;
+  ctx.drawImage(srcCanvas, 0, 0);
+  try {
+    const imgData = ctx.getImageData(0, 0, c.width, c.height);
+    const d = imgData.data;
+    let totalLum = 0;
+    const count = d.length / 4;
+    for (let i = 0; i < d.length; i += 4) {
+      totalLum += 0.299 * (d[i] ?? 0) + 0.587 * (d[i + 1] ?? 0) + 0.114 * (d[i + 2] ?? 0);
+    }
+    const avgLum = Math.max(70, Math.min(185, totalLum / Math.max(1, count)));
+    for (let i = 0; i < d.length; i += 4) {
+      const lum = 0.299 * (d[i] ?? 0) + 0.587 * (d[i + 1] ?? 0) + 0.114 * (d[i + 2] ?? 0);
+      const val = lum > avgLum ? 255 : 0;
+      d[i] = val;
+      d[i + 1] = val;
+      d[i + 2] = val;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  } catch {}
+  return c;
+}
+
 export const performAdvancedOcr = async (
   canvas: HTMLCanvasElement,
   options: {
@@ -448,105 +495,237 @@ export const performAdvancedOcr = async (
   const ocrLang = (options.language || "eng").trim();
   const workCanvas = preprocessCanvasForOcr(canvas, options.contrastMode);
 
+  // ── PASS 0: Fast First-Party Native OCR Engine API ─────────────
   try {
-    const worker = await getSharedOcrWorker(ocrLang, options.onProgress);
-    // Explicitly include text: true so Tesseract populates result.data.text
-    const result = await worker.recognize(
-      workCanvas,
-      {},
-      { text: true, tsv: true, blocks: true, hocr: false }
-    );
+    if (options.onProgress) options.onProgress("Processing OCR with Neural Engine...", 35);
+    const dataUrl = workCanvas.toDataURL("image/png");
+    const apiRes = await fetch("/api/ocr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: dataUrl, language: ocrLang }),
+      signal: AbortSignal.timeout(25000),
+    });
 
-    if (result && result.data) {
-      const rawText = result.data.text || "";
-      const confidence = typeof result.data.confidence === "number" ? result.data.confidence : 0;
-      let rawLines = rawText
-        .split("\n")
-        .map((l: string) => l.trim())
-        .filter((l: string) => l.length > 0);
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      if (data && data.success) {
+        if (options.onProgress) options.onProgress("Structuring document & tables...", 90);
+        const rawText = (data.text || "").trim();
+        const rawLines = rawText
+          ? rawText
+              .split("\n")
+              .map((l: string) => l.trim())
+              .filter((l: string) => l.length > 0)
+          : [];
+        const words = rawText
+          ? rawText
+              .split(/\s+/)
+              .map((w: string) => w.trim())
+              .filter(Boolean)
+          : [];
+        const confidence = typeof data.confidence === "number" ? Math.round(data.confidence) : 85;
+        const tsv = data.tsv || "";
 
-      // Check lines array if rawText was empty
-      if (rawLines.length === 0 && Array.isArray((result.data as any).lines)) {
-        rawLines = (result.data as any).lines
-          .map((l: any) => (l.text || "").trim())
-          .filter((l: string) => l.length > 0);
-      }
-
-      // Extract words
-      const words: string[] = [];
-      if (Array.isArray((result.data as any).words) && (result.data as any).words.length > 0) {
-        (result.data as any).words.forEach((w: any) => {
-          const t = (w.text || "").trim();
-          if (t) words.push(t);
-        });
-      }
-      if (words.length === 0) {
-        rawLines.forEach((l: string) => {
-          l.split(/\s+/).forEach((w: string) => {
-            if (w.trim()) words.push(w.trim());
-          });
-        });
-      }
-
-      // If genuine empty (no lines and no words), return clean empty state
-      if (rawLines.length === 0 && words.length === 0) {
-        return {
-          textLines: [],
-          rawWords: [],
-          confidence: 0,
-          tableGrid: [],
-          isTable: false,
-          slideTitle: "",
-          bulletPoints: [],
-          isEmpty: true,
-        };
-      }
-
-      // Parse 2D Table Grid from TSV if available, fallback to delimiter parsing
-      let tableGrid = result.data.tsv ? parseOcrTsvToGrid(result.data.tsv) : [];
-      if (tableGrid.length < 2 || Math.max(...tableGrid.map((r) => r.length)) < 2) {
-        tableGrid = parseOcrTextToGrid(rawLines, "grid");
-      }
-
-      const maxCols = tableGrid.length > 0 ? Math.max(...tableGrid.map((r) => r.length)) : 1;
-      const isTable = tableGrid.length >= 2 && maxCols >= 2;
-
-      // Extract Presentation Slide elements
-      let slideTitle = "";
-      const bulletPoints: string[] = [];
-
-      for (let i = 0; i < rawLines.length; i++) {
-        const line = rawLines[i]!;
-        if (!slideTitle && line.length > 3 && line.length < 75) {
-          slideTitle = line.replace(/^[#•\-\*\d\.\)\s]+/, "").trim();
-        } else {
-          const cleanBullet = line.replace(/^[•\-\*\d\.\)\s]+/, "").trim();
-          if (cleanBullet.length > 2) {
-            bulletPoints.push(cleanBullet);
+        if (rawLines.length > 0 || words.length > 0) {
+          let tableGrid = tsv ? parseOcrTsvToGrid(tsv) : [];
+          if (tableGrid.length < 2 || Math.max(...tableGrid.map((r) => r.length)) < 2) {
+            tableGrid = parseOcrTextToGrid(rawLines, "grid");
           }
+          const maxCols = tableGrid.length > 0 ? Math.max(...tableGrid.map((r) => r.length)) : 1;
+          const isTable = tableGrid.length >= 2 && maxCols >= 2;
+
+          let slideTitle = "";
+          const bulletPoints: string[] = [];
+          for (let i = 0; i < rawLines.length; i++) {
+            const line = rawLines[i]!;
+            if (!slideTitle && line.length > 3 && line.length < 75) {
+              slideTitle = line.replace(/^[#•\-\*\d\.\)\s]+/, "").trim();
+            } else {
+              const cleanBullet = line.replace(/^[•\-\*\d\.\)\s]+/, "").trim();
+              if (cleanBullet.length > 2) {
+                bulletPoints.push(cleanBullet);
+              }
+            }
+          }
+          if (!slideTitle && rawLines[0]) {
+            slideTitle = rawLines[0].slice(0, 60);
+          }
+
+          return {
+            textLines: rawLines,
+            rawWords: words,
+            confidence,
+            tableGrid,
+            isTable,
+            slideTitle: slideTitle || "Document Title",
+            bulletPoints: bulletPoints.slice(0, 10),
+            isEmpty: false,
+          };
         }
       }
-
-      if (!slideTitle && rawLines[0]) {
-        slideTitle = rawLines[0].slice(0, 60);
-      }
-
-      return {
-        textLines: rawLines,
-        rawWords: words,
-        confidence: Math.round(confidence),
-        tableGrid,
-        isTable,
-        slideTitle: slideTitle || "Presentation Slide",
-        bulletPoints: bulletPoints.slice(0, 10),
-        isEmpty: false,
-      };
     }
-  } catch (err) {
-    console.warn("Tesseract Worker execution failed:", err);
+  } catch (apiErr) {
+    console.warn("[OCR Engine] Server API pass skipped or unavailable, falling back to client worker:", apiErr);
   }
 
-  // Clean fallback when no text can be extracted
+  const extractFromTesseractData = (data: any) => {
+    const rawText = data?.text || "";
+    const confidence = typeof data?.confidence === "number" ? data.confidence : 0;
+    let rawLines = rawText
+      .split("\n")
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0);
+
+    if (rawLines.length === 0 && Array.isArray(data?.lines)) {
+      rawLines = data.lines
+        .map((l: any) => (l.text || "").trim())
+        .filter((l: string) => l.length > 0);
+    }
+
+    const words: string[] = [];
+    if (Array.isArray(data?.words) && data.words.length > 0) {
+      data.words.forEach((w: any) => {
+        const t = (w.text || "").trim();
+        if (t) words.push(t);
+      });
+    }
+    if (words.length === 0) {
+      rawLines.forEach((l: string) => {
+        l.split(/\s+/).forEach((w: string) => {
+          if (w.trim()) words.push(w.trim());
+        });
+      });
+    }
+
+    return { rawLines, words, confidence, tsv: data?.tsv || "" };
+  };
+
+  try {
+    const worker = await getSharedOcrWorker(ocrLang, options.onProgress);
+
+    const recognizeTarget = async (cv: HTMLCanvasElement, psm?: string) => {
+      if (psm) {
+        try {
+          await worker.setParameters({ tessedit_pageseg_mode: psm as any });
+        } catch {}
+      }
+      const dataUrl = cv.toDataURL("image/png");
+      return await worker.recognize(
+        dataUrl,
+        {},
+        { text: true, tsv: true, blocks: true, hocr: false }
+      );
+    };
+
+    // Pass 1: Standard preprocessed workCanvas
+    let res = await recognizeTarget(workCanvas);
+    let extracted = extractFromTesseractData(res?.data);
+
+    // Pass 2: Inverted canvas (white-on-black text / dark mode images)
+    if (extracted.rawLines.length === 0 && options.contrastMode !== "inverted") {
+      if (options.onProgress) options.onProgress("Enhancing contrast & inverting...", 55);
+      const invCv = createInvertedCanvas(workCanvas);
+      const invRes = await recognizeTarget(invCv);
+      const invExtracted = extractFromTesseractData(invRes?.data);
+      if (invExtracted.rawLines.length > 0) {
+        res = invRes;
+        extracted = invExtracted;
+      }
+    }
+
+    // Pass 3: Adaptive high-contrast binarization
+    if (extracted.rawLines.length === 0 && options.contrastMode !== "high") {
+      if (options.onProgress) options.onProgress("Applying adaptive binarization...", 75);
+      const highCv = createHighContrastCanvas(workCanvas);
+      const highRes = await recognizeTarget(highCv);
+      const highExtracted = extractFromTesseractData(highRes?.data);
+      if (highExtracted.rawLines.length > 0) {
+        res = highRes;
+        extracted = highExtracted;
+      }
+    }
+
+    // Pass 4: Original raw input canvas with sparse text PSM 11
+    if (extracted.rawLines.length === 0) {
+      if (options.onProgress) options.onProgress("Scanning fine & sparse characters...", 88);
+      const sparseRes = await recognizeTarget(canvas, "11");
+      const sparseExtracted = extractFromTesseractData(sparseRes?.data);
+      if (sparseExtracted.rawLines.length > 0) {
+        res = sparseRes;
+        extracted = sparseExtracted;
+      }
+    }
+
+    // Reset PSM to auto
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: "3" as any });
+    } catch {}
+
+    const { rawLines, words, confidence, tsv } = extracted;
+
+    if (rawLines.length === 0 && words.length === 0) {
+      return {
+        textLines: [],
+        rawWords: [],
+        confidence: 0,
+        tableGrid: [],
+        isTable: false,
+        slideTitle: "",
+        bulletPoints: [],
+        isEmpty: true,
+      };
+    }
+
+    // Parse 2D Table Grid
+    let tableGrid = tsv ? parseOcrTsvToGrid(tsv) : [];
+    if (tableGrid.length < 2 || Math.max(...tableGrid.map((r) => r.length)) < 2) {
+      tableGrid = parseOcrTextToGrid(rawLines, "grid");
+    }
+
+    const maxCols = tableGrid.length > 0 ? Math.max(...tableGrid.map((r) => r.length)) : 1;
+    const isTable = tableGrid.length >= 2 && maxCols >= 2;
+
+    let slideTitle = "";
+    const bulletPoints: string[] = [];
+
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i]!;
+      if (!slideTitle && line.length > 3 && line.length < 75) {
+        slideTitle = line.replace(/^[#•\-\*\d\.\)\s]+/, "").trim();
+      } else {
+        const cleanBullet = line.replace(/^[•\-\*\d\.\)\s]+/, "").trim();
+        if (cleanBullet.length > 2) {
+          bulletPoints.push(cleanBullet);
+        }
+      }
+    }
+
+    if (!slideTitle && rawLines[0]) {
+      slideTitle = rawLines[0].slice(0, 60);
+    }
+
+    return {
+      textLines: rawLines,
+      rawWords: words,
+      confidence: Math.round(confidence),
+      tableGrid,
+      isTable,
+      slideTitle: slideTitle || "Presentation Slide",
+      bulletPoints: bulletPoints.slice(0, 10),
+      isEmpty: false,
+    };
+  } catch (err) {
+    console.error("Tesseract Worker execution failed:", err);
+    // Reset worker reference so future calls don't hang on a dead worker
+    if (activeOcrWorker) {
+      try {
+        await activeOcrWorker.worker.terminate();
+      } catch {}
+      activeOcrWorker = null;
+      workerInitPromise = null;
+    }
+  }
+
   return {
     textLines: [],
     rawWords: [],

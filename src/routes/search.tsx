@@ -579,11 +579,6 @@ function DedicatedSearchPage() {
             <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-orange-500/10 blur-3xl hidden sm:block" />
 
             <div className="relative z-10 max-w-3xl mx-auto text-center space-y-3 sm:space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/50 px-3.5 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider shadow-2xs">
-                <Sparkles className="h-3.5 w-3.5 text-accent animate-spin-slow" />
-                <span>Universal AI Discovery Hub</span>
-              </div>
-
               <h1 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground">
                 Search Anything on bg.tools<span className="text-accent">.</span>
               </h1>
@@ -833,12 +828,12 @@ function DedicatedSearchPage() {
                       return (
                         <div
                           key={`model-${model.id}`}
-                          className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-sm hover:shadow-xl hover:border-purple-500/40 hover:-translate-y-1 transition-all duration-300"
+                          className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-sm hover:shadow-xl hover:border-red-500/40 hover:-translate-y-1 transition-all duration-300"
                         >
                           <div>
                             {/* Top Meta Header */}
                             <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/60">
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 px-2.5 py-0.5 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/25 px-2.5 py-0.5 text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
                                 <Cpu className="h-3 w-3" />
                                 Neural Model
                               </span>
@@ -849,11 +844,11 @@ function DedicatedSearchPage() {
 
                             {/* Title & Icon */}
                             <div className="mt-4 flex items-start gap-3.5">
-                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300 shadow-2xs">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors duration-300 shadow-2xs">
                                 <Icon className="h-5 w-5" />
                               </div>
                               <div className="min-w-0">
-                                <h3 className="font-display text-base sm:text-lg font-bold text-foreground group-hover:text-purple-500 transition-colors">
+                                <h3 className="font-display text-base sm:text-lg font-bold text-foreground group-hover:text-red-500 transition-colors">
                                   <HighlightText text={model.name} query={query} />
                                 </h3>
                                 <p className="text-xs font-semibold text-muted-foreground mt-0.5">
@@ -869,7 +864,7 @@ function DedicatedSearchPage() {
                             <div className="mt-4 space-y-1 text-[11px] text-muted-foreground">
                               {model.traits.slice(0, 2).map((tr, idx) => (
                                 <div key={idx} className="flex items-center gap-1.5 truncate">
-                                  <CheckCircle2 className="h-3 w-3 text-purple-500 shrink-0" />
+                                  <CheckCircle2 className="h-3 w-3 text-red-500 shrink-0" />
                                   <span className="truncate">{tr}</span>
                                 </div>
                               ))}
@@ -880,7 +875,7 @@ function DedicatedSearchPage() {
                           <div className="mt-5 pt-3.5 border-t border-border/60">
                             <Link
                               to="/models"
-                              className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500 hover:text-white px-3.5 py-2 text-xs font-bold text-purple-600 dark:text-purple-400 transition-all cursor-pointer"
+                              className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-600 hover:text-white px-3.5 py-2 text-xs font-bold text-red-600 dark:text-red-400 transition-all cursor-pointer"
                             >
                               <span>Explore Model Specs</span>
                               <ArrowRight className="h-3.5 w-3.5" />
@@ -1065,10 +1060,10 @@ function DedicatedSearchPage() {
               <div className="pt-2 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-display text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
-                    <Cpu className="h-4 w-4 text-purple-500" />
+                    <Cpu className="h-4 w-4 text-red-500" />
                     <span>Proprietary Neural Model Engines</span>
                   </h3>
-                  <Link to="/models" className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-1">
+                  <Link to="/models" className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline inline-flex items-center gap-1">
                     <span>View Specifications</span>
                     <ArrowRight className="h-3 w-3" />
                   </Link>
@@ -1085,23 +1080,23 @@ function DedicatedSearchPage() {
                           setQuery(model.name);
                           inputRef.current?.focus();
                         }}
-                        className="group flex flex-col justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-muted/70 hover:border-purple-500/40 transition-all cursor-pointer shadow-xs hover:-translate-y-0.5 text-left"
+                        className="group flex flex-col justify-between p-4 rounded-2xl border border-border/80 bg-card hover:bg-muted/70 hover:border-red-500/40 transition-all cursor-pointer shadow-xs hover:-translate-y-0.5 text-left"
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors">
                               <Icon className="h-4 w-4" />
                             </span>
                             <span className="text-[9px] font-mono font-bold text-muted-foreground uppercase">{model.quality.split(" ")[0]}</span>
                           </div>
-                          <h4 className="font-display text-sm font-bold text-foreground group-hover:text-purple-500 transition-colors mt-3">
+                          <h4 className="font-display text-sm font-bold text-foreground group-hover:text-red-500 transition-colors mt-3">
                             {model.name}
                           </h4>
                           <p className="text-[11px] text-muted-foreground font-medium mt-0.5 line-clamp-2">
                             {model.specialty}
                           </p>
                         </div>
-                        <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1 mt-3">
+                        <p className="text-[10px] text-red-600 dark:text-red-400 font-bold flex items-center gap-1 mt-3">
                           <span>Search model</span>
                           <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </p>

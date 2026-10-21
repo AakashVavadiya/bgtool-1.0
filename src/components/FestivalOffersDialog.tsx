@@ -37,7 +37,7 @@ export function FestivalOffersDialog({
   forceOpen,
   onClose,
 }: FestivalOffersDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => Boolean(forceOpen));
   const [offer, setOffer] = useState<PurchasePlanConfig | null>(() => {
     return customOffer || AdminStore.getActiveFestivalOffer();
   });
@@ -47,6 +47,47 @@ export function FestivalOffersDialog({
   const routerState = useRouterState();
   const currentPath = routerState?.location?.pathname || "";
   const isAdminRoute = currentPath.startsWith("/admin");
+
+  // Keep state synchronized if props change
+  useEffect(() => {
+    if (forceOpen !== undefined) {
+      setIsOpen(forceOpen);
+    }
+  }, [forceOpen]);
+
+  useEffect(() => {
+    if (customOffer !== undefined) {
+      setOffer(customOffer);
+      if (customOffer && forceOpen) {
+        setIsOpen(true);
+      }
+    }
+  }, [customOffer, forceOpen]);
+
+  const handleClose = () => {
+    if (!isAdminRoute && !customOffer) {
+      try {
+        sessionStorage.setItem("bg.festival_dialog.dismissed", "true");
+      } catch {
+        /* ignore */
+      }
+    }
+    setIsOpen(false);
+    if (onClose) onClose();
+  };
+
+  // Close on Escape key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     const handleCurr = (e: any) => {
@@ -99,13 +140,12 @@ export function FestivalOffersDialog({
     ? Math.round(((offer.originalPriceINR! - offer.priceINR) / offer.originalPriceINR!) * 100)
     : 0;
 
-  const handleClose = () => {
-    sessionStorage.setItem("bg.festival_dialog.dismissed", "true");
-    setIsOpen(false);
-    if (onClose) onClose();
-  };
-
   const handleClaimOffer = () => {
+    if (isAdminRoute || customOffer) {
+      toast.info("Preview Mode: In customer view, this directs to checkout.");
+      handleClose();
+      return;
+    }
     handleClose();
     if (typeof window !== "undefined") {
       window.location.href = `/cart?plan=${encodeURIComponent(offer.name)}&planType=festival&credits=${totalCredits}&price=${offer.priceINR}`;
@@ -115,7 +155,12 @@ export function FestivalOffersDialog({
   const bannerImg = offer.imageUrl || "/images/festival-offer-banner.jpg";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in"
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
         className="relative w-full max-w-xl overflow-hidden rounded-3xl border-2 border-amber-500/40 bg-card text-foreground shadow-2xl shadow-amber-500/15 transition-all animate-scale-up"
         onClick={(e) => e.stopPropagation()}
@@ -123,8 +168,11 @@ export function FestivalOffersDialog({
         {/* Close Button */}
         <button
           type="button"
-          onClick={handleClose}
-          className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white/90 backdrop-blur-md hover:bg-black/80 hover:text-white transition-all cursor-pointer shadow-md"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
+          className="absolute right-4 top-4 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white/95 backdrop-blur-md hover:bg-black hover:text-white transition-all cursor-pointer shadow-lg ring-1 ring-white/20 active:scale-90"
           aria-label="Close dialog"
         >
           <X className="h-5 w-5" />
@@ -240,17 +288,34 @@ export function FestivalOffersDialog({
               className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-slate-950 shadow-lg shadow-amber-500/25 hover:bg-amber-400 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <Gift className="h-5 w-5" />
-              <span>{isClaiming ? "Adding Credits..." : `Claim Offer (${formatCurrency(offer.priceINR, currentCurrency)})`}</span>
+              <span>
+                {isAdminRoute || customOffer
+                  ? `Claim Offer (${formatCurrency(offer.priceINR, currentCurrency)})`
+                  : isClaiming
+                  ? "Adding Credits..."
+                  : `Claim Offer (${formatCurrency(offer.priceINR, currentCurrency)})`}
+              </span>
             </button>
 
-            <Link
-              to="/pricing"
-              onClick={handleClose}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-secondary/60 px-5 py-4 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-            >
-              <span>All Plans</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            {isAdminRoute || customOffer || onClose ? (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-secondary/80 hover:bg-secondary px-6 py-4 text-xs font-bold text-foreground transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
+              >
+                <X className="h-4 w-4" />
+                <span>Close Preview</span>
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                onClick={handleClose}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-secondary/60 px-5 py-4 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              >
+                <span>All Plans</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
 
           {/* Trust Guarantees */}

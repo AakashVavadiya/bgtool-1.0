@@ -17,11 +17,13 @@ import {
   IndianRupee,
   Layers,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { toast } from "sonner";
+import { downloadPaymentSlipPdf } from "@/lib/payment-slip-pdf";
 
 export interface UserPaymentRecord {
   id: string;
@@ -49,6 +51,7 @@ interface AccountPurchasesTabProps {
 export function AccountPurchasesTab({ currentUser }: AccountPurchasesTabProps) {
   const [payments, setPayments] = useState<UserPaymentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedSlip, setSelectedSlip] = useState<UserPaymentRecord | null>(null);
   const [search, setSearch] = useState("");
 
@@ -140,51 +143,18 @@ export function AccountPurchasesTab({ currentUser }: AccountPurchasesTabProps) {
     window.print();
   };
 
-  const handleDownloadSlip = (p: UserPaymentRecord) => {
-    const slipNumber = `SLIP-${p.order_id.replace(/^order_/, "").toUpperCase()}`;
-    const basePrice = Math.round((p.amount_inr / 1.18) * 100) / 100;
-    const taxAmount = Math.round((p.amount_inr - basePrice) * 100) / 100;
-
-    const slipContent = `
-===================================================================
-                  bg.tools MEDIA TECHNOLOGIES
-            OFFICIAL PAYMENT SLIP & TAX INVOICE
-===================================================================
-Slip Number   : ${slipNumber}
-Date & Time   : ${new Date(p.created_at).toLocaleString()}
-Status        : PAID (VERIFIED VIA RAZORPAY)
-Payment Method: ${p.payment_method}
-Razorpay PayID: ${p.payment_id || "N/A"}
-Order Ref ID  : ${p.order_id}
--------------------------------------------------------------------
-BILLED TO:
-Customer Name : ${p.user_name || currentUser.name}
-Email Address : ${p.user_email || currentUser.email}
-Account ID    : ${currentUser.id}
-Region        : Surat, Gujarat, India
--------------------------------------------------------------------
-ITEMIZED SUMMARY:
-Description   : ${p.plan_name}
-Token Credits : ${p.credits} Permanent Gold Tokens
-Base Amount   : INR ${basePrice.toFixed(2)}
-GST (18% IGST): INR ${taxAmount.toFixed(2)}
--------------------------------------------------------------------
-TOTAL AMOUNT  : INR ${p.amount_inr.toFixed(2)} [PAID]
--------------------------------------------------------------------
-Security Hash : ${p.signature || "SHA256_VERIFIED_GATEWAY"}
-Policy Guarantee: Zero storage compliance. Instant token credit.
-Support Email : support@bg.tools | https://bg.tools
-===================================================================
-    `;
-
-    const blob = new Blob([slipContent], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slipNumber}_bg_tools.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Payment slip downloaded successfully.");
+  const handleDownloadSlip = async (p: UserPaymentRecord) => {
+    try {
+      setDownloadingId(p.id);
+      toast.info("Generating detailed official PDF slip...");
+      await downloadPaymentSlipPdf(p, currentUser);
+      toast.success("Payment slip downloaded successfully as PDF.");
+    } catch (err) {
+      console.error("Failed to generate PDF payment slip:", err);
+      toast.error("Failed to generate PDF slip. Please try again or use Print.");
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
@@ -364,11 +334,16 @@ Support Email : support@bg.tools | https://bg.tools
 
                         <button
                           type="button"
+                          disabled={downloadingId === item.id}
                           onClick={() => handleDownloadSlip(item)}
-                          title="Download Slip"
-                          className="p-1 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                          title="Download Official PDF Slip"
+                          className="p-1 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <Download className="h-3.5 w-3.5" />
+                          {downloadingId === item.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-500" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5" />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -383,6 +358,28 @@ Support Email : support@bg.tools | https://bg.tools
       {/* ─── Official Payment Slip & Tax Invoice Modal ──────────────────────── */}
       {selectedSlip && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in overflow-y-auto">
+          <style>{`
+            @media print {
+              body {
+                background: white !important;
+              }
+              .print\\:hidden {
+                display: none !important;
+              }
+              #payment-slip-printable {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 24px !important;
+                background: white !important;
+                color: #0f172a !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+            }
+          `}</style>
           <div className="w-full max-w-xl rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden animate-in zoom-in-95 my-8">
             {/* Modal Top Action Bar */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/50 print:hidden">
@@ -405,11 +402,21 @@ Support Email : support@bg.tools | https://bg.tools
 
                 <button
                   type="button"
+                  disabled={downloadingId === selectedSlip.id}
                   onClick={() => handleDownloadSlip(selectedSlip)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-75"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Download</span>
+                  {downloadingId === selectedSlip.id ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Generating PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Download PDF</span>
+                    </>
+                  )}
                 </button>
 
                 <button

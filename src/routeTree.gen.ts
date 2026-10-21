@@ -36,6 +36,7 @@ import { Route as ApiIndexRouteImport } from './routes/api.index'
 import { Route as ApiBlurFaceRouteImport } from './routes/api/blur-face'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
+import { Route as ApiOcrRouteImport } from './routes/api/ocr'
 import { Route as ApiPlansConfigRouteImport } from './routes/api/plans-config'
 import { Route as ApiRemoveBgRouteImport } from './routes/api/remove-bg'
 import { Route as ApiRemoveWatermarkRouteImport } from './routes/api/remove-watermark'
@@ -186,6 +187,11 @@ const ApiContactRoute = ApiContactRouteImport.update({
   path: '/api/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOcrRoute = ApiOcrRouteImport.update({
+  id: '/api/ocr',
+  path: '/api/ocr',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPlansConfigRoute = ApiPlansConfigRouteImport.update({
   id: '/api/plans-config',
   path: '/api/plans-config',
@@ -284,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/ocr': typeof ApiOcrRoute
   '/api/plans-config': typeof ApiPlansConfigRoute
   '/api/remove-bg': typeof ApiRemoveBgRoute
   '/api/remove-watermark': typeof ApiRemoveWatermarkRoute
@@ -326,6 +333,7 @@ export interface FileRoutesByTo {
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/ocr': typeof ApiOcrRoute
   '/api/plans-config': typeof ApiPlansConfigRoute
   '/api/remove-bg': typeof ApiRemoveBgRoute
   '/api/remove-watermark': typeof ApiRemoveWatermarkRoute
@@ -370,6 +378,7 @@ export interface FileRoutesById {
   '/api/blur-face': typeof ApiBlurFaceRoute
   '/api/chat': typeof ApiChatRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/ocr': typeof ApiOcrRoute
   '/api/plans-config': typeof ApiPlansConfigRoute
   '/api/remove-bg': typeof ApiRemoveBgRoute
   '/api/remove-watermark': typeof ApiRemoveWatermarkRoute
@@ -415,6 +424,7 @@ export interface FileRouteTypes {
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
+    | '/api/ocr'
     | '/api/plans-config'
     | '/api/remove-bg'
     | '/api/remove-watermark'
@@ -457,6 +467,7 @@ export interface FileRouteTypes {
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
+    | '/api/ocr'
     | '/api/plans-config'
     | '/api/remove-bg'
     | '/api/remove-watermark'
@@ -500,6 +511,7 @@ export interface FileRouteTypes {
     | '/api/blur-face'
     | '/api/chat'
     | '/api/contact'
+    | '/api/ocr'
     | '/api/plans-config'
     | '/api/remove-bg'
     | '/api/remove-watermark'
@@ -543,6 +555,7 @@ export interface RootRouteChildren {
   ApiBlurFaceRoute: typeof ApiBlurFaceRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiContactRoute: typeof ApiContactRoute
+  ApiOcrRoute: typeof ApiOcrRoute
   ApiPlansConfigRoute: typeof ApiPlansConfigRoute
   ApiRemoveBgRoute: typeof ApiRemoveBgRoute
   ApiRemoveWatermarkRoute: typeof ApiRemoveWatermarkRoute
@@ -749,6 +762,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ocr': {
+      id: '/api/ocr'
+      path: '/api/ocr'
+      fullPath: '/api/ocr'
+      preLoaderRoute: typeof ApiOcrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/plans-config': {
       id: '/api/plans-config'
       path: '/api/plans-config'
@@ -899,6 +919,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBlurFaceRoute: ApiBlurFaceRoute,
   ApiChatRoute: ApiChatRoute,
   ApiContactRoute: ApiContactRoute,
+  ApiOcrRoute: ApiOcrRoute,
   ApiPlansConfigRoute: ApiPlansConfigRoute,
   ApiRemoveBgRoute: ApiRemoveBgRoute,
   ApiRemoveWatermarkRoute: ApiRemoveWatermarkRoute,

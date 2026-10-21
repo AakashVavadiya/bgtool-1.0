@@ -212,16 +212,12 @@ function DeveloperPage() {
                     {/* Header: Avatar, Name & Role */}
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-4">
-                        <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-linear-to-tr from-amber-500 to-orange-500 text-white font-display text-2xl sm:text-3xl font-black shadow-lg shadow-orange-500/30 overflow-hidden ring-4 ring-amber-500/20">
+                        <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-linear-to-tr from-amber-500 to-orange-500 shadow-lg shadow-orange-500/30 overflow-hidden ring-4 ring-amber-500/20">
                           <img
-                            src="/profile-avatars/Boy1.jpg"
+                            src="/profile-avatars/Boy6.jpg"
                             alt="Aakash Vavadiya"
                             className="h-full w-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = "none";
-                            }}
                           />
-                          <span className="absolute">AV</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -296,16 +292,12 @@ function DeveloperPage() {
                     {/* Header: Avatar, Name & Role */}
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-4">
-                        <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-linear-to-tr from-orange-500 to-rose-500 text-white font-display text-2xl sm:text-3xl font-black shadow-lg shadow-rose-500/30 overflow-hidden ring-4 ring-orange-500/20">
+                        <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-linear-to-tr from-orange-500 to-rose-500 shadow-lg shadow-rose-500/30 overflow-hidden ring-4 ring-orange-500/20">
                           <img
-                            src="/profile-avatars/Boy2.jpg"
+                            src="/profile-avatars/Boy10.jpg"
                             alt="Piyush Chodvadiya"
                             className="h-full w-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = "none";
-                            }}
                           />
-                          <span className="absolute">PC</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">

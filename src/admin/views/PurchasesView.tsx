@@ -134,6 +134,19 @@ export function PurchasesView() {
     };
   }, []);
 
+  // Keyboard shortcut (Escape) to close any active admin dialog/modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (previewOffer) setPreviewOffer(null);
+        if (isModalOpen) setIsModalOpen(false);
+        if (isPromoModalOpen) setIsPromoModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewOffer, isModalOpen, isPromoModalOpen]);
+
   const handleOpenAddPromoModal = () => {
     setEditingPromo(null);
     setPromoFormCode("");
@@ -1129,8 +1142,14 @@ export function PurchasesView() {
 
       {/* ADD / EDIT PROMO CODE MODAL */}
       {isPromoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl text-foreground my-8">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto"
+          onClick={() => setIsPromoModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl text-foreground my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
                 <h3 className="font-display text-xl font-bold text-foreground">
@@ -1292,8 +1311,14 @@ export function PurchasesView() {
 
       {/* ADD / EDIT PLAN MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl text-foreground my-8">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl text-foreground my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
                 <h3 className="font-display text-xl font-bold text-foreground">

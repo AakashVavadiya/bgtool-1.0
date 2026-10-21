@@ -155,7 +155,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
   const isHeaderSticky = floating || (uiSettings.structure?.headerSticky ?? true);
 
   return (
-    <header className={isHeaderSticky ? "sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border transition-all" : "relative z-50 border-b border-border bg-background transition-all"}>
+    <header className={isHeaderSticky ? "sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border transition-all select-none" : "relative z-50 border-b border-border bg-background transition-all select-none"}>
       {/* Top Announcement Bar if enabled in Pro Settings */}
       {uiSettings.announcementEnabled && uiSettings.announcementText && (
         <div
@@ -185,19 +185,19 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <nav className="hidden items-center gap-2 lg:gap-3.5 xl:gap-5 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-65px)] shrink-0 overflow-hidden whitespace-nowrap">
+        <nav className="hidden items-center gap-2 lg:gap-3.5 xl:gap-5 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-65px)] shrink-0 overflow-hidden whitespace-nowrap select-none">
           {visibleLinks.map((l) =>
             "hash" in l ? (
               <Link
                 key={l.label}
                 to={l.to}
                 hash={l.hash}
-                className="transition-all hover:text-accent hover:opacity-80 shrink-0"
+                className="transition-all hover:text-accent hover:opacity-80 shrink-0 select-none"
               >
                 {renderTabLabel(l.label)}
               </Link>
             ) : (
-              <Link key={l.label} to={l.to} className="transition-all hover:text-accent hover:opacity-80 shrink-0">
+              <Link key={l.label} to={l.to} className="transition-all hover:text-accent hover:opacity-80 shrink-0 select-none">
                 {renderTabLabel(l.label)}
               </Link>
             ),
@@ -436,13 +436,13 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
               )}
             </div>
           ) : (
-            <div className="hidden md:flex items-center gap-2.5 sm:gap-4">
-              <Link to="/login" className="text-base font-medium transition-opacity hover:opacity-60 hidden sm:inline">
+            <div className="hidden md:flex items-center gap-2.5 sm:gap-4 select-none">
+              <Link to="/login" className="text-base font-medium transition-opacity hover:opacity-60 hidden sm:inline select-none">
                 Log in
               </Link>
               <Link
                 to="/signup"
-                className="rounded-full bg-foreground px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-semibold text-background transition-all hover:scale-[1.03] hover:opacity-90"
+                className="rounded-full bg-foreground px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-semibold text-background transition-all hover:scale-[1.03] hover:opacity-90 select-none"
               >
                 Sign up
               </Link>
@@ -500,7 +500,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
             </Link>
 
             {/* Navigation links */}
-            <nav className="flex flex-col gap-1">
+            <nav className="flex flex-col gap-1 select-none">
               {visibleLinks.map((l) =>
                 "hash" in l ? (
                   <Link
@@ -508,7 +508,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                     to={l.to}
                     hash={l.hash}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-foreground hover:bg-muted/70 transition-colors"
+                    className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-foreground hover:bg-muted/70 transition-colors select-none"
                   >
                     <span>{renderTabLabel(l.label)}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -518,7 +518,7 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                     key={l.label}
                     to={l.to}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-foreground hover:bg-muted/70 transition-colors"
+                    className="flex items-center justify-between rounded-2xl px-4 py-3 text-base font-bold text-foreground hover:bg-muted/70 transition-colors select-none"
                   >
                     <span>{renderTabLabel(l.label)}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
