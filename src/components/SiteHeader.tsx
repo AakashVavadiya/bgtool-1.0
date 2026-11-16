@@ -8,7 +8,6 @@ import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings, Key, Search, Layers, FileText } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
-import { NotificationPopover } from "@/components/NotificationPopover";
 import { getAvatarUrl } from "@/lib/profile-avatars";
 
 const links = [
@@ -372,9 +371,6 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
               }`}
             />
           </Link>
-
-          {/* Real-time Notifications Popover Button */}
-          <NotificationPopover />
 
           {uiSettings.showThemeToggle && (
             <div className="hidden md:flex">

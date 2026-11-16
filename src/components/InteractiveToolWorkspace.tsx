@@ -38,6 +38,7 @@ import {
   FileDown,
   Table2,
   MonitorPlay,
+  Presentation,
   Binary,
   Cpu,
   Terminal,
@@ -1086,7 +1087,7 @@ const renderPdfToImage = async (
     } catch {
       try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version || "6.3.289"}/build/pdf.worker.min.mjs`;
-      } catch {}
+      } catch { }
     }
 
     const copy = buffer.slice(0);
@@ -1251,7 +1252,7 @@ const renderAllPdfPagesToZip = async (
   } catch {
     try {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version || "6.3.289"}/build/pdf.worker.min.mjs`;
-    } catch {}
+    } catch { }
   }
 
   const copy = buffer.slice(0);
@@ -1709,8 +1710,8 @@ const getExcelSheetsMetadata = async (
           const norm = target.startsWith("worksheets/")
             ? `xl/${target}`
             : target.startsWith("/")
-            ? target.slice(1)
-            : `xl/${target}`;
+              ? target.slice(1)
+              : `xl/${target}`;
           relsMap.set(id, norm);
         }
       });
@@ -3426,12 +3427,12 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
   try {
     const mod = await import("jsqr");
     jsQRModule = (mod as any).default || mod;
-  } catch {}
+  } catch { }
 
   let zxingModule: any = null;
   try {
     zxingModule = await import("@zxing/library");
-  } catch {}
+  } catch { }
 
   // Run detection on each candidate canvas
   for (const c of candidateCanvases) {
@@ -3453,7 +3454,7 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
             addResult(item.rawValue, String(item.format || "qr_code"));
           }
         }
-      } catch {}
+      } catch { }
     }
 
     // Prepare pixel buffers
@@ -3479,7 +3480,7 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
         if (code && code.data && code.data.trim()) {
           addResult(code.data, "QR Code");
         }
-      } catch {}
+      } catch { }
 
       // If not detected yet, try high-contrast grayscale pass with jsQR
       if (results.length === 0) {
@@ -3504,7 +3505,7 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
           if (code && code.data && code.data.trim()) {
             addResult(code.data, "QR Code");
           }
-        } catch {}
+        } catch { }
       }
     }
 
@@ -3562,7 +3563,7 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
             const fmt = res.getBarcodeFormat() ? String(res.getBarcodeFormat()) : "Barcode";
             addResult(res.getText(), fmt);
           }
-        } catch {}
+        } catch { }
 
         // 3b. GlobalHistogramBinarizer
         try {
@@ -3572,7 +3573,7 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
             const fmt = res.getBarcodeFormat() ? String(res.getBarcodeFormat()) : "Barcode";
             addResult(res.getText(), fmt);
           }
-        } catch {}
+        } catch { }
 
         // 3c. Dedicated QRCodeReader with HybridBinarizer
         try {
@@ -3582,7 +3583,7 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
           if (res && res.getText()) {
             addResult(res.getText(), "QR Code");
           }
-        } catch {}
+        } catch { }
 
         // 3d. Dedicated QRCodeReader with GlobalHistogramBinarizer
         try {
@@ -3592,7 +3593,7 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
           if (res && res.getText()) {
             addResult(res.getText(), "QR Code");
           }
-        } catch {}
+        } catch { }
 
         // 3e. Inverted luminance pass for white QR on black background
         try {
@@ -3607,8 +3608,8 @@ const detectBarcodesAndQRs = async (canvas: HTMLCanvasElement): Promise<Detected
             const fmt = res.getBarcodeFormat() ? String(res.getBarcodeFormat()) : "Barcode";
             addResult(res.getText(), fmt);
           }
-        } catch {}
-      } catch {}
+        } catch { }
+      } catch { }
     }
 
     // If we detected codes in primary passes, break early
@@ -3705,176 +3706,176 @@ const renderHtmlToImage = async (
 ): Promise<string> => {
   return new Promise<string>((resolve, reject) => {
     (async () => {
-    // 1. Create a scoped container attached to document.body
-    const containerId = "html-render-sandbox-" + Math.random().toString(36).substring(2, 9);
-    const container = document.createElement("div");
-    container.id = containerId;
-    container.className = "bgtool-html-render-container";
-    container.style.position = "fixed";
-    container.style.left = "0px";
-    container.style.top = "0px";
-    container.style.width = `${width}px`;
-    container.style.height = `${height}px`;
-    container.style.minWidth = `${width}px`;
-    container.style.minHeight = `${height}px`;
-    container.style.maxWidth = `${width}px`;
-    container.style.maxHeight = `${height}px`;
-    container.style.overflow = "hidden";
-    container.style.zIndex = "-99999";
-    container.style.opacity = "1";
-    container.style.pointerEvents = "none";
-    container.style.visibility = "visible";
-    container.style.transform = "translateZ(0)";
-    container.style.boxSizing = "border-box";
-    container.style.margin = "0";
-    container.style.padding = "0";
-    container.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-    container.style.color = "#0f172a";
+      // 1. Create a scoped container attached to document.body
+      const containerId = "html-render-sandbox-" + Math.random().toString(36).substring(2, 9);
+      const container = document.createElement("div");
+      container.id = containerId;
+      container.className = "bgtool-html-render-container";
+      container.style.position = "fixed";
+      container.style.left = "0px";
+      container.style.top = "0px";
+      container.style.width = `${width}px`;
+      container.style.height = `${height}px`;
+      container.style.minWidth = `${width}px`;
+      container.style.minHeight = `${height}px`;
+      container.style.maxWidth = `${width}px`;
+      container.style.maxHeight = `${height}px`;
+      container.style.overflow = "hidden";
+      container.style.zIndex = "-99999";
+      container.style.opacity = "1";
+      container.style.pointerEvents = "none";
+      container.style.visibility = "visible";
+      container.style.transform = "translateZ(0)";
+      container.style.boxSizing = "border-box";
+      container.style.margin = "0";
+      container.style.padding = "0";
+      container.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      container.style.color = "#0f172a";
 
-    // Parse and sanitize the input HTML
-    const parsedDoc = sanitizeHtmlForImageExport(html);
+      // Parse and sanitize the input HTML
+      const parsedDoc = sanitizeHtmlForImageExport(html);
 
-    // Extract all <style> elements and transform `body` / `html` selectors to target our container
-    const styleTags = Array.from(parsedDoc.querySelectorAll("style"));
-    const injectedStyles: HTMLStyleElement[] = [];
+      // Extract all <style> elements and transform `body` / `html` selectors to target our container
+      const styleTags = Array.from(parsedDoc.querySelectorAll("style"));
+      const injectedStyles: HTMLStyleElement[] = [];
 
-    styleTags.forEach((s) => {
-      try {
-        let cssText = s.textContent || "";
-        // Replace body and html root selectors with container ID selector
-        cssText = cssText
-          .replace(/(^|[,\s{}])html\s*([,{])/gi, `$1#${containerId}$2`)
-          .replace(/(^|[,\s{}])body\s*([,{])/gi, `$1#${containerId}$2`);
-
-        const newStyle = document.createElement("style");
-        newStyle.setAttribute("data-bgtool-render-style", containerId);
-        newStyle.textContent = cssText;
-        document.head.appendChild(newStyle);
-        injectedStyles.push(newStyle);
-      } catch {
-        // ignore
-      }
-    });
-
-    // Extract link stylesheets
-    const linkTags = Array.from(parsedDoc.querySelectorAll("link[rel='stylesheet']"));
-    linkTags.forEach((l) => {
-      try {
-        const newLink = l.cloneNode(true) as HTMLLinkElement;
-        newLink.setAttribute("data-bgtool-render-style", containerId);
-        document.head.appendChild(newLink);
-      } catch {
-        // ignore
-      }
-    });
-
-    // Extract body content and inline styles
-    if (parsedDoc.body) {
-      const bodyStyleAttr = parsedDoc.body.getAttribute("style");
-      if (bodyStyleAttr) {
-        container.setAttribute("style", `${container.getAttribute("style") || ""}; ${bodyStyleAttr}`);
-        container.style.width = `${width}px`;
-        container.style.height = `${height}px`;
-        container.style.overflow = "hidden";
-      }
-      const bodyClassAttr = parsedDoc.body.getAttribute("class");
-      if (bodyClassAttr) {
-        container.className = `${container.className} ${bodyClassAttr}`;
-      }
-      container.innerHTML = parsedDoc.body.innerHTML;
-    } else {
-      container.innerHTML = "";
-    }
-
-    // Apply explicit background color if specified
-    if (bgColor && bgColor !== "auto") {
-      if (bgColor === "transparent") {
-        container.style.backgroundColor = "transparent";
-      } else {
-        container.style.backgroundColor = bgColor;
-      }
-    } else {
-      container.style.backgroundColor = "#ffffff";
-    }
-
-    document.body.appendChild(container);
-
-    let isCleanedUp = false;
-    const cleanup = () => {
-      if (isCleanedUp) return;
-      isCleanedUp = true;
-      if (container.parentNode) {
-        container.parentNode.removeChild(container);
-      }
-      // Remove temporary injected styles
-      const tempStyles = document.querySelectorAll(`[data-bgtool-render-style="${containerId}"]`);
-      tempStyles.forEach((el) => el.parentNode?.removeChild(el));
-    };
-
-    const timer = setTimeout(() => {
-      cleanup();
-      tryRawSvgFallback(html, width, height, bgColor, format, resolve, reject);
-    }, 7000);
-
-    try {
-      // 1. Wait for web fonts to load
-      if (document.fonts && document.fonts.ready) {
+      styleTags.forEach((s) => {
         try {
-          await document.fonts.ready;
+          let cssText = s.textContent || "";
+          // Replace body and html root selectors with container ID selector
+          cssText = cssText
+            .replace(/(^|[,\s{}])html\s*([,{])/gi, `$1#${containerId}$2`)
+            .replace(/(^|[,\s{}])body\s*([,{])/gi, `$1#${containerId}$2`);
+
+          const newStyle = document.createElement("style");
+          newStyle.setAttribute("data-bgtool-render-style", containerId);
+          newStyle.textContent = cssText;
+          document.head.appendChild(newStyle);
+          injectedStyles.push(newStyle);
         } catch {
-          // non-fatal
+          // ignore
         }
+      });
+
+      // Extract link stylesheets
+      const linkTags = Array.from(parsedDoc.querySelectorAll("link[rel='stylesheet']"));
+      linkTags.forEach((l) => {
+        try {
+          const newLink = l.cloneNode(true) as HTMLLinkElement;
+          newLink.setAttribute("data-bgtool-render-style", containerId);
+          document.head.appendChild(newLink);
+        } catch {
+          // ignore
+        }
+      });
+
+      // Extract body content and inline styles
+      if (parsedDoc.body) {
+        const bodyStyleAttr = parsedDoc.body.getAttribute("style");
+        if (bodyStyleAttr) {
+          container.setAttribute("style", `${container.getAttribute("style") || ""}; ${bodyStyleAttr}`);
+          container.style.width = `${width}px`;
+          container.style.height = `${height}px`;
+          container.style.overflow = "hidden";
+        }
+        const bodyClassAttr = parsedDoc.body.getAttribute("class");
+        if (bodyClassAttr) {
+          container.className = `${container.className} ${bodyClassAttr}`;
+        }
+        container.innerHTML = parsedDoc.body.innerHTML;
+      } else {
+        container.innerHTML = "";
       }
 
-      // 2. Wait for images inside container to load
-      const imgElements = Array.from(container.querySelectorAll("img"));
-      if (imgElements.length > 0) {
-        await Promise.all(
-          imgElements.map((img) => {
-            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-            return new Promise((res) => {
-              img.onload = () => res(null);
-              img.onerror = () => res(null);
-              setTimeout(() => res(null), 2500);
-            });
-          })
-        );
+      // Apply explicit background color if specified
+      if (bgColor && bgColor !== "auto") {
+        if (bgColor === "transparent") {
+          container.style.backgroundColor = "transparent";
+        } else {
+          container.style.backgroundColor = bgColor;
+        }
+      } else {
+        container.style.backgroundColor = "#ffffff";
       }
 
-      // 3. Short settlement delay for layout / CSS reflow
-      await new Promise((r) => setTimeout(r, 120));
+      document.body.appendChild(container);
 
-      const htmlToImageLib = await import("html-to-image");
-      const options: any = {
-        width,
-        height,
-        canvasWidth: width * 2,
-        canvasHeight: height * 2,
-        pixelRatio: 2,
-        cacheBust: true,
-        skipAutoScale: true,
+      let isCleanedUp = false;
+      const cleanup = () => {
+        if (isCleanedUp) return;
+        isCleanedUp = true;
+        if (container.parentNode) {
+          container.parentNode.removeChild(container);
+        }
+        // Remove temporary injected styles
+        const tempStyles = document.querySelectorAll(`[data-bgtool-render-style="${containerId}"]`);
+        tempStyles.forEach((el) => el.parentNode?.removeChild(el));
       };
 
-      if (bgColor && bgColor !== "auto" && bgColor !== "transparent") {
-        options.backgroundColor = bgColor;
-      }
+      const timer = setTimeout(() => {
+        cleanup();
+        tryRawSvgFallback(html, width, height, bgColor, format, resolve, reject);
+      }, 7000);
 
-      let dataUrl: string;
-      if (format === "JPG") {
-        dataUrl = await htmlToImageLib.toJpeg(container, { ...options, quality: 0.95 });
-      } else {
-        dataUrl = await htmlToImageLib.toPng(container, options);
-      }
+      try {
+        // 1. Wait for web fonts to load
+        if (document.fonts && document.fonts.ready) {
+          try {
+            await document.fonts.ready;
+          } catch {
+            // non-fatal
+          }
+        }
 
-      clearTimeout(timer);
-      cleanup();
-      resolve(dataUrl);
-    } catch (err) {
-      console.warn("Scoped container html-to-image failed, falling back to SVG:", err);
-      clearTimeout(timer);
-      cleanup();
-      tryRawSvgFallback(html, width, height, bgColor, format, resolve, reject);
-    }
+        // 2. Wait for images inside container to load
+        const imgElements = Array.from(container.querySelectorAll("img"));
+        if (imgElements.length > 0) {
+          await Promise.all(
+            imgElements.map((img) => {
+              if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+              return new Promise((res) => {
+                img.onload = () => res(null);
+                img.onerror = () => res(null);
+                setTimeout(() => res(null), 2500);
+              });
+            })
+          );
+        }
+
+        // 3. Short settlement delay for layout / CSS reflow
+        await new Promise((r) => setTimeout(r, 120));
+
+        const htmlToImageLib = await import("html-to-image");
+        const options: any = {
+          width,
+          height,
+          canvasWidth: width * 2,
+          canvasHeight: height * 2,
+          pixelRatio: 2,
+          cacheBust: true,
+          skipAutoScale: true,
+        };
+
+        if (bgColor && bgColor !== "auto" && bgColor !== "transparent") {
+          options.backgroundColor = bgColor;
+        }
+
+        let dataUrl: string;
+        if (format === "JPG") {
+          dataUrl = await htmlToImageLib.toJpeg(container, { ...options, quality: 0.95 });
+        } else {
+          dataUrl = await htmlToImageLib.toPng(container, options);
+        }
+
+        clearTimeout(timer);
+        cleanup();
+        resolve(dataUrl);
+      } catch (err) {
+        console.warn("Scoped container html-to-image failed, falling back to SVG:", err);
+        clearTimeout(timer);
+        cleanup();
+        tryRawSvgFallback(html, width, height, bgColor, format, resolve, reject);
+      }
     })().catch(reject);
   });
 };
@@ -3924,7 +3925,7 @@ function applyHDResizingEnhancement(
 
           // Micro-contrast clarity boost
           const norm = sharpened / 255;
-          const enhanced = norm > 0.5 
+          const enhanced = norm > 0.5
             ? Math.min(1, norm + Math.pow(norm - 0.5, 2) * 0.12)
             : Math.max(0, norm - Math.pow(0.5 - norm, 2) * 0.12);
 
@@ -4610,7 +4611,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             setDimensions({ width: htmlRenderWidth, height: htmlRenderHeight });
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }, 400);
 
     return () => {
@@ -5936,9 +5937,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
         if (loupeTickRef.current) {
           const isTop = y <= 170;
-          loupeTickRef.current.className = `absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-[7px] border-x-transparent ${
-            isTop ? "-top-2 border-b-[9px] border-b-white" : "-bottom-2 border-t-[9px] border-t-neutral-500"
-          }`;
+          loupeTickRef.current.className = `absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-[7px] border-x-transparent ${isTop ? "-top-2 border-b-[9px] border-b-white" : "-bottom-2 border-t-[9px] border-t-neutral-500"
+            }`;
         }
 
         if (loupeDotRef.current) {
@@ -6375,12 +6375,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         prev.map((f) =>
           f.id === activeFaceId
             ? {
-                ...f,
-                x: Number(newX.toFixed(1)),
-                y: Number(newY.toFixed(1)),
-                w: Number(newW.toFixed(1)),
-                h: Number(newH.toFixed(1)),
-              }
+              ...f,
+              x: Number(newX.toFixed(1)),
+              y: Number(newY.toFixed(1)),
+              w: Number(newW.toFixed(1)),
+              h: Number(newH.toFixed(1)),
+            }
             : f
         )
       );
@@ -6431,7 +6431,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               setActiveFaceId(null);
             }
           })
-          .catch(() => {})
+          .catch(() => { })
           .finally(() => setIsDetectingFaces(false));
       };
       img.src = imageSrc;
@@ -6534,10 +6534,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           binaryDelimiter === "Space"
             ? " "
             : binaryDelimiter === "Comma"
-            ? ", "
-            : binaryDelimiter === "Newline"
-            ? "\n"
-            : "";
+              ? ", "
+              : binaryDelimiter === "Newline"
+                ? "\n"
+                : "";
 
         // 1. Base64 Mode
         if (tool.slug === "image-to-base64" || binaryOutputMode === "Base64") {
@@ -6545,7 +6545,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           if (sourceB64.length > 60000) {
             setBinaryOutputText(
               sourceB64.slice(0, 60000) +
-                `\n\n... [Displaying first 60,000 characters of ${sourceB64.length.toLocaleString()} total chars. Click "Copy Output" or "Download" for 100% full dataset]`
+              `\n\n... [Displaying first 60,000 characters of ${sourceB64.length.toLocaleString()} total chars. Click "Copy Output" or "Download" for 100% full dataset]`
             );
             setIsBinaryTruncatedPreview(true);
           } else {
@@ -6583,7 +6583,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             if (fullMatrix.length > 60000) {
               setBinaryOutputText(
                 fullMatrix.slice(0, 60000) +
-                  `\n\n... [Displaying first 60,000 characters of ${rows.length} rows. Click "Copy Output" or "Download" for full matrix]`
+                `\n\n... [Displaying first 60,000 characters of ${rows.length} rows. Click "Copy Output" or "Download" for full matrix]`
               );
               setIsBinaryTruncatedPreview(true);
             } else {
@@ -6606,7 +6606,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           if (fullResult.length > 60000) {
             setBinaryOutputText(
               fullResult.slice(0, 60000) +
-                `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes. Click "Copy Output" or "Download" for 100% full Hex dataset]`
+              `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes. Click "Copy Output" or "Download" for 100% full Hex dataset]`
             );
             setIsBinaryTruncatedPreview(true);
           } else {
@@ -6639,7 +6639,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           if (fullResult.length > 60000) {
             setBinaryOutputText(
               fullResult.slice(0, 60000) +
-                `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes. Click "Copy Output" or "Download" for complete C Array]`
+              `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes. Click "Copy Output" or "Download" for complete C Array]`
             );
             setIsBinaryTruncatedPreview(true);
           } else {
@@ -6661,7 +6661,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           if (fullResult.length > 60000) {
             setBinaryOutputText(
               fullResult.slice(0, 60000) +
-                `\n\n... [Displaying first 60,000 characters. Click "Copy Output" or "Download" for 100% full dataset]`
+              `\n\n... [Displaying first 60,000 characters. Click "Copy Output" or "Download" for 100% full dataset]`
             );
             setIsBinaryTruncatedPreview(true);
           } else {
@@ -6682,7 +6682,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           if (fullResult.length > 60000) {
             setBinaryOutputText(
               fullResult.slice(0, 60000) +
-                `\n\n... [Displaying first 60,000 characters. Click "Copy Output" or "Download" for 100% full dataset]`
+              `\n\n... [Displaying first 60,000 characters. Click "Copy Output" or "Download" for 100% full dataset]`
             );
             setIsBinaryTruncatedPreview(true);
           } else {
@@ -6699,7 +6699,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           if (fullResult.length > 60000) {
             setBinaryOutputText(
               fullResult.slice(0, 60000) +
-                `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes. Click "Copy Output" or "Download" for 100% full dataset]`
+              `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes. Click "Copy Output" or "Download" for 100% full dataset]`
             );
             setIsBinaryTruncatedPreview(true);
           } else {
@@ -6773,7 +6773,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         if (fullResult.length > 60000) {
           setBinaryOutputText(
             fullResult.slice(0, 60000) +
-              `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes (${fullResult.length.toLocaleString()} total characters). Click "Copy Output" or "Download" for 100% full dataset]`
+            `\n\n... [Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes (${fullResult.length.toLocaleString()} total characters). Click "Copy Output" or "Download" for 100% full dataset]`
           );
           setIsBinaryTruncatedPreview(true);
         } else {
@@ -7236,7 +7236,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             const base64Len = outUrl.length - (head.length + 1);
             const approxBytes = Math.max(1024, Math.round((base64Len * 3) / 4));
             setNewSize(approxBytes);
-          } catch {}
+          } catch { }
 
           setHasProcessed(true);
           setIsEditingSettings(false);
@@ -7478,373 +7478,304 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           return;
         }
 
-      let w = img.width;
-      let h = img.height;
+        let w = img.width;
+        let h = img.height;
 
-      // 1. Crop processing pass
-      let srcX = 0;
-      let srcY = 0;
-      let srcW = img.width;
-      let srcH = img.height;
+        // 1. Crop processing pass
+        let srcX = 0;
+        let srcY = 0;
+        let srcW = img.width;
+        let srcH = img.height;
 
-      if (tool.slug === "crop-image") {
-        srcX = Math.round((cropBox.x / 100) * img.width);
-        srcY = Math.round((cropBox.y / 100) * img.height);
-        srcW = Math.round((cropBox.w / 100) * img.width);
-        srcH = Math.round((cropBox.h / 100) * img.height);
+        if (tool.slug === "crop-image") {
+          srcX = Math.round((cropBox.x / 100) * img.width);
+          srcY = Math.round((cropBox.y / 100) * img.height);
+          srcW = Math.round((cropBox.w / 100) * img.width);
+          srcH = Math.round((cropBox.h / 100) * img.height);
 
-        w = srcW;
-        h = srcH;
-      } else if (tool.slug === "square-your-image") {
-        const maxDim = Math.max(img.width, img.height);
-        w = maxDim;
-        h = maxDim;
-        setDimensions({ width: maxDim, height: maxDim });
-        setTargetWidth(maxDim);
-        setTargetHeight(maxDim);
-      }
-
-      // 2. Resize / Upscale logic
-      if (tool.slug === "resize-image") {
-        if (scalePercent !== 100) {
-          w = Math.round((img.width * scalePercent) / 100);
-          h = Math.round((img.height * scalePercent) / 100);
-        } else {
-          w = targetWidth || img.width;
-          h = targetHeight || img.height;
+          w = srcW;
+          h = srcH;
+        } else if (tool.slug === "square-your-image") {
+          const maxDim = Math.max(img.width, img.height);
+          w = maxDim;
+          h = maxDim;
+          setDimensions({ width: maxDim, height: maxDim });
+          setTargetWidth(maxDim);
+          setTargetHeight(maxDim);
         }
-      } else if (tool.slug === "upscale-image") {
-        w = img.width * upscaleFactor;
-        h = img.height * upscaleFactor;
-      }
 
-      // Orientation & rotation bounding box calculation
-      const rad = (rotation * Math.PI) / 180;
-      const is90or270 = Math.abs(rotation % 180) === 90;
-      const sin = Math.abs(Math.sin(rad));
-      const cos = Math.abs(Math.cos(rad));
-      const rotCanvasW = is90or270 ? h : Math.round(w * cos + h * sin);
-      const rotCanvasH = is90or270 ? w : Math.round(w * sin + h * cos);
+        // 2. Resize / Upscale logic
+        if (tool.slug === "resize-image") {
+          if (scalePercent !== 100) {
+            w = Math.round((img.width * scalePercent) / 100);
+            h = Math.round((img.height * scalePercent) / 100);
+          } else {
+            w = targetWidth || img.width;
+            h = targetHeight || img.height;
+          }
+        } else if (tool.slug === "upscale-image") {
+          w = img.width * upscaleFactor;
+          h = img.height * upscaleFactor;
+        }
 
-      canvas.width = rotCanvasW;
-      canvas.height = rotCanvasH;
+        // Orientation & rotation bounding box calculation
+        const rad = (rotation * Math.PI) / 180;
+        const is90or270 = Math.abs(rotation % 180) === 90;
+        const sin = Math.abs(Math.sin(rad));
+        const cos = Math.abs(Math.cos(rad));
+        const rotCanvasW = is90or270 ? h : Math.round(w * cos + h * sin);
+        const rotCanvasH = is90or270 ? w : Math.round(w * sin + h * cos);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
+        canvas.width = rotCanvasW;
+        canvas.height = rotCanvasH;
 
-      // For JPEG conversion or OCR/QR scanning, fill with white so transparent PNG/WEBP areas convert cleanly without black artifacts
-      if (
-        tool.slug === "convert-to-jpg" ||
-        (tool.slug === "convert-from-jpg" && targetFormat === "image/jpeg") ||
-        tool.slug === "image-to-text-ocr" ||
-        tool.slug === "image-to-text"
-      ) {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
 
-      // Rotate Image Custom Background Fill Pass
-      if (tool.slug === "rotate-image") {
-        if (rotateBgMode === "color") {
-          ctx.fillStyle = rotateBgColor;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (rotateBgMode === "gradient") {
-          const gradObj = ROTATE_GRADIENT_PRESETS.find((g) => g.css === rotateBgGradient) || ROTATE_GRADIENT_PRESETS[0];
-          const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-          grad.addColorStop(0, gradObj!.stops[0]!);
-          grad.addColorStop(1, gradObj!.stops[1]!);
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (rotateBgMode === "blur") {
-          ctx.save();
-          ctx.filter = "blur(28px)";
-          const scale = Math.max(canvas.width / img.width, canvas.height / img.height) * 1.25;
-          const bgW = img.width * scale;
-          const bgH = img.height * scale;
-          ctx.drawImage(img, (canvas.width - bgW) / 2, (canvas.height - bgH) / 2, bgW, bgH);
-          ctx.restore();
-        } else if (rotateBgMode === "transparent" && targetFormat === "image/jpeg") {
+        // For JPEG conversion or OCR/QR scanning, fill with white so transparent PNG/WEBP areas convert cleanly without black artifacts
+        if (
+          tool.slug === "convert-to-jpg" ||
+          (tool.slug === "convert-from-jpg" && targetFormat === "image/jpeg") ||
+          tool.slug === "image-to-text-ocr" ||
+          tool.slug === "image-to-text"
+        ) {
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-      }
 
-      ctx.save();
-
-      // Transform origin center
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(rad);
-      ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-
-      // Apply Photo Editor filters
-      if (tool.slug === "photo-editor") {
-        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%) sepia(${sepia}%)`;
-      }
-
-      // Draw image onto canvas
-      const drawW = tool.slug === "rotate-image" ? w : is90or270 ? h : w;
-      const drawH = tool.slug === "rotate-image" ? h : is90or270 ? w : h;
-
-      if (tool.slug === "square-your-image") {
-        ctx.restore();
-        canvas.width = w;
-        canvas.height = h;
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.clearRect(0, 0, w, h);
-
-        // 1. Draw Background Layer
-        if (squareBgMode === "blur") {
-          ctx.save();
-          const blurPx = Math.max(10, Math.round((squareBlurAmount / 500) * w));
-          ctx.filter = `blur(${blurPx}px)`;
-          const bgScale = Math.max(w / img.width, h / img.height) * 1.25;
-          const bgW = img.width * bgScale;
-          const bgH = img.height * bgScale;
-          ctx.drawImage(img, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
-          ctx.restore();
-        } else if (squareBgMode === "color") {
-          ctx.fillStyle = squareBgColor;
-          ctx.fillRect(0, 0, w, h);
-        } else if (squareBgMode === "gradient") {
-          const grad = ctx.createLinearGradient(0, 0, w, h);
-          const colorMatches = squareGradient.match(/#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|rgba?\([^)]+\)/g);
-          if (colorMatches && colorMatches.length >= 2 && colorMatches[0] && colorMatches[colorMatches.length - 1]) {
-            grad.addColorStop(0, colorMatches[0]);
-            grad.addColorStop(1, colorMatches[colorMatches.length - 1] as string);
-          } else {
-            grad.addColorStop(0, "#667eea");
-            grad.addColorStop(1, "#764ba2");
-          }
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 0, w, h);
-        } else if (squareBgMode === "transparent") {
-          if (squareExportFormat === "JPG" || targetFormat === "image/jpeg") {
+        // Rotate Image Custom Background Fill Pass
+        if (tool.slug === "rotate-image") {
+          if (rotateBgMode === "color") {
+            ctx.fillStyle = rotateBgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          } else if (rotateBgMode === "gradient") {
+            const gradObj = ROTATE_GRADIENT_PRESETS.find((g) => g.css === rotateBgGradient) || ROTATE_GRADIENT_PRESETS[0];
+            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            grad.addColorStop(0, gradObj!.stops[0]!);
+            grad.addColorStop(1, gradObj!.stops[1]!);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          } else if (rotateBgMode === "blur") {
+            ctx.save();
+            ctx.filter = "blur(28px)";
+            const scale = Math.max(canvas.width / img.width, canvas.height / img.height) * 1.25;
+            const bgW = img.width * scale;
+            const bgH = img.height * scale;
+            ctx.drawImage(img, (canvas.width - bgW) / 2, (canvas.height - bgH) / 2, bgW, bgH);
+            ctx.restore();
+          } else if (rotateBgMode === "transparent" && targetFormat === "image/jpeg") {
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, w, h);
-          } else {
-            ctx.clearRect(0, 0, w, h);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
           }
         }
 
-        // 2. Draw Foreground Image Layer
-        if (squareBgMode === "fit") {
-          const coverScale = Math.max(w / img.width, h / img.height) * (squareScale / 100);
-          const drawW = img.width * coverScale;
-          const drawH = img.height * coverScale;
-          const dx = (w - drawW) / 2;
-          const dy = (h - drawH) / 2;
+        ctx.save();
 
-          ctx.save();
-          if (squareCornerRadius > 0) {
-            const radPx = squareCornerRadius === 9999 ? w / 2 : Math.round((squareCornerRadius / 500) * w);
-            ctx.beginPath();
-            if (typeof ctx.roundRect === "function") {
-              ctx.roundRect(0, 0, w, h, radPx);
-            } else {
-              ctx.rect(0, 0, w, h);
-            }
-            ctx.clip();
-          }
-          ctx.drawImage(img, dx, dy, drawW, drawH);
+        // Transform origin center
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rad);
+        ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+
+        // Apply Photo Editor filters
+        if (tool.slug === "photo-editor") {
+          ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%) sepia(${sepia}%)`;
+        }
+
+        // Draw image onto canvas
+        const drawW = tool.slug === "rotate-image" ? w : is90or270 ? h : w;
+        const drawH = tool.slug === "rotate-image" ? h : is90or270 ? w : h;
+
+        if (tool.slug === "square-your-image") {
           ctx.restore();
-        } else {
-          const scaleMultiplier = Math.max(0.2, Math.min(1.0, squareScale / 100));
-          let fgW = img.width;
-          let fgH = img.height;
-          if (fgW >= fgH) {
-            fgW = w * scaleMultiplier;
-            fgH = (img.height / img.width) * fgW;
-          } else {
-            fgH = h * scaleMultiplier;
-            fgW = (img.width / img.height) * fgH;
+          canvas.width = w;
+          canvas.height = h;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.clearRect(0, 0, w, h);
+
+          // 1. Draw Background Layer
+          if (squareBgMode === "blur") {
+            ctx.save();
+            const blurPx = Math.max(10, Math.round((squareBlurAmount / 500) * w));
+            ctx.filter = `blur(${blurPx}px)`;
+            const bgScale = Math.max(w / img.width, h / img.height) * 1.25;
+            const bgW = img.width * bgScale;
+            const bgH = img.height * bgScale;
+            ctx.drawImage(img, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
+            ctx.restore();
+          } else if (squareBgMode === "color") {
+            ctx.fillStyle = squareBgColor;
+            ctx.fillRect(0, 0, w, h);
+          } else if (squareBgMode === "gradient") {
+            const grad = ctx.createLinearGradient(0, 0, w, h);
+            const colorMatches = squareGradient.match(/#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|rgba?\([^)]+\)/g);
+            if (colorMatches && colorMatches.length >= 2 && colorMatches[0] && colorMatches[colorMatches.length - 1]) {
+              grad.addColorStop(0, colorMatches[0]);
+              grad.addColorStop(1, colorMatches[colorMatches.length - 1] as string);
+            } else {
+              grad.addColorStop(0, "#667eea");
+              grad.addColorStop(1, "#764ba2");
+            }
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+          } else if (squareBgMode === "transparent") {
+            if (squareExportFormat === "JPG" || targetFormat === "image/jpeg") {
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, w, h);
+            } else {
+              ctx.clearRect(0, 0, w, h);
+            }
           }
 
-          const dx = (w - fgW) / 2;
-          const dy = (h - fgH) / 2;
-          const radPx = squareCornerRadius === 9999 ? Math.min(fgW, fgH) / 2 : Math.round((squareCornerRadius / 500) * w);
+          // 2. Draw Foreground Image Layer
+          if (squareBgMode === "fit") {
+            const coverScale = Math.max(w / img.width, h / img.height) * (squareScale / 100);
+            const drawW = img.width * coverScale;
+            const drawH = img.height * coverScale;
+            const dx = (w - drawW) / 2;
+            const dy = (h - drawH) / 2;
 
-          if (squareShadow !== "none") {
             ctx.save();
-            if (squareShadow === "soft") {
-              ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
-              ctx.shadowBlur = Math.round(w * 0.035);
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = Math.round(w * 0.015);
-            } else if (squareShadow === "float") {
-              ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
-              ctx.shadowBlur = Math.round(w * 0.06);
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = Math.round(w * 0.03);
-            } else if (squareShadow === "card") {
-              ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-              ctx.shadowBlur = Math.round(w * 0.02);
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = Math.round(w * 0.01);
+            if (squareCornerRadius > 0) {
+              const radPx = squareCornerRadius === 9999 ? w / 2 : Math.round((squareCornerRadius / 500) * w);
+              ctx.beginPath();
+              if (typeof ctx.roundRect === "function") {
+                ctx.roundRect(0, 0, w, h, radPx);
+              } else {
+                ctx.rect(0, 0, w, h);
+              }
+              ctx.clip();
+            }
+            ctx.drawImage(img, dx, dy, drawW, drawH);
+            ctx.restore();
+          } else {
+            const scaleMultiplier = Math.max(0.2, Math.min(1.0, squareScale / 100));
+            let fgW = img.width;
+            let fgH = img.height;
+            if (fgW >= fgH) {
+              fgW = w * scaleMultiplier;
+              fgH = (img.height / img.width) * fgW;
+            } else {
+              fgH = h * scaleMultiplier;
+              fgW = (img.width / img.height) * fgH;
             }
 
-            ctx.beginPath();
-            if (radPx > 0 && typeof ctx.roundRect === "function") {
-              ctx.roundRect(dx, dy, fgW, fgH, radPx);
-            } else {
-              ctx.rect(dx, dy, fgW, fgH);
+            const dx = (w - fgW) / 2;
+            const dy = (h - fgH) / 2;
+            const radPx = squareCornerRadius === 9999 ? Math.min(fgW, fgH) / 2 : Math.round((squareCornerRadius / 500) * w);
+
+            if (squareShadow !== "none") {
+              ctx.save();
+              if (squareShadow === "soft") {
+                ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
+                ctx.shadowBlur = Math.round(w * 0.035);
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = Math.round(w * 0.015);
+              } else if (squareShadow === "float") {
+                ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+                ctx.shadowBlur = Math.round(w * 0.06);
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = Math.round(w * 0.03);
+              } else if (squareShadow === "card") {
+                ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+                ctx.shadowBlur = Math.round(w * 0.02);
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = Math.round(w * 0.01);
+              }
+
+              ctx.beginPath();
+              if (radPx > 0 && typeof ctx.roundRect === "function") {
+                ctx.roundRect(dx, dy, fgW, fgH, radPx);
+              } else {
+                ctx.rect(dx, dy, fgW, fgH);
+              }
+              ctx.fillStyle = "#ffffff";
+              ctx.fill();
+              ctx.restore();
             }
-            ctx.fillStyle = "#ffffff";
-            ctx.fill();
+
+            ctx.save();
+            if (radPx > 0) {
+              ctx.beginPath();
+              if (typeof ctx.roundRect === "function") {
+                ctx.roundRect(dx, dy, fgW, fgH, radPx);
+              } else {
+                ctx.rect(dx, dy, fgW, fgH);
+              }
+              ctx.clip();
+            }
+            ctx.drawImage(img, dx, dy, fgW, fgH);
             ctx.restore();
           }
+        } else if (tool.slug === "crop-image") {
+          ctx.drawImage(img, srcX, srcY, srcW, srcH, -drawW / 2, -drawH / 2, drawW, drawH);
+        } else if (tool.slug === "resize-image" && resizeQualityMode === "improved") {
+          // Multi-step stepped downsampling to avoid decimation/aliasing artifacts
+          let curW = img.width;
+          let curH = img.height;
+          if (curW > drawW * 2 && curH > drawH * 2) {
+            let stepCanvas = document.createElement("canvas");
+            const stepCtx = stepCanvas.getContext("2d")!;
+            stepCanvas.width = curW;
+            stepCanvas.height = curH;
+            stepCtx.imageSmoothingEnabled = true;
+            stepCtx.imageSmoothingQuality = "high";
+            stepCtx.drawImage(img, 0, 0);
 
-          ctx.save();
-          if (radPx > 0) {
-            ctx.beginPath();
-            if (typeof ctx.roundRect === "function") {
-              ctx.roundRect(dx, dy, fgW, fgH, radPx);
-            } else {
-              ctx.rect(dx, dy, fgW, fgH);
+            while (curW / 2 > drawW && curH / 2 > drawH) {
+              const nextW = Math.round(curW / 2);
+              const nextH = Math.round(curH / 2);
+              const nextCanvas = document.createElement("canvas");
+              nextCanvas.width = nextW;
+              nextCanvas.height = nextH;
+              const nextCtx = nextCanvas.getContext("2d")!;
+              nextCtx.imageSmoothingEnabled = true;
+              nextCtx.imageSmoothingQuality = "high";
+              nextCtx.drawImage(stepCanvas, 0, 0, curW, curH, 0, 0, nextW, nextH);
+              stepCanvas = nextCanvas;
+              curW = nextW;
+              curH = nextH;
             }
-            ctx.clip();
+            ctx.drawImage(stepCanvas, 0, 0, curW, curH, -drawW / 2, -drawH / 2, drawW, drawH);
+          } else {
+            ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
           }
-          ctx.drawImage(img, dx, dy, fgW, fgH);
-          ctx.restore();
-        }
-      } else if (tool.slug === "crop-image") {
-        ctx.drawImage(img, srcX, srcY, srcW, srcH, -drawW / 2, -drawH / 2, drawW, drawH);
-      } else if (tool.slug === "resize-image" && resizeQualityMode === "improved") {
-        // Multi-step stepped downsampling to avoid decimation/aliasing artifacts
-        let curW = img.width;
-        let curH = img.height;
-        if (curW > drawW * 2 && curH > drawH * 2) {
-          let stepCanvas = document.createElement("canvas");
-          const stepCtx = stepCanvas.getContext("2d")!;
-          stepCanvas.width = curW;
-          stepCanvas.height = curH;
-          stepCtx.imageSmoothingEnabled = true;
-          stepCtx.imageSmoothingQuality = "high";
-          stepCtx.drawImage(img, 0, 0);
-
-          while (curW / 2 > drawW && curH / 2 > drawH) {
-            const nextW = Math.round(curW / 2);
-            const nextH = Math.round(curH / 2);
-            const nextCanvas = document.createElement("canvas");
-            nextCanvas.width = nextW;
-            nextCanvas.height = nextH;
-            const nextCtx = nextCanvas.getContext("2d")!;
-            nextCtx.imageSmoothingEnabled = true;
-            nextCtx.imageSmoothingQuality = "high";
-            nextCtx.drawImage(stepCanvas, 0, 0, curW, curH, 0, 0, nextW, nextH);
-            stepCanvas = nextCanvas;
-            curW = nextW;
-            curH = nextH;
-          }
-          ctx.drawImage(stepCanvas, 0, 0, curW, curH, -drawW / 2, -drawH / 2, drawW, drawH);
+        } else if (tool.slug === "upscale-image") {
+          const upscaledCanvas = performSuperResolutionUpscale(img, drawW, drawH, {
+            mode: upscaleEngineMode,
+            factor: upscaleFactor,
+            detailEnhance: upscaleDetailEnhance,
+            denoise: upscaleDenoise,
+            faceRefine: upscaleFaceRefinement,
+          });
+          ctx.drawImage(upscaledCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
         } else {
           ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
         }
-      } else if (tool.slug === "upscale-image") {
-        const upscaledCanvas = performSuperResolutionUpscale(img, drawW, drawH, {
-          mode: upscaleEngineMode,
-          factor: upscaleFactor,
-          detailEnhance: upscaleDetailEnhance,
-          denoise: upscaleDenoise,
-          faceRefine: upscaleFaceRefinement,
-        });
-        ctx.drawImage(upscaledCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
-      } else {
-        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-      }
-      if (tool.slug !== "square-your-image") {
-        ctx.restore();
-      }
-
-      // Localized Face Anonymization Pass (Python YuNet AI Backend + High-Precision Client Fallback)
-      if (tool.slug === "blur-face") {
-        let appliedPython = false;
-        try {
-          const rawDataUrl = canvas.toDataURL("image/png");
-          const pyRes = await fetch("/api/blur-face", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              base64Image: rawDataUrl,
-              blurType: faceBlurType,
-              strength: faceBlurStrength,
-              shape: faceShape,
-              faces: faceRegions.length > 0 ? faceRegions : undefined,
-            }),
-          });
-          if (pyRes.ok) {
-            const json = await pyRes.json();
-            if (json.success && json.base64Image) {
-              const pyImg = await new Promise<HTMLImageElement>((resolve, reject) => {
-                const i = new Image();
-                i.onload = () => resolve(i);
-                i.onerror = reject;
-                i.src = json.base64Image;
-              });
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              ctx.drawImage(pyImg, 0, 0);
-              appliedPython = true;
-              if (Array.isArray(json.faces) && json.faces.length > 0) {
-                setFaceRegions(json.faces);
-              }
-            }
-          }
-        } catch (pyErr) {
-          console.warn("Python face blur server unreachable, using client anonymizer:", pyErr);
+        if (tool.slug !== "square-your-image") {
+          ctx.restore();
         }
 
-        if (!appliedPython) {
-          applyFaceAnonymization(ctx, canvas.width, canvas.height, faceRegions, {
-            type: faceBlurType,
-            strength: faceBlurStrength,
-            shape: faceShape,
-          });
-        }
-      }
-
-      // Apply HD Sharpening & Micro-contrast pass if resize with quality improvement
-      if (tool.slug === "resize-image" && resizeQualityMode === "improved") {
-        applyHDResizingEnhancement(ctx, canvas.width, canvas.height, 0.45);
-      }
-
-      // Watermark Removal — High-Precision Client Gemini Engine + Python AI Server Fallback
-      if (tool.slug === "remove-watermark") {
-        let applied = false;
-
-        // 1. First run high-precision client-side Gemini AI engine (instant, 100% mathematical fidelity)
-        if (wmRemovalMode === "gemini_ai" || wmRemovalMode === "full_auto") {
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const gRes = removeGeminiWatermark(imageData.data, canvas.width, canvas.height, {
-            sensitivity: wmRemovalSensitivity,
-            alphaGain: wmAlphaGain / 100,
-            forceRemoval: wmRemovalMode === "gemini_ai",
-          });
-          if (gRes.detected) {
-            ctx.putImageData(new ImageData(gRes.cleanedData as unknown as ImageData["data"], canvas.width, canvas.height), 0, 0);
-            applied = true;
-          }
-        }
-
-        // 2. If not detected by Gemini engine or mode is corners/stock, call Python AI server
-        if (!applied && wmRemovalMode !== "gemini_ai") {
+        // Localized Face Anonymization Pass (Python YuNet AI Backend + High-Precision Client Fallback)
+        if (tool.slug === "blur-face") {
+          let appliedPython = false;
           try {
             const rawDataUrl = canvas.toDataURL("image/png");
-            const pyRes = await fetch("/api/remove-watermark", {
+            const pyRes = await fetch("/api/blur-face", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 base64Image: rawDataUrl,
-                mode: wmRemovalMode,
-                sensitivity: wmRemovalSensitivity,
-                engine: wmInpaintEngine,
-                preserveDetails: wmPreserveDetails,
-                alphaGain: wmAlphaGain / 100,
+                blurType: faceBlurType,
+                strength: faceBlurStrength,
+                shape: faceShape,
+                faces: faceRegions.length > 0 ? faceRegions : undefined,
               }),
             });
             if (pyRes.ok) {
               const json = await pyRes.json();
-              if (json.success && json.base64Image && json.watermarkDetected !== false) {
+              if (json.success && json.base64Image) {
                 const pyImg = await new Promise<HTMLImageElement>((resolve, reject) => {
                   const i = new Image();
                   i.onload = () => resolve(i);
@@ -7853,83 +7784,202 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 });
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(pyImg, 0, 0);
-                applied = true;
+                appliedPython = true;
+                if (Array.isArray(json.faces) && json.faces.length > 0) {
+                  setFaceRegions(json.faces);
+                }
               }
             }
           } catch (pyErr) {
-            console.warn("Python watermark server unreachable, falling back to client engine:", pyErr);
+            console.warn("Python face blur server unreachable, using client anonymizer:", pyErr);
+          }
+
+          if (!appliedPython) {
+            applyFaceAnonymization(ctx, canvas.width, canvas.height, faceRegions, {
+              type: faceBlurType,
+              strength: faceBlurStrength,
+              shape: faceShape,
+            });
           }
         }
 
-        // 3. Client inpainting fallback if still not applied
-        if (!applied) {
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const cleaned = removeWatermarkAdvanced(imageData, {
-            mode: wmRemovalMode,
-            sensitivity: wmRemovalSensitivity,
-            engine: wmInpaintEngine,
-            preserveDetails: wmPreserveDetails,
-            alphaGain: wmAlphaGain / 100,
-          });
-          ctx.putImageData(cleaned, 0, 0);
-        }
-      }
-
-      // Watermark Draw Pass
-      if (tool.slug === "watermark-image") {
-        const marginPxX = Math.round((wmMargin / 100) * canvas.width);
-        const marginPxY = Math.round((wmMargin / 100) * canvas.height);
-
-        let targetX = canvas.width / 2;
-        let targetY = canvas.height / 2;
-        let align: CanvasTextAlign = "center";
-        let baseline: CanvasTextBaseline = "middle";
-
-        if (wmPosition === "top_left") {
-          targetX = marginPxX; targetY = marginPxY; align = "left"; baseline = "top";
-        } else if (wmPosition === "top_center") {
-          targetX = canvas.width / 2; targetY = marginPxY; align = "center"; baseline = "top";
-        } else if (wmPosition === "top_right") {
-          targetX = canvas.width - marginPxX; targetY = marginPxY; align = "right"; baseline = "top";
-        } else if (wmPosition === "middle_left") {
-          targetX = marginPxX; targetY = canvas.height / 2; align = "left"; baseline = "middle";
-        } else if (wmPosition === "center") {
-          targetX = canvas.width / 2; targetY = canvas.height / 2; align = "center"; baseline = "middle";
-        } else if (wmPosition === "middle_right") {
-          targetX = canvas.width - marginPxX; targetY = canvas.height / 2; align = "right"; baseline = "middle";
-        } else if (wmPosition === "bottom_left") {
-          targetX = marginPxX; targetY = canvas.height - marginPxY; align = "left"; baseline = "bottom";
-        } else if (wmPosition === "bottom_center") {
-          targetX = canvas.width / 2; targetY = canvas.height - marginPxY; align = "center"; baseline = "bottom";
-        } else if (wmPosition === "bottom_right") {
-          targetX = canvas.width - marginPxX; targetY = canvas.height - marginPxY; align = "right"; baseline = "bottom";
-        } else if (wmPosition === "custom") {
-          targetX = Math.round((wmCustomCoord.xPercent / 100) * canvas.width);
-          targetY = Math.round((wmCustomCoord.yPercent / 100) * canvas.height);
-          align = "center"; baseline = "middle";
+        // Apply HD Sharpening & Micro-contrast pass if resize with quality improvement
+        if (tool.slug === "resize-image" && resizeQualityMode === "improved") {
+          applyHDResizingEnhancement(ctx, canvas.width, canvas.height, 0.45);
         }
 
-        if (wmMode === "logo" && wmLogoSrc) {
-          try {
-            const logoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
-              const i = new Image();
-              if (wmLogoSrc.startsWith("http://") || wmLogoSrc.startsWith("https://")) {
-                i.crossOrigin = "anonymous";
-              }
-              i.onload = () => resolve(i);
-              i.onerror = () => reject(new Error("Failed to load watermark logo"));
-              i.src = wmLogoSrc;
+        // Watermark Removal — High-Precision Client Gemini Engine + Python AI Server Fallback
+        if (tool.slug === "remove-watermark") {
+          let applied = false;
+
+          // 1. First run high-precision client-side Gemini AI engine (instant, 100% mathematical fidelity)
+          if (wmRemovalMode === "gemini_ai" || wmRemovalMode === "full_auto") {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const gRes = removeGeminiWatermark(imageData.data, canvas.width, canvas.height, {
+              sensitivity: wmRemovalSensitivity,
+              alphaGain: wmAlphaGain / 100,
+              forceRemoval: wmRemovalMode === "gemini_ai",
             });
-            const lw = Math.max(10, Math.round(canvas.width * (wmLogoScale / 100)));
-            const lh = Math.max(10, Math.round((logoImg.height / (logoImg.width || 1)) * lw));
+            if (gRes.detected) {
+              ctx.putImageData(new ImageData(gRes.cleanedData as unknown as ImageData["data"], canvas.width, canvas.height), 0, 0);
+              applied = true;
+            }
+          }
+
+          // 2. If not detected by Gemini engine or mode is corners/stock, call Python AI server
+          if (!applied && wmRemovalMode !== "gemini_ai") {
+            try {
+              const rawDataUrl = canvas.toDataURL("image/png");
+              const pyRes = await fetch("/api/remove-watermark", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  base64Image: rawDataUrl,
+                  mode: wmRemovalMode,
+                  sensitivity: wmRemovalSensitivity,
+                  engine: wmInpaintEngine,
+                  preserveDetails: wmPreserveDetails,
+                  alphaGain: wmAlphaGain / 100,
+                }),
+              });
+              if (pyRes.ok) {
+                const json = await pyRes.json();
+                if (json.success && json.base64Image && json.watermarkDetected !== false) {
+                  const pyImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+                    const i = new Image();
+                    i.onload = () => resolve(i);
+                    i.onerror = reject;
+                    i.src = json.base64Image;
+                  });
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  ctx.drawImage(pyImg, 0, 0);
+                  applied = true;
+                }
+              }
+            } catch (pyErr) {
+              console.warn("Python watermark server unreachable, falling back to client engine:", pyErr);
+            }
+          }
+
+          // 3. Client inpainting fallback if still not applied
+          if (!applied) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const cleaned = removeWatermarkAdvanced(imageData, {
+              mode: wmRemovalMode,
+              sensitivity: wmRemovalSensitivity,
+              engine: wmInpaintEngine,
+              preserveDetails: wmPreserveDetails,
+              alphaGain: wmAlphaGain / 100,
+            });
+            ctx.putImageData(cleaned, 0, 0);
+          }
+        }
+
+        // Watermark Draw Pass
+        if (tool.slug === "watermark-image") {
+          const marginPxX = Math.round((wmMargin / 100) * canvas.width);
+          const marginPxY = Math.round((wmMargin / 100) * canvas.height);
+
+          let targetX = canvas.width / 2;
+          let targetY = canvas.height / 2;
+          let align: CanvasTextAlign = "center";
+          let baseline: CanvasTextBaseline = "middle";
+
+          if (wmPosition === "top_left") {
+            targetX = marginPxX; targetY = marginPxY; align = "left"; baseline = "top";
+          } else if (wmPosition === "top_center") {
+            targetX = canvas.width / 2; targetY = marginPxY; align = "center"; baseline = "top";
+          } else if (wmPosition === "top_right") {
+            targetX = canvas.width - marginPxX; targetY = marginPxY; align = "right"; baseline = "top";
+          } else if (wmPosition === "middle_left") {
+            targetX = marginPxX; targetY = canvas.height / 2; align = "left"; baseline = "middle";
+          } else if (wmPosition === "center") {
+            targetX = canvas.width / 2; targetY = canvas.height / 2; align = "center"; baseline = "middle";
+          } else if (wmPosition === "middle_right") {
+            targetX = canvas.width - marginPxX; targetY = canvas.height / 2; align = "right"; baseline = "middle";
+          } else if (wmPosition === "bottom_left") {
+            targetX = marginPxX; targetY = canvas.height - marginPxY; align = "left"; baseline = "bottom";
+          } else if (wmPosition === "bottom_center") {
+            targetX = canvas.width / 2; targetY = canvas.height - marginPxY; align = "center"; baseline = "bottom";
+          } else if (wmPosition === "bottom_right") {
+            targetX = canvas.width - marginPxX; targetY = canvas.height - marginPxY; align = "right"; baseline = "bottom";
+          } else if (wmPosition === "custom") {
+            targetX = Math.round((wmCustomCoord.xPercent / 100) * canvas.width);
+            targetY = Math.round((wmCustomCoord.yPercent / 100) * canvas.height);
+            align = "center"; baseline = "middle";
+          }
+
+          if (wmMode === "logo" && wmLogoSrc) {
+            try {
+              const logoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+                const i = new Image();
+                if (wmLogoSrc.startsWith("http://") || wmLogoSrc.startsWith("https://")) {
+                  i.crossOrigin = "anonymous";
+                }
+                i.onload = () => resolve(i);
+                i.onerror = () => reject(new Error("Failed to load watermark logo"));
+                i.src = wmLogoSrc;
+              });
+              const lw = Math.max(10, Math.round(canvas.width * (wmLogoScale / 100)));
+              const lh = Math.max(10, Math.round((logoImg.height / (logoImg.width || 1)) * lw));
+
+              ctx.save();
+              ctx.globalAlpha = Math.max(0.05, Math.min(1, wmOpacity));
+
+              if (wmPosition === "tile") {
+                const stepX = Math.max(lw * 2.2, Math.round(canvas.width * 0.25), 160);
+                const stepY = Math.max(lh * 2.2, Math.round(canvas.height * 0.25), 120);
+                const tileRad = (wmRotation || -30) * (Math.PI / 180);
+                const startY = -Math.round(canvas.height * 0.2);
+                const endY = Math.round(canvas.height * 1.2);
+                const startX = -Math.round(canvas.width * 0.2);
+                const endX = Math.round(canvas.width * 1.2);
+
+                for (let gy = startY; gy < endY; gy += stepY) {
+                  for (let gx = startX; gx < endX; gx += stepX) {
+                    ctx.save();
+                    ctx.translate(gx, gy);
+                    ctx.rotate(tileRad);
+                    ctx.drawImage(logoImg, -lw / 2, -lh / 2, lw, lh);
+                    ctx.restore();
+                  }
+                }
+              } else {
+                ctx.translate(targetX, targetY);
+                if (wmRotation !== 0) {
+                  ctx.rotate((wmRotation * Math.PI) / 180);
+                }
+                let drawDx = -lw / 2;
+                let drawDy = -lh / 2;
+                if (align === "left") drawDx = 0;
+                else if (align === "right") drawDx = -lw;
+                if (baseline === "top") drawDy = 0;
+                else if (baseline === "bottom") drawDy = -lh;
+
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = Math.max(4, Math.round(lw * 0.05));
+                ctx.drawImage(logoImg, drawDx, drawDy, lw, lh);
+              }
+              ctx.restore();
+            } catch (e) {
+              console.error("Failed to render logo watermark:", e);
+              toast.error("Could not render logo watermark. Please check logo format.");
+            }
+          } else if (wmText.trim()) {
+            const canvasFontSize = Math.max(14, Math.round(wmFontSize * (canvas.width / 1000)));
+            const fontStyle = `${wmItalic ? "italic " : ""}${wmBold ? "bold " : ""}${canvasFontSize}px ${wmFontFamily}`;
 
             ctx.save();
             ctx.globalAlpha = Math.max(0.05, Math.min(1, wmOpacity));
+            ctx.font = fontStyle;
 
             if (wmPosition === "tile") {
-              const stepX = Math.max(lw * 2.2, Math.round(canvas.width * 0.25), 160);
-              const stepY = Math.max(lh * 2.2, Math.round(canvas.height * 0.25), 120);
+              const stepX = Math.max(canvasFontSize * 8, Math.round(canvas.width * 0.3), 200);
+              const stepY = Math.max(canvasFontSize * 4, Math.round(canvas.height * 0.2), 120);
               const tileRad = (wmRotation || -30) * (Math.PI / 180);
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+
               const startY = -Math.round(canvas.height * 0.2);
               const endY = Math.round(canvas.height * 1.2);
               const startX = -Math.round(canvas.width * 0.2);
@@ -7940,7 +7990,18 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   ctx.save();
                   ctx.translate(gx, gy);
                   ctx.rotate(tileRad);
-                  ctx.drawImage(logoImg, -lw / 2, -lh / 2, lw, lh);
+
+                  if (wmStroke === "dark") {
+                    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+                    ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.1));
+                    ctx.strokeText(wmText, 0, 0);
+                  } else if (wmStroke === "light") {
+                    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+                    ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.1));
+                    ctx.strokeText(wmText, 0, 0);
+                  }
+                  ctx.fillStyle = wmColor;
+                  ctx.fillText(wmText, 0, 0);
                   ctx.restore();
                 }
               }
@@ -7949,228 +8010,200 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               if (wmRotation !== 0) {
                 ctx.rotate((wmRotation * Math.PI) / 180);
               }
-              let drawDx = -lw / 2;
-              let drawDy = -lh / 2;
-              if (align === "left") drawDx = 0;
-              else if (align === "right") drawDx = -lw;
-              if (baseline === "top") drawDy = 0;
-              else if (baseline === "bottom") drawDy = -lh;
+              ctx.textAlign = align;
+              ctx.textBaseline = baseline;
 
-              ctx.shadowColor = "rgba(0,0,0,0.5)";
-              ctx.shadowBlur = Math.max(4, Math.round(lw * 0.05));
-              ctx.drawImage(logoImg, drawDx, drawDy, lw, lh);
+              if (wmBgBadge !== "none") {
+                const metrics = ctx.measureText(wmText);
+                const tw = metrics.width;
+                const th = canvasFontSize * 1.3;
+                const px = canvasFontSize * 0.4;
+                const py = canvasFontSize * 0.2;
+
+                let bx = 0;
+                if (align === "center") bx = -tw / 2 - px;
+                else if (align === "right") bx = -tw - px;
+                else bx = -px;
+
+                let by = 0;
+                if (baseline === "middle") by = -th / 2;
+                else if (baseline === "bottom") by = -th;
+                else by = -py;
+
+                ctx.fillStyle = wmBgBadge === "dark_pill" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.75)";
+                const r = Math.max(0, th * 0.3);
+                ctx.beginPath();
+                if (typeof ctx.roundRect === "function") {
+                  ctx.roundRect(bx, by, Math.max(1, tw + px * 2), Math.max(1, th + py * 2), r);
+                } else {
+                  ctx.rect(bx, by, Math.max(1, tw + px * 2), Math.max(1, th + py * 2));
+                }
+                ctx.fill();
+              }
+
+              if (wmStroke === "dark") {
+                ctx.strokeStyle = "rgba(0,0,0,0.9)";
+                ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.08));
+                ctx.strokeText(wmText, 0, 0);
+              } else if (wmStroke === "light") {
+                ctx.strokeStyle = "rgba(255,255,255,0.9)";
+                ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.08));
+                ctx.strokeText(wmText, 0, 0);
+              }
+
+              ctx.shadowColor = wmStroke === "light" ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.65)";
+              ctx.shadowBlur = Math.max(4, Math.round(canvasFontSize * 0.15));
+              ctx.fillStyle = wmColor;
+              ctx.fillText(wmText, 0, 0);
             }
             ctx.restore();
-          } catch (e) {
-            console.error("Failed to render logo watermark:", e);
-            toast.error("Could not render logo watermark. Please check logo format.");
           }
-        } else if (wmText.trim()) {
-          const canvasFontSize = Math.max(14, Math.round(wmFontSize * (canvas.width / 1000)));
-          const fontStyle = `${wmItalic ? "italic " : ""}${wmBold ? "bold " : ""}${canvasFontSize}px ${wmFontFamily}`;
+        }
 
+        // Meme Generator Pass
+        if (tool.slug === "meme-generator") {
           ctx.save();
-          ctx.globalAlpha = Math.max(0.05, Math.min(1, wmOpacity));
-          ctx.font = fontStyle;
+          const canvasScale = canvas.width / 800;
+          const fontPx = Math.max(14, Math.round(memeFontSize * canvasScale));
+          ctx.font = `900 ${fontPx}px ${memeFontFamily}`;
+          ctx.textAlign = memeTextAlign;
+          ctx.textBaseline = "middle";
 
-          if (wmPosition === "tile") {
-            const stepX = Math.max(canvasFontSize * 8, Math.round(canvas.width * 0.3), 200);
-            const stepY = Math.max(canvasFontSize * 4, Math.round(canvas.height * 0.2), 120);
-            const tileRad = (wmRotation || -30) * (Math.PI / 180);
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-
-            const startY = -Math.round(canvas.height * 0.2);
-            const endY = Math.round(canvas.height * 1.2);
-            const startX = -Math.round(canvas.width * 0.2);
-            const endX = Math.round(canvas.width * 1.2);
-
-            for (let gy = startY; gy < endY; gy += stepY) {
-              for (let gx = startX; gx < endX; gx += stepX) {
-                ctx.save();
-                ctx.translate(gx, gy);
-                ctx.rotate(tileRad);
-
-                if (wmStroke === "dark") {
-                  ctx.strokeStyle = "rgba(0,0,0,0.85)";
-                  ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.1));
-                  ctx.strokeText(wmText, 0, 0);
-                } else if (wmStroke === "light") {
-                  ctx.strokeStyle = "rgba(255,255,255,0.85)";
-                  ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.1));
-                  ctx.strokeText(wmText, 0, 0);
-                }
-                ctx.fillStyle = wmColor;
-                ctx.fillText(wmText, 0, 0);
-                ctx.restore();
-              }
-            }
-          } else {
-            ctx.translate(targetX, targetY);
-            if (wmRotation !== 0) {
-              ctx.rotate((wmRotation * Math.PI) / 180);
-            }
-            ctx.textAlign = align;
-            ctx.textBaseline = baseline;
-
-            if (wmBgBadge !== "none") {
-              const metrics = ctx.measureText(wmText);
-              const tw = metrics.width;
-              const th = canvasFontSize * 1.3;
-              const px = canvasFontSize * 0.4;
-              const py = canvasFontSize * 0.2;
-
-              let bx = 0;
-              if (align === "center") bx = -tw / 2 - px;
-              else if (align === "right") bx = -tw - px;
-              else bx = -px;
-
-              let by = 0;
-              if (baseline === "middle") by = -th / 2;
-              else if (baseline === "bottom") by = -th;
-              else by = -py;
-
-              ctx.fillStyle = wmBgBadge === "dark_pill" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.75)";
-              const r = Math.max(0, th * 0.3);
-              ctx.beginPath();
-              if (typeof ctx.roundRect === "function") {
-                ctx.roundRect(bx, by, Math.max(1, tw + px * 2), Math.max(1, th + py * 2), r);
-              } else {
-                ctx.rect(bx, by, Math.max(1, tw + px * 2), Math.max(1, th + py * 2));
-              }
-              ctx.fill();
-            }
-
-            if (wmStroke === "dark") {
-              ctx.strokeStyle = "rgba(0,0,0,0.9)";
-              ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.08));
-              ctx.strokeText(wmText, 0, 0);
-            } else if (wmStroke === "light") {
-              ctx.strokeStyle = "rgba(255,255,255,0.9)";
-              ctx.lineWidth = Math.max(2, Math.round(canvasFontSize * 0.08));
-              ctx.strokeText(wmText, 0, 0);
-            }
-
-            ctx.shadowColor = wmStroke === "light" ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.65)";
-            ctx.shadowBlur = Math.max(4, Math.round(canvasFontSize * 0.15));
-            ctx.fillStyle = wmColor;
-            ctx.fillText(wmText, 0, 0);
+          const strokePx = memeStrokeWidth > 0 ? Math.max(1, Math.round(memeStrokeWidth * canvasScale * 1.5)) : 0;
+          if (strokePx > 0) {
+            ctx.strokeStyle = memeStrokeColor;
+            ctx.lineWidth = strokePx;
+            ctx.lineJoin = "round";
           }
+          ctx.fillStyle = memeTextColor;
+
+          if (memeTextShadow) {
+            ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+            ctx.shadowBlur = Math.max(4, Math.round(fontPx * 0.15));
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = Math.max(2, Math.round(fontPx * 0.05));
+          }
+
+          const maxTextW = canvas.width * 0.92;
+          const alignX =
+            memeTextAlign === "left"
+              ? canvas.width * 0.04
+              : memeTextAlign === "right"
+                ? canvas.width * 0.96
+                : canvas.width / 2;
+
+          const wrapLines = (txt: string) => {
+            const finalTxt = memeAllCaps ? txt.toUpperCase() : txt;
+            const words = finalTxt.split(" ");
+            const lines: string[] = [];
+            let cur = words[0] || "";
+            for (let i = 1; i < words.length; i++) {
+              const w = words[i];
+              if (ctx.measureText(cur + " " + w).width < maxTextW) {
+                cur += " " + w;
+              } else {
+                lines.push(cur);
+                cur = w || "";
+              }
+            }
+            if (cur) lines.push(cur);
+            return lines;
+          };
+
+          const lineHeight = fontPx * 1.2;
+
+          // Draw Top Text
+          if (topText.trim()) {
+            const topLines = wrapLines(topText);
+            const topStartY = Math.round((memeTopPosPercent / 100) * canvas.height) + fontPx / 2;
+            topLines.forEach((line, idx) => {
+              const y = topStartY + idx * lineHeight;
+              if (strokePx > 0) ctx.strokeText(line, alignX, y);
+              ctx.fillText(line, alignX, y);
+            });
+          }
+
+          // Draw Bottom Text
+          if (bottomText.trim()) {
+            const bottomLines = wrapLines(bottomText);
+            const totalBottomH = bottomLines.length * lineHeight;
+            const bottomStartY =
+              canvas.height -
+              Math.round((memeBottomPosPercent / 100) * canvas.height) -
+              totalBottomH +
+              fontPx / 2;
+
+            bottomLines.forEach((line, idx) => {
+              const y = bottomStartY + idx * lineHeight;
+              if (strokePx > 0) ctx.strokeText(line, alignX, y);
+              ctx.fillText(line, alignX, y);
+            });
+          }
+
           ctx.restore();
         }
-      }
 
-      // Meme Generator Pass
-      if (tool.slug === "meme-generator") {
-        ctx.save();
-        const canvasScale = canvas.width / 800;
-        const fontPx = Math.max(14, Math.round(memeFontSize * canvasScale));
-        ctx.font = `900 ${fontPx}px ${memeFontFamily}`;
-        ctx.textAlign = memeTextAlign;
-        ctx.textBaseline = "middle";
+        // Image → Document export tools (PDF, DOCX, XLSX, PPTX)
+        if (["image-to-pdf", "image-to-word", "image-to-excel", "image-to-powerpoint"].includes(tool.slug)) {
+          const jpegQ = Math.max(0.6, Math.min(1.0, (pdfQuality || 95) / 100));
+          const jpegDataUrl = canvas.toDataURL("image/jpeg", jpegQ);
+          const pngDataUrl = canvas.toDataURL("image/png");
+          const fname = file?.name?.replace(/\.[^.]+$/, "") || "image";
 
-        const strokePx = memeStrokeWidth > 0 ? Math.max(1, Math.round(memeStrokeWidth * canvasScale * 1.5)) : 0;
-        if (strokePx > 0) {
-          ctx.strokeStyle = memeStrokeColor;
-          ctx.lineWidth = strokePx;
-          ctx.lineJoin = "round";
-        }
-        ctx.fillStyle = memeTextColor;
+          const effectiveLang = ocrLanguage === "custom" ? (ocrCustomLanguage.trim() || "eng") : ocrLanguage;
+          const langObj = OCR_SUPPORTED_LANGUAGES.find((l) => l.code === effectiveLang);
+          const langName = langObj ? langObj.name : effectiveLang;
 
-        if (memeTextShadow) {
-          ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
-          ctx.shadowBlur = Math.max(4, Math.round(fontPx * 0.15));
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = Math.max(2, Math.round(fontPx * 0.05));
-        }
+          let blob: Blob;
+          let ext: string;
 
-        const maxTextW = canvas.width * 0.92;
-        const alignX =
-          memeTextAlign === "left"
-            ? canvas.width * 0.04
-            : memeTextAlign === "right"
-            ? canvas.width * 0.96
-            : canvas.width / 2;
+          if (tool.slug === "image-to-pdf") {
+            blob = buildPdfFromImageDataUrl(jpegDataUrl, canvas.width, canvas.height, {
+              pageSize: pdfPageSize,
+              margin: pdfMargin,
+              quality: pdfQuality,
+            });
+            ext = "pdf";
+          } else if (tool.slug === "image-to-word") {
+            setOcrProgressStatus(`Loading OCR model (${langName}) for Word export...`);
+            setOcrProgressPercent(20);
 
-        const wrapLines = (txt: string) => {
-          const finalTxt = memeAllCaps ? txt.toUpperCase() : txt;
-          const words = finalTxt.split(" ");
-          const lines: string[] = [];
-          let cur = words[0] || "";
-          for (let i = 1; i < words.length; i++) {
-            const w = words[i];
-            if (ctx.measureText(cur + " " + w).width < maxTextW) {
-              cur += " " + w;
-            } else {
-              lines.push(cur);
-              cur = w || "";
+            let lines: string[] = [];
+            let tableGrid: string[][] = [];
+            if (wordDocMode !== "image_only") {
+              const ocrRes = await performAdvancedOcr(canvas, {
+                contrastMode: ocrContrastMode,
+                language: effectiveLang,
+                onProgress: (status, progress) => {
+                  setOcrProgressStatus(status);
+                  setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
+                },
+              });
+              lines = ocrRes.textLines;
+              tableGrid = ocrRes.tableGrid;
+              setOcrTableGrid(tableGrid);
+              setRawOcrDocumentLines(lines);
+              const assembled = lines.join("\n");
+              setOcrText(assembled);
+              setBinaryOutputText(assembled);
+              setOcrIsEmpty(ocrRes.isEmpty);
             }
-          }
-          if (cur) lines.push(cur);
-          return lines;
-        };
 
-        const lineHeight = fontPx * 1.2;
+            blob = buildEditableDocxFromOcr(lines, {
+              fontFamily: wordFontFamily,
+              fontSize: wordFontSize,
+              mode: wordDocMode,
+              imageDataUrl: pngDataUrl,
+              imgW: canvas.width,
+              imgH: canvas.height,
+              filename: fname,
+              tableGrid: tableGrid.length > 0 ? tableGrid : undefined,
+            });
+            ext = "docx";
+          } else if (tool.slug === "image-to-excel") {
+            setOcrProgressStatus(`Analyzing and extracting spreadsheet table (${langName})...`);
+            setOcrProgressPercent(20);
 
-        // Draw Top Text
-        if (topText.trim()) {
-          const topLines = wrapLines(topText);
-          const topStartY = Math.round((memeTopPosPercent / 100) * canvas.height) + fontPx / 2;
-          topLines.forEach((line, idx) => {
-            const y = topStartY + idx * lineHeight;
-            if (strokePx > 0) ctx.strokeText(line, alignX, y);
-            ctx.fillText(line, alignX, y);
-          });
-        }
-
-        // Draw Bottom Text
-        if (bottomText.trim()) {
-          const bottomLines = wrapLines(bottomText);
-          const totalBottomH = bottomLines.length * lineHeight;
-          const bottomStartY =
-            canvas.height -
-            Math.round((memeBottomPosPercent / 100) * canvas.height) -
-            totalBottomH +
-            fontPx / 2;
-
-          bottomLines.forEach((line, idx) => {
-            const y = bottomStartY + idx * lineHeight;
-            if (strokePx > 0) ctx.strokeText(line, alignX, y);
-            ctx.fillText(line, alignX, y);
-          });
-        }
-
-        ctx.restore();
-      }
-
-      // Image → Document export tools (PDF, DOCX, XLSX, PPTX)
-      if (["image-to-pdf", "image-to-word", "image-to-excel", "image-to-powerpoint"].includes(tool.slug)) {
-        const jpegQ = Math.max(0.6, Math.min(1.0, (pdfQuality || 95) / 100));
-        const jpegDataUrl = canvas.toDataURL("image/jpeg", jpegQ);
-        const pngDataUrl = canvas.toDataURL("image/png");
-        const fname = file?.name?.replace(/\.[^.]+$/, "") || "image";
-
-        const effectiveLang = ocrLanguage === "custom" ? (ocrCustomLanguage.trim() || "eng") : ocrLanguage;
-        const langObj = OCR_SUPPORTED_LANGUAGES.find((l) => l.code === effectiveLang);
-        const langName = langObj ? langObj.name : effectiveLang;
-
-        let blob: Blob;
-        let ext: string;
-
-        if (tool.slug === "image-to-pdf") {
-          blob = buildPdfFromImageDataUrl(jpegDataUrl, canvas.width, canvas.height, {
-            pageSize: pdfPageSize,
-            margin: pdfMargin,
-            quality: pdfQuality,
-          });
-          ext = "pdf";
-        } else if (tool.slug === "image-to-word") {
-          setOcrProgressStatus(`Loading OCR model (${langName}) for Word export...`);
-          setOcrProgressPercent(20);
-
-          let lines: string[] = [];
-          let tableGrid: string[][] = [];
-          if (wordDocMode !== "image_only") {
             const ocrRes = await performAdvancedOcr(canvas, {
               contrastMode: ocrContrastMode,
               language: effectiveLang,
@@ -8179,249 +8212,216 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
               },
             });
-            lines = ocrRes.textLines;
-            tableGrid = ocrRes.tableGrid;
-            setOcrTableGrid(tableGrid);
-            setRawOcrDocumentLines(lines);
-            const assembled = lines.join("\n");
+            setRawOcrDocumentLines(ocrRes.textLines);
+            setOcrTableGrid(ocrRes.tableGrid);
+            const assembled = ocrRes.textLines.join("\n");
             setOcrText(assembled);
             setBinaryOutputText(assembled);
             setOcrIsEmpty(ocrRes.isEmpty);
+
+            blob = buildEditableXlsxFromOcr(ocrRes.textLines, {
+              parserMode: excelParserMode,
+              sheetName: excelSheetName,
+              highlightHeader: excelHighlightHeader,
+              filename: fname,
+              tableGrid: ocrRes.tableGrid,
+            });
+            ext = "xlsx";
+          } else if (tool.slug === "image-to-powerpoint") {
+            setOcrProgressStatus(`Analyzing presentation slide & text (${langName})...`);
+            setOcrProgressPercent(20);
+
+            let lines: string[] = [];
+            if (pptxSlideMode !== "image_only") {
+              const ocrRes = await performAdvancedOcr(canvas, {
+                contrastMode: ocrContrastMode,
+                language: effectiveLang,
+                onProgress: (status, progress) => {
+                  setOcrProgressStatus(status);
+                  setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
+                },
+              });
+              lines = ocrRes.textLines;
+              setRawOcrDocumentLines(lines);
+              const assembled = lines.join("\n");
+              setOcrText(assembled);
+              setBinaryOutputText(assembled);
+              setOcrIsEmpty(ocrRes.isEmpty);
+            }
+
+            blob = buildPptxFromOcrAndImage(lines, {
+              mode: pptxSlideMode,
+              title: pptxSlideTitle || undefined,
+              theme: pptxTheme,
+              imageDataUrl: pngDataUrl,
+              imgW: canvas.width,
+              imgH: canvas.height,
+              filename: fname,
+            });
+            ext = "pptx";
+          } else {
+            blob = buildPptxFromImage(pngDataUrl, canvas.width, canvas.height, fname);
+            ext = "pptx";
           }
 
-          blob = buildEditableDocxFromOcr(lines, {
-            fontFamily: wordFontFamily,
-            fontSize: wordFontSize,
-            mode: wordDocMode,
-            imageDataUrl: pngDataUrl,
-            imgW: canvas.width,
-            imgH: canvas.height,
-            filename: fname,
-            tableGrid: tableGrid.length > 0 ? tableGrid : undefined,
-          });
-          ext = "docx";
-        } else if (tool.slug === "image-to-excel") {
-          setOcrProgressStatus(`Analyzing and extracting spreadsheet table (${langName})...`);
-          setOcrProgressPercent(20);
+          setDocumentBlob(blob);
+          setDocumentExt(ext);
+          const previewUrl = canvas.toDataURL("image/png");
+          setProcessedSrc(previewUrl);
+          setNewSize(blob.size);
+          setHasProcessed(true);
+          setIsEditingSettings(false);
+          setProcessing(false);
+          setOcrProgressStatus("");
+          setOcrProgressPercent(0);
+
+          if (tool.slug === "image-to-word") {
+            toast.success(`OCR Complete! Generated editable Word document (${ext.toUpperCase()}) with ${langName}.`);
+          } else if (tool.slug === "image-to-excel") {
+            toast.success(`OCR Complete! Generated editable Excel spreadsheet (${ext.toUpperCase()}) with ${langName}.`);
+          } else if (tool.slug === "image-to-powerpoint") {
+            toast.success(`OCR Complete! Generated valid PowerPoint presentation (${ext.toUpperCase()}) with ${langName}.`);
+          } else {
+            toast.success(`Image converted to ${ext.toUpperCase()} — click Download to save!`);
+          }
+
+          recordToolExecution();
+          return;
+        }
+
+        // OCR & QR/Barcode extraction pass
+        if (tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text") {
+          const effectiveLang = ocrLanguage === "custom" ? (ocrCustomLanguage.trim() || "eng") : ocrLanguage;
+          const langObj = OCR_SUPPORTED_LANGUAGES.find((l) => l.code === effectiveLang);
+          const langName = langObj ? langObj.name : effectiveLang;
+
+          setOcrProgressStatus("Scanning barcodes & QR codes...");
+          setOcrProgressPercent(10);
+          const detectedCodes = await detectBarcodesAndQRs(canvas);
+          setDetectedBarcodes(detectedCodes);
+
+          setOcrProgressStatus(`Loading OCR model (${langName})...`);
+          setOcrProgressPercent(25);
 
           const ocrRes = await performAdvancedOcr(canvas, {
             contrastMode: ocrContrastMode,
+            outputStructure: ocrOutputStructure,
             language: effectiveLang,
             onProgress: (status, progress) => {
               setOcrProgressStatus(status);
-              setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
+              setOcrProgressPercent(Math.min(95, 25 + Math.round(progress * 0.7)));
             },
           });
           setRawOcrDocumentLines(ocrRes.textLines);
           setOcrTableGrid(ocrRes.tableGrid);
-          const assembled = ocrRes.textLines.join("\n");
-          setOcrText(assembled);
-          setBinaryOutputText(assembled);
-          setOcrIsEmpty(ocrRes.isEmpty);
 
-          blob = buildEditableXlsxFromOcr(ocrRes.textLines, {
-            parserMode: excelParserMode,
-            sheetName: excelSheetName,
-            highlightHeader: excelHighlightHeader,
-            filename: fname,
-            tableGrid: ocrRes.tableGrid,
-          });
-          ext = "xlsx";
-        } else if (tool.slug === "image-to-powerpoint") {
-          setOcrProgressStatus(`Analyzing presentation slide & text (${langName})...`);
-          setOcrProgressPercent(20);
+          const isEmptyDetection = ocrRes.isEmpty && detectedCodes.length === 0;
+          setOcrIsEmpty(isEmptyDetection);
 
-          let lines: string[] = [];
-          if (pptxSlideMode !== "image_only") {
-            const ocrRes = await performAdvancedOcr(canvas, {
-              contrastMode: ocrContrastMode,
-              language: effectiveLang,
-              onProgress: (status, progress) => {
-                setOcrProgressStatus(status);
-                setOcrProgressPercent(Math.min(95, 20 + Math.round(progress * 0.75)));
-              },
-            });
-            lines = ocrRes.textLines;
-            setRawOcrDocumentLines(lines);
-            const assembled = lines.join("\n");
+          if (isEmptyDetection) {
+            setOcrText("");
+            setBinaryOutputText("");
+          } else {
+            const assembled = assembleOcrOutputText(
+              ocrRes.textLines,
+              detectedCodes,
+              skipBarcodeAndQr,
+              ocrOutputStructure
+            );
             setOcrText(assembled);
             setBinaryOutputText(assembled);
-            setOcrIsEmpty(ocrRes.isEmpty);
           }
 
-          blob = buildPptxFromOcrAndImage(lines, {
-            mode: pptxSlideMode,
-            title: pptxSlideTitle || undefined,
-            theme: pptxTheme,
-            imageDataUrl: pngDataUrl,
-            imgW: canvas.width,
-            imgH: canvas.height,
-            filename: fname,
-          });
-          ext = "pptx";
-        } else {
-          blob = buildPptxFromImage(pngDataUrl, canvas.width, canvas.height, fname);
-          ext = "pptx";
-        }
+          const previewUrl = canvas.toDataURL("image/png");
+          setProcessedSrc(previewUrl);
+          setHasProcessed(true);
+          setIsEditingSettings(false);
+          setProcessing(false);
+          setOcrProgressStatus("");
+          setOcrProgressPercent(0);
 
-        setDocumentBlob(blob);
-        setDocumentExt(ext);
-        const previewUrl = canvas.toDataURL("image/png");
-        setProcessedSrc(previewUrl);
-        setNewSize(blob.size);
-        setHasProcessed(true);
-        setIsEditingSettings(false);
-        setProcessing(false);
-        setOcrProgressStatus("");
-        setOcrProgressPercent(0);
+          recordToolExecution();
 
-        if (tool.slug === "image-to-word") {
-          toast.success(`OCR Complete! Generated editable Word document (${ext.toUpperCase()}) with ${langName}.`);
-        } else if (tool.slug === "image-to-excel") {
-          toast.success(`OCR Complete! Generated editable Excel spreadsheet (${ext.toUpperCase()}) with ${langName}.`);
-        } else if (tool.slug === "image-to-powerpoint") {
-          toast.success(`OCR Complete! Generated valid PowerPoint presentation (${ext.toUpperCase()}) with ${langName}.`);
-        } else {
-          toast.success(`Image converted to ${ext.toUpperCase()} — click Download to save!`);
-        }
-
-        recordToolExecution();
-        return;
-      }
-
-      // OCR & QR/Barcode extraction pass
-      if (tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text") {
-        const effectiveLang = ocrLanguage === "custom" ? (ocrCustomLanguage.trim() || "eng") : ocrLanguage;
-        const langObj = OCR_SUPPORTED_LANGUAGES.find((l) => l.code === effectiveLang);
-        const langName = langObj ? langObj.name : effectiveLang;
-
-        setOcrProgressStatus("Scanning barcodes & QR codes...");
-        setOcrProgressPercent(10);
-        const detectedCodes = await detectBarcodesAndQRs(canvas);
-        setDetectedBarcodes(detectedCodes);
-
-        setOcrProgressStatus(`Loading OCR model (${langName})...`);
-        setOcrProgressPercent(25);
-
-        const ocrRes = await performAdvancedOcr(canvas, {
-          contrastMode: ocrContrastMode,
-          outputStructure: ocrOutputStructure,
-          language: effectiveLang,
-          onProgress: (status, progress) => {
-            setOcrProgressStatus(status);
-            setOcrProgressPercent(Math.min(95, 25 + Math.round(progress * 0.7)));
-          },
-        });
-        setRawOcrDocumentLines(ocrRes.textLines);
-        setOcrTableGrid(ocrRes.tableGrid);
-
-        const isEmptyDetection = ocrRes.isEmpty && detectedCodes.length === 0;
-        setOcrIsEmpty(isEmptyDetection);
-
-        if (isEmptyDetection) {
-          setOcrText("");
-          setBinaryOutputText("");
-        } else {
-          const assembled = assembleOcrOutputText(
-            ocrRes.textLines,
-            detectedCodes,
-            skipBarcodeAndQr,
-            ocrOutputStructure
-          );
-          setOcrText(assembled);
-          setBinaryOutputText(assembled);
-        }
-
-        const previewUrl = canvas.toDataURL("image/png");
-        setProcessedSrc(previewUrl);
-        setHasProcessed(true);
-        setIsEditingSettings(false);
-        setProcessing(false);
-        setOcrProgressStatus("");
-        setOcrProgressPercent(0);
-
-        recordToolExecution();
-
-        if (isEmptyDetection) {
-          toast.info("OCR Scan Complete: No readable text or barcodes detected in this image.");
-        } else if (detectedCodes.length > 0) {
-          toast.success(`OCR Complete! Detected ${detectedCodes.length} code(s) & extracted text (${langName}).`);
-        } else {
-          toast.success(`Text extracted successfully (${langName})!`);
-        }
-        return;
-      }
-
-      // ── SPECIAL DEDICATED BINARY & ENCODED DATA PIPELINE ────────
-      if (
-        [
-          "image-to-binary",
-          "image-to-base64",
-          "image-to-octal",
-          "image-to-hex",
-          "image-to-decimal",
-          "image-to-ascii",
-        ].includes(tool.slug)
-      ) {
-        generateBinaryData(imageSrc);
-        setHasProcessed(true);
-        setIsEditingSettings(false);
-        setProcessing(false);
-
-        recordToolExecution();
-
-        toast.success(`Generated ${binaryOutputMode} output successfully!`);
-        return;
-      }
-
-      // ── SPECIAL DEDICATED COMPRESSION PIPELINE FOR "compress-image" ────────
-      if (tool.slug === "compress-image") {
-        const origMime = file?.type || "";
-        let effectiveFormat = "image/jpeg";
-
-        if (compressFormat === "image/jpeg" || compressFormat === "image/webp" || compressFormat === "image/png") {
-          effectiveFormat = compressFormat;
-        } else {
-          // "auto" mode:
-          // If original file is webp -> use webp
-          // If original file is png -> use webp (lossy compression + transparency preserved)
-          // If jpeg or other -> use jpeg
-          if (origMime === "image/webp") {
-            effectiveFormat = "image/webp";
-          } else if (origMime === "image/png") {
-            effectiveFormat = "image/webp";
+          if (isEmptyDetection) {
+            toast.info("OCR Scan Complete: No readable text or barcodes detected in this image.");
+          } else if (detectedCodes.length > 0) {
+            toast.success(`OCR Complete! Detected ${detectedCodes.length} code(s) & extracted text (${langName}).`);
           } else {
-            effectiveFormat = "image/jpeg";
+            toast.success(`Text extracted successfully (${langName})!`);
           }
+          return;
         }
 
-        const calcByteSize = (dataUrlStr: string): number => {
-          const b64 = dataUrlStr.split(",")[1] || "";
-          const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
-          return Math.max(1, Math.round((b64.length * 3) / 4 - padding));
-        };
+        // ── SPECIAL DEDICATED BINARY & ENCODED DATA PIPELINE ────────
+        if (
+          [
+            "image-to-binary",
+            "image-to-base64",
+            "image-to-octal",
+            "image-to-hex",
+            "image-to-decimal",
+            "image-to-ascii",
+          ].includes(tool.slug)
+        ) {
+          generateBinaryData(imageSrc);
+          setHasProcessed(true);
+          setIsEditingSettings(false);
+          setProcessing(false);
 
-        let finalDataUrl = "";
-        let finalQuality = quality / 100;
+          recordToolExecution();
 
-        // Mode A: SIZE WISE COMPRESSION (Target File Size e.g. 200 KB)
-        if (compressMode === "size") {
-          const rawTarget = targetSizeInput.trim() || String(Math.max(5, Math.round((origSize * 0.6) / 1024)));
-          const parsedTarget = parseFloat(rawTarget);
-          if (isNaN(parsedTarget) || parsedTarget <= 0) {
-            toast.error("Please enter a valid target file size.");
-            setProcessing(false);
-            return;
+          toast.success(`Generated ${binaryOutputMode} output successfully!`);
+          return;
+        }
+
+        // ── SPECIAL DEDICATED COMPRESSION PIPELINE FOR "compress-image" ────────
+        if (tool.slug === "compress-image") {
+          const origMime = file?.type || "";
+          let effectiveFormat = "image/jpeg";
+
+          if (compressFormat === "image/jpeg" || compressFormat === "image/webp" || compressFormat === "image/png") {
+            effectiveFormat = compressFormat;
+          } else {
+            // "auto" mode:
+            // If original file is webp -> use webp
+            // If original file is png -> use webp (lossy compression + transparency preserved)
+            // If jpeg or other -> use jpeg
+            if (origMime === "image/webp") {
+              effectiveFormat = "image/webp";
+            } else if (origMime === "image/png") {
+              effectiveFormat = "image/webp";
+            } else {
+              effectiveFormat = "image/jpeg";
+            }
           }
 
-          const targetBytes = targetSizeUnit === "MB" ? parsedTarget * 1024 * 1024 : parsedTarget * 1024;
-          if (origSize > 0 && targetBytes >= origSize) {
-            toast.error(`Target size must be less than original size (${formatBytes(origSize)}).`);
-            setProcessing(false);
-            return;
-          }
+          const calcByteSize = (dataUrlStr: string): number => {
+            const b64 = dataUrlStr.split(",")[1] || "";
+            const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+            return Math.max(1, Math.round((b64.length * 3) / 4 - padding));
+          };
 
-          const searchFormat = effectiveFormat === "image/png" ? "image/webp" : effectiveFormat;
+          let finalDataUrl = "";
+          let finalQuality = quality / 100;
+
+          // Mode A: SIZE WISE COMPRESSION (Target File Size e.g. 200 KB)
+          if (compressMode === "size") {
+            const rawTarget = targetSizeInput.trim() || String(Math.max(5, Math.round((origSize * 0.6) / 1024)));
+            const parsedTarget = parseFloat(rawTarget);
+            if (isNaN(parsedTarget) || parsedTarget <= 0) {
+              toast.error("Please enter a valid target file size.");
+              setProcessing(false);
+              return;
+            }
+
+            const targetBytes = targetSizeUnit === "MB" ? parsedTarget * 1024 * 1024 : parsedTarget * 1024;
+            if (origSize > 0 && targetBytes >= origSize) {
+              toast.error(`Target size must be less than original size (${formatBytes(origSize)}).`);
+              setProcessing(false);
+              return;
+            }
+
+            const searchFormat = effectiveFormat === "image/png" ? "image/webp" : effectiveFormat;
 
             let bestUrl = canvas.toDataURL(searchFormat, 0.75);
             let bestQ = 0.75;
@@ -8452,7 +8452,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 const tempCtx = tempCanvas.getContext("2d");
                 if (tempCtx) {
                   tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
-                  
+
                   let sLow = 0.02, sHigh = 0.95;
                   let sBestUrl = tempCanvas.toDataURL(searchFormat, 0.05);
                   let sBestQ = 0.05;
@@ -8482,121 +8482,121 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             finalDataUrl = bestUrl;
             finalQuality = bestQ;
             setQuality(Math.round(bestQ * 100));
-        } else {
-          // Mode B: QUALITY WISE COMPRESSION (Standard Quality Slider Mode)
-          const exportQ = Math.max(0.02, Math.min(0.98, quality / 100));
-          if (effectiveFormat === "image/png") {
-            finalDataUrl = canvas.toDataURL("image/png");
           } else {
-            finalDataUrl = canvas.toDataURL(effectiveFormat, exportQ);
+            // Mode B: QUALITY WISE COMPRESSION (Standard Quality Slider Mode)
+            const exportQ = Math.max(0.02, Math.min(0.98, quality / 100));
+            if (effectiveFormat === "image/png") {
+              finalDataUrl = canvas.toDataURL("image/png");
+            } else {
+              finalDataUrl = canvas.toDataURL(effectiveFormat, exportQ);
+            }
+
+            // Safety optimization: if output exceeds original and WebP could be smaller, use WebP
+            if (origSize > 0 && calcByteSize(finalDataUrl) >= origSize && effectiveFormat !== "image/webp") {
+              const webpUrl = canvas.toDataURL("image/webp", exportQ);
+              if (calcByteSize(webpUrl) < calcByteSize(finalDataUrl)) {
+                finalDataUrl = webpUrl;
+              }
+            }
           }
 
-          // Safety optimization: if output exceeds original and WebP could be smaller, use WebP
-          if (origSize > 0 && calcByteSize(finalDataUrl) >= origSize && effectiveFormat !== "image/webp") {
-            const webpUrl = canvas.toDataURL("image/webp", exportQ);
-            if (calcByteSize(webpUrl) < calcByteSize(finalDataUrl)) {
-              finalDataUrl = webpUrl;
+          const outBytes = calcByteSize(finalDataUrl);
+          setProcessedSrc(finalDataUrl);
+          setNewSize(outBytes);
+          setHasProcessed(true);
+          setIsEditingSettings(false);
+          setProcessing(false);
+
+          recordToolExecution();
+
+          const pctSaved = origSize > 0 ? Math.max(0, Math.round(((origSize - outBytes) / origSize) * 100)) : 0;
+          toast.success(`Image compressed! File size reduced by ${pctSaved}%.`);
+          return;
+        }
+
+        // Format output encoding for other tools
+        let format = targetFormat;
+        let exportQuality = 0.98; // Preserve ultra-high quality by default for format conversions
+
+        if (tool.slug === "convert-to-jpg") {
+          format = "image/jpeg";
+          exportQuality = 0.98; // Maintain maximum image quality in JPG conversion
+        } else if (tool.slug === "convert-from-jpg") {
+          format = targetFormat;
+          exportQuality = 0.98;
+        } else if (tool.slug === "square-your-image") {
+          format = squareExportFormat === "PNG" ? "image/png" : squareExportFormat === "JPG" ? "image/jpeg" : "image/webp";
+          exportQuality = 0.98;
+        } else if (tool.slug === "resize-image") {
+          if (resizeQualityMode === "improved") {
+            // Quality Improvement: preserve highest bitrate (0.99) & lossless chroma for true HD output with larger file size
+            if (file?.type === "image/png") {
+              format = "image/png";
+            } else if (file?.type === "image/webp") {
+              format = "image/webp";
+              exportQuality = 0.99;
+            } else {
+              format = "image/jpeg";
+              exportQuality = 0.99;
+            }
+          } else {
+            // Same Quality: lean, balanced web size without inflating file size
+            if (file?.type === "image/png") {
+              format = "image/png";
+            } else if (file?.type === "image/webp") {
+              format = "image/webp";
+              exportQuality = 0.85;
+            } else {
+              format = "image/jpeg";
+              exportQuality = 0.85;
+            }
+          }
+        } else {
+          exportQuality = Math.max(0.02, Math.min(1.0, quality / 100));
+        }
+
+        let dataUrl = "";
+        if (tool.slug === "square-your-image") {
+          try {
+            dataUrl = renderSquareImageToDataUrl(img);
+          } catch {
+            // fallback to canvas
+          }
+        }
+        if (!dataUrl) {
+          try {
+            dataUrl = canvas.toDataURL(format, exportQuality);
+          } catch {
+            try {
+              dataUrl = canvas.toDataURL("image/png");
+            } catch (canvasErr) {
+              console.error("Canvas export failed:", canvasErr);
+              setProcessing(false);
+              toast.error("Could not export image. Please try another image file.");
+              return;
             }
           }
         }
 
-        const outBytes = calcByteSize(finalDataUrl);
-        setProcessedSrc(finalDataUrl);
-        setNewSize(outBytes);
+        setProcessedSrc(dataUrl);
+        const b64 = dataUrl.split(",")[1] || "";
+        const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+        setNewSize(Math.max(1, Math.round((b64.length * 3) / 4 - padding)));
+        setOutputDimensions({ width: canvas.width, height: canvas.height });
         setHasProcessed(true);
         setIsEditingSettings(false);
         setProcessing(false);
 
+        // Real telemetry, quota tracking & custom credit deduction
         recordToolExecution();
 
-        const pctSaved = origSize > 0 ? Math.max(0, Math.round(((origSize - outBytes) / origSize) * 100)) : 0;
-        toast.success(`Image compressed! File size reduced by ${pctSaved}%.`);
-        return;
+        toast.success(`${tool.name} completed successfully!`);
+      } catch (fatalErr) {
+        console.error("Fatal error inside processImage:", fatalErr);
+        setProcessing(false);
+        toast.error("An unexpected error occurred while processing image.");
       }
-
-      // Format output encoding for other tools
-      let format = targetFormat;
-      let exportQuality = 0.98; // Preserve ultra-high quality by default for format conversions
-
-      if (tool.slug === "convert-to-jpg") {
-        format = "image/jpeg";
-        exportQuality = 0.98; // Maintain maximum image quality in JPG conversion
-      } else if (tool.slug === "convert-from-jpg") {
-        format = targetFormat;
-        exportQuality = 0.98;
-      } else if (tool.slug === "square-your-image") {
-        format = squareExportFormat === "PNG" ? "image/png" : squareExportFormat === "JPG" ? "image/jpeg" : "image/webp";
-        exportQuality = 0.98;
-      } else if (tool.slug === "resize-image") {
-        if (resizeQualityMode === "improved") {
-          // Quality Improvement: preserve highest bitrate (0.99) & lossless chroma for true HD output with larger file size
-          if (file?.type === "image/png") {
-            format = "image/png";
-          } else if (file?.type === "image/webp") {
-            format = "image/webp";
-            exportQuality = 0.99;
-          } else {
-            format = "image/jpeg";
-            exportQuality = 0.99;
-          }
-        } else {
-          // Same Quality: lean, balanced web size without inflating file size
-          if (file?.type === "image/png") {
-            format = "image/png";
-          } else if (file?.type === "image/webp") {
-            format = "image/webp";
-            exportQuality = 0.85;
-          } else {
-            format = "image/jpeg";
-            exportQuality = 0.85;
-          }
-        }
-      } else {
-        exportQuality = Math.max(0.02, Math.min(1.0, quality / 100));
-      }
-
-      let dataUrl = "";
-      if (tool.slug === "square-your-image") {
-        try {
-          dataUrl = renderSquareImageToDataUrl(img);
-        } catch {
-          // fallback to canvas
-        }
-      }
-      if (!dataUrl) {
-        try {
-          dataUrl = canvas.toDataURL(format, exportQuality);
-        } catch {
-          try {
-            dataUrl = canvas.toDataURL("image/png");
-          } catch (canvasErr) {
-            console.error("Canvas export failed:", canvasErr);
-            setProcessing(false);
-            toast.error("Could not export image. Please try another image file.");
-            return;
-          }
-        }
-      }
-
-      setProcessedSrc(dataUrl);
-      const b64 = dataUrl.split(",")[1] || "";
-      const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
-      setNewSize(Math.max(1, Math.round((b64.length * 3) / 4 - padding)));
-      setOutputDimensions({ width: canvas.width, height: canvas.height });
-      setHasProcessed(true);
-      setIsEditingSettings(false);
-      setProcessing(false);
-
-      // Real telemetry, quota tracking & custom credit deduction
-      recordToolExecution();
-
-      toast.success(`${tool.name} completed successfully!`);
-    } catch (fatalErr) {
-      console.error("Fatal error inside processImage:", fatalErr);
-      setProcessing(false);
-      toast.error("An unexpected error occurred while processing image.");
-    }
-  };
+    };
     img.src = imageSrc;
   };
 
@@ -8946,20 +8946,20 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
       tool.slug === "compress-image"
         ? `${baseName}_compressed.${ext}`
         : tool.slug === "resize-image"
-        ? `${baseName}_resized.${ext}`
-        : tool.slug === "crop-image"
-        ? `${baseName}_cropped.${ext}`
-        : tool.slug === "square-your-image"
-        ? `${baseName}_square.${ext}`
-        : tool.slug === "rotate-image"
-        ? `${baseName}_rotated.${ext}`
-        : tool.slug === "watermark-image"
-        ? `${baseName}_watermarked.${ext}`
-        : tool.slug === "blur-face"
-        ? `${baseName}_anonymized.${ext}`
-        : tool.slug === "meme-generator"
-        ? `${baseName}_meme.${ext}`
-        : `${baseName}_${tool.slug}.${ext}`;
+          ? `${baseName}_resized.${ext}`
+          : tool.slug === "crop-image"
+            ? `${baseName}_cropped.${ext}`
+            : tool.slug === "square-your-image"
+              ? `${baseName}_square.${ext}`
+              : tool.slug === "rotate-image"
+                ? `${baseName}_rotated.${ext}`
+                : tool.slug === "watermark-image"
+                  ? `${baseName}_watermarked.${ext}`
+                  : tool.slug === "blur-face"
+                    ? `${baseName}_anonymized.${ext}`
+                    : tool.slug === "meme-generator"
+                      ? `${baseName}_meme.${ext}`
+                      : `${baseName}_${tool.slug}.${ext}`;
 
     triggerFileDownload(url, downloadFilename);
 
@@ -8971,12 +8971,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
       tool.slug === "compress-image"
         ? `Downloaded compressed image (${formatBytes(newSize || origSize)})!`
         : tool.slug === "resize-image"
-        ? `Downloaded resized image (${ext.toUpperCase()})!`
-        : tool.slug === "crop-image"
-        ? `Downloaded cropped image (${ext.toUpperCase()})!`
-        : tool.slug === "square-your-image"
-        ? `Downloaded 1:1 square image (${ext.toUpperCase()})!`
-        : "Processed image downloaded!"
+          ? `Downloaded resized image (${ext.toUpperCase()})!`
+          : tool.slug === "crop-image"
+            ? `Downloaded cropped image (${ext.toUpperCase()})!`
+            : tool.slug === "square-your-image"
+              ? `Downloaded 1:1 square image (${ext.toUpperCase()})!`
+              : "Processed image downloaded!"
     );
   };
 
@@ -9170,13 +9170,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         >
           <aside
             aria-label="Quick download dynamic island"
-            className={`pointer-events-auto dynamic-island-box flex items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-black text-white p-1.5 sm:p-2 mx-auto ${
-              showDynamicIsland
+            className={`pointer-events-auto dynamic-island-box flex items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-black text-white p-1.5 sm:p-2 mx-auto ${showDynamicIsland
                 ? "island-enter"
                 : hasScrolledOnce
-                ? "island-exit"
-                : "opacity-0 -translate-y-12 scale-90 pointer-events-none"
-            }`}
+                  ? "island-exit"
+                  : "opacity-0 -translate-y-12 scale-90 pointer-events-none"
+              }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
             <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
@@ -9225,30 +9224,30 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 {tool.slug === "compress-image"
                   ? "Download Image"
                   : tool.slug === "convert-to-jpg"
-                  ? "Download JPG"
-                  : tool.slug === "convert-from-jpg"
-                  ? `Download ${targetFormatLabel}`
-                  : tool.slug === "convert-to-png"
-                  ? "Download PNG"
-                  : tool.slug === "convert-to-webp"
-                  ? "Download WebP"
-                  : tool.slug === "image-to-pdf"
-                  ? "Download PDF"
-                  : tool.slug === "image-to-word"
-                  ? "Download Word"
-                  : tool.slug === "image-to-excel"
-                  ? "Download Excel"
-                  : tool.slug === "image-to-powerpoint"
-                  ? "Download Presentation"
-                  : isConversionTool
-                  ? `Download ${targetFormatLabel}`
-                  : tool.slug === "resize-image"
-                  ? "Download Resized"
-                  : tool.slug === "crop-image"
-                  ? "Download Cropped"
-                  : tool.slug.includes("ocr") || tool.slug === "image-to-text"
-                  ? "Download Text"
-                  : "Download Result"}
+                    ? "Download JPG"
+                    : tool.slug === "convert-from-jpg"
+                      ? `Download ${targetFormatLabel}`
+                      : tool.slug === "convert-to-png"
+                        ? "Download PNG"
+                        : tool.slug === "convert-to-webp"
+                          ? "Download WebP"
+                          : tool.slug === "image-to-pdf"
+                            ? "Download PDF"
+                            : tool.slug === "image-to-word"
+                              ? "Download Word"
+                              : tool.slug === "image-to-excel"
+                                ? "Download Excel"
+                                : tool.slug === "image-to-powerpoint"
+                                  ? "Download Presentation"
+                                  : isConversionTool
+                                    ? `Download ${targetFormatLabel}`
+                                    : tool.slug === "resize-image"
+                                      ? "Download Resized"
+                                      : tool.slug === "crop-image"
+                                        ? "Download Cropped"
+                                        : tool.slug.includes("ocr") || tool.slug === "image-to-text"
+                                          ? "Download Text"
+                                          : "Download Result"}
               </span>
               {!isConversionTool && (
                 <span className="hidden md:inline-block rounded-full bg-black/10 text-neutral-800 px-2 py-0.5 text-[11px] font-mono font-bold">
@@ -9294,14 +9293,14 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         multiple={tool.slug === "rotate-image"}
         accept={
           tool.slug === "base64-to-image" ? ".txt,.b64,.base64,.text,text/plain,text/*" :
-          tool.slug === "html-to-image" ? ".html,.htm,.txt,text/html" :
-          tool.slug === "binary-to-image" ? ".bin,.txt,.dat,.raw,text/plain,application/octet-stream,image/*" :
-          ["octal-to-image","hex-to-image","decimal-to-image","ascii-to-image"].includes(tool.slug) ? ".txt,.text,text/plain" :
-          ["pdf-to-image"].includes(tool.slug) ? ".pdf,application/pdf" :
-          ["word-to-image"].includes(tool.slug) ? ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" :
-          ["excel-to-image"].includes(tool.slug) ? ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" :
-          ["powerpoint-to-image"].includes(tool.slug) ? ".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" :
-          "image/*"
+            tool.slug === "html-to-image" ? ".html,.htm,.txt,text/html" :
+              tool.slug === "binary-to-image" ? ".bin,.txt,.dat,.raw,text/plain,application/octet-stream,image/*" :
+                ["octal-to-image", "hex-to-image", "decimal-to-image", "ascii-to-image"].includes(tool.slug) ? ".txt,.text,text/plain" :
+                  ["pdf-to-image"].includes(tool.slug) ? ".pdf,application/pdf" :
+                    ["word-to-image"].includes(tool.slug) ? ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" :
+                      ["excel-to-image"].includes(tool.slug) ? ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" :
+                        ["powerpoint-to-image"].includes(tool.slug) ? ".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" :
+                          "image/*"
         }
         className="hidden"
         onChange={handleFileChange}
@@ -9317,15 +9316,14 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               {/* Left Column: Icon & Headings */}
               <div className="flex items-center gap-4">
                 <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                    isOcrTool
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${isOcrTool
                       ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
                       : isDocumentTool
-                      ? "bg-blue-500/15 text-blue-500 border border-blue-500/30"
-                      : isBinaryTool
-                      ? "bg-purple-500/15 text-purple-500 border border-purple-500/30"
-                      : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                  } shadow-xs`}
+                        ? "bg-blue-500/15 text-blue-500 border border-blue-500/30"
+                        : isBinaryTool
+                          ? "bg-purple-500/15 text-purple-500 border border-purple-500/30"
+                          : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                    } shadow-xs`}
                 >
                   {isOcrTool ? (
                     <ScanText className="h-6 w-6 stroke-[2.2]" />
@@ -9343,51 +9341,51 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       {isOcrTool
                         ? "AI OCR Extraction Complete"
                         : tool.slug === "compress-image"
-                        ? "Lossless Compression Complete"
-                        : tool.slug === "resize-image"
-                        ? "Smart Resize Complete"
-                        : tool.slug === "crop-image"
-                        ? "Precision Crop Complete"
-                        : tool.slug === "square-your-image"
-                        ? "1:1 Square Complete"
-                        : isDocumentTool
-                        ? "Document Conversion Complete"
-                        : isBinaryTool
-                        ? "Binary Stream Complete"
-                        : isConversionTool
-                        ? "Format Conversion Complete"
-                        : `${tool.name} Complete`}
+                          ? "Lossless Compression Complete"
+                          : tool.slug === "resize-image"
+                            ? "Smart Resize Complete"
+                            : tool.slug === "crop-image"
+                              ? "Precision Crop Complete"
+                              : tool.slug === "square-your-image"
+                                ? "1:1 Square Complete"
+                                : isDocumentTool
+                                  ? "Document Conversion Complete"
+                                  : isBinaryTool
+                                    ? "Binary Stream Complete"
+                                    : isConversionTool
+                                      ? "Format Conversion Complete"
+                                      : `${tool.name} Complete`}
                     </span>
                     <span className="text-xs text-muted-foreground font-semibold">
                       {isOcrTool
                         ? `${ocrText ? ocrText.split(/\s+/).filter(Boolean).length : 0} Words · ${ocrText ? ocrText.length : 0} Chars`
                         : tool.slug === "square-your-image"
-                        ? `${Math.max(dimensions.width || 0, dimensions.height || 0)} × ${Math.max(dimensions.width || 0, dimensions.height || 0)} px`
-                        : tool.slug === "resize-image"
-                        ? `${outputDimensions.width || targetWidth || dimensions.width} × ${outputDimensions.height || targetHeight || dimensions.height} px`
-                        : `${dimensions.width} × ${dimensions.height} px`}
+                          ? `${Math.max(dimensions.width || 0, dimensions.height || 0)} × ${Math.max(dimensions.width || 0, dimensions.height || 0)} px`
+                          : tool.slug === "resize-image"
+                            ? `${outputDimensions.width || targetWidth || dimensions.width} × ${outputDimensions.height || targetHeight || dimensions.height} px`
+                            : `${dimensions.width} × ${dimensions.height} px`}
                     </span>
                   </div>
                   <h3 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground mt-1">
                     {isOcrTool
                       ? "Text Successfully Extracted"
                       : tool.slug === "compress-image"
-                      ? "Image Successfully Compressed"
-                      : tool.slug === "resize-image"
-                      ? "Image Successfully Resized"
-                      : tool.slug === "crop-image"
-                      ? "Image Successfully Cropped"
-                      : tool.slug === "square-your-image"
-                      ? "1:1 Square Image Ready to Download"
-                      : tool.slug === "blur-image" || tool.slug === "anonymise-image"
-                      ? "Image Successfully Blurred"
-                      : tool.slug === "watermark-image"
-                      ? "Watermark Successfully Applied"
-                      : isDocumentTool
-                      ? `${tool.name} Ready`
-                      : isConversionTool
-                      ? `Converted to ${targetFormatLabel}`
-                      : `${tool.name} Completed Successfully`}
+                        ? "Image Successfully Compressed"
+                        : tool.slug === "resize-image"
+                          ? "Image Successfully Resized"
+                          : tool.slug === "crop-image"
+                            ? "Image Successfully Cropped"
+                            : tool.slug === "square-your-image"
+                              ? "1:1 Square Image Ready to Download"
+                              : tool.slug === "blur-image" || tool.slug === "anonymise-image"
+                                ? "Image Successfully Blurred"
+                                : tool.slug === "watermark-image"
+                                  ? "Watermark Successfully Applied"
+                                  : isDocumentTool
+                                    ? `${tool.name} Ready`
+                                    : isConversionTool
+                                      ? `Converted to ${targetFormatLabel}`
+                                      : `${tool.name} Completed Successfully`}
                   </h3>
                 </div>
               </div>
@@ -9523,11 +9521,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setPreviewBackdrop("white")}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${
-                          previewBackdrop === "white"
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${previewBackdrop === "white"
                             ? "bg-foreground text-background shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                         title="Clean white studio backdrop"
                       >
                         White
@@ -9535,11 +9532,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setPreviewBackdrop("checker")}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${
-                          previewBackdrop === "checker"
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${previewBackdrop === "checker"
                             ? "bg-foreground text-background shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                         title="Subtle transparency grid backdrop"
                       >
                         Grid
@@ -9547,11 +9543,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setPreviewBackdrop("black")}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${
-                          previewBackdrop === "black"
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${previewBackdrop === "black"
                             ? "bg-foreground text-background shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                         title="Dark studio backdrop"
                       >
                         Dark
@@ -9684,13 +9679,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               return (
                                 <tr
                                   key={rIdx}
-                                  className={`border-b border-border/70 transition-colors ${
-                                    isHeader
+                                  className={`border-b border-border/70 transition-colors ${isHeader
                                       ? "bg-emerald-500/10 font-bold text-foreground hover:bg-emerald-500/15"
                                       : rIdx % 2 === 0
-                                      ? "bg-background hover:bg-muted/40"
-                                      : "bg-muted/20 hover:bg-muted/50"
-                                  }`}
+                                        ? "bg-background hover:bg-muted/40"
+                                        : "bg-muted/20 hover:bg-muted/50"
+                                    }`}
                                 >
                                   {/* Row Number (1, 2, 3...) */}
                                   <td className="px-3 py-2 text-center text-[10px] font-bold text-muted-foreground border-r border-border select-none bg-muted/30">
@@ -9702,13 +9696,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                     return (
                                       <td
                                         key={cIdx}
-                                        className={`px-3 py-2 border-r border-border/70 truncate max-w-[240px] ${
-                                          isHeader
+                                        className={`px-3 py-2 border-r border-border/70 truncate max-w-[240px] ${isHeader
                                             ? "text-emerald-700 dark:text-emerald-300 font-extrabold"
                                             : isNumeric
-                                            ? "text-right text-blue-600 dark:text-blue-400 font-semibold"
-                                            : "text-foreground"
-                                        }`}
+                                              ? "text-right text-blue-600 dark:text-blue-400 font-semibold"
+                                              : "text-foreground"
+                                          }`}
                                         title={cellVal}
                                       >
                                         {cellVal || <span className="opacity-20 italic">—</span>}
@@ -10068,7 +10061,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
                     <span className="inline-flex items-center gap-1.5">
-                      <MonitorPlay className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <Presentation className="h-3.5 w-3.5 text-accent shrink-0" />
                       <span>
                         <strong>Live PowerPoint Builder</strong>: Edits will be packaged directly into your downloaded <strong className="text-foreground">.pptx</strong> file.
                       </span>
@@ -10225,13 +10218,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             ) : (
               /* Image Preview Studio Canvas */
               <div
-                className={`relative flex-1 w-full min-h-[420px] max-h-[560px] flex items-center justify-center p-6 sm:p-8 rounded-2xl border transition-all duration-300 overflow-hidden ${
-                  previewBackdrop === "checker"
+                className={`relative flex-1 w-full min-h-[420px] max-h-[560px] flex items-center justify-center p-6 sm:p-8 rounded-2xl border transition-all duration-300 overflow-hidden ${previewBackdrop === "checker"
                     ? "border-border/60 bg-[#f8f9fb] dark:bg-[#141418] [background-image:linear-gradient(45deg,rgba(120,120,130,0.08)_25%,transparent_25%),linear-gradient(-45deg,rgba(120,120,130,0.08)_25%,transparent_25%),linear-gradient(45deg,transparent_75%,rgba(120,120,130,0.08)_75%),linear-gradient(-45deg,transparent_75%,rgba(120,120,130,0.08)_75%)] [background-size:20px_20px] [background-position:0_0,0_10px,10px_-10px,-10px_0px]"
                     : previewBackdrop === "white"
-                    ? "border-border/60 bg-white shadow-inner"
-                    : "border-white/10 bg-[#0d0d10] shadow-inner"
-                }`}
+                      ? "border-border/60 bg-white shadow-inner"
+                      : "border-white/10 bg-[#0d0d10] shadow-inner"
+                  }`}
               >
                 <img
                   src={showOriginalComparison ? imageSrc || undefined : processedSrc || imageSrc || undefined}
@@ -10258,60 +10250,60 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 {isOcrTool
                   ? "Download Extracted Text (.txt)"
                   : tool.slug === "compress-image"
-                  ? "Download Compressed Image"
-                  : tool.slug === "pdf-to-image"
-                  ? documentBlob
-                    ? `Download All ${pdfTotalPages} Pages (ZIP)`
-                    : pdfTotalPages > 1
-                    ? `Download Page ${pdfDocPage} (${pdfDocOutputFormat})`
-                    : `Download Image (${pdfDocOutputFormat})`
-                  : tool.slug === "powerpoint-to-image"
-                  ? documentBlob
-                    ? `Download All ${pptTotalSlides} Slides (ZIP)`
-                    : pptTotalSlides > 1
-                    ? `Download Slide ${pptDocSlide} (${pptDocOutputFormat})`
-                    : `Download Slide (${pptDocOutputFormat})`
-                  : tool.slug === "word-to-image"
-                  ? documentBlob
-                    ? `Download All ${wordTotalPages} Pages (ZIP)`
-                    : wordTotalPages > 1
-                    ? `Download Page ${wordDocPage} (${wordDocOutputFormat})`
-                    : `Download Image (${wordDocOutputFormat})`
-                  : tool.slug === "excel-to-image"
-                  ? documentBlob
-                    ? `Download All ${excelTotalSheets} Sheets (ZIP)`
-                    : excelTotalSheets > 1
-                    ? `Download Sheet ${excelDocSheet} (${excelDocOutputFormat})`
-                    : `Download Image (${excelDocOutputFormat})`
-                  : tool.slug === "rotate-image"
-                  ? rotateBatch.length > 1
-                    ? `Download All ${rotateBatch.length} Rotated Images (ZIP)`
-                    : "Download Rotated Image"
-                  : tool.slug === "convert-to-jpg"
-                  ? "Download JPG File"
-                  : tool.slug === "convert-from-jpg"
-                  ? `Download ${targetFormatLabel} File`
-                  : tool.slug === "convert-to-png"
-                  ? "Download PNG File"
-                  : tool.slug === "convert-to-webp"
-                  ? "Download WebP File"
-                  : tool.slug === "image-to-pdf"
-                  ? "Download PDF Document"
-                  : tool.slug === "image-to-word"
-                  ? "Download Word Document"
-                  : tool.slug === "image-to-excel"
-                  ? "Download Excel Sheet"
-                  : tool.slug === "image-to-powerpoint"
-                  ? "Download Presentation"
-                  : isConversionTool
-                  ? `Download ${targetFormatLabel} File`
-                  : tool.slug === "resize-image"
-                  ? "Download Resized Image"
-                  : tool.slug === "crop-image"
-                  ? "Download Cropped Image"
-                  : tool.slug === "square-your-image"
-                  ? `Download 1:1 Square Image (${squareExportFormat})`
-                  : `Download ${tool.outputs || "Processed"} File`}
+                    ? "Download Compressed Image"
+                    : tool.slug === "pdf-to-image"
+                      ? documentBlob
+                        ? `Download All ${pdfTotalPages} Pages (ZIP)`
+                        : pdfTotalPages > 1
+                          ? `Download Page ${pdfDocPage} (${pdfDocOutputFormat})`
+                          : `Download Image (${pdfDocOutputFormat})`
+                      : tool.slug === "powerpoint-to-image"
+                        ? documentBlob
+                          ? `Download All ${pptTotalSlides} Slides (ZIP)`
+                          : pptTotalSlides > 1
+                            ? `Download Slide ${pptDocSlide} (${pptDocOutputFormat})`
+                            : `Download Slide (${pptDocOutputFormat})`
+                        : tool.slug === "word-to-image"
+                          ? documentBlob
+                            ? `Download All ${wordTotalPages} Pages (ZIP)`
+                            : wordTotalPages > 1
+                              ? `Download Page ${wordDocPage} (${wordDocOutputFormat})`
+                              : `Download Image (${wordDocOutputFormat})`
+                          : tool.slug === "excel-to-image"
+                            ? documentBlob
+                              ? `Download All ${excelTotalSheets} Sheets (ZIP)`
+                              : excelTotalSheets > 1
+                                ? `Download Sheet ${excelDocSheet} (${excelDocOutputFormat})`
+                                : `Download Image (${excelDocOutputFormat})`
+                            : tool.slug === "rotate-image"
+                              ? rotateBatch.length > 1
+                                ? `Download All ${rotateBatch.length} Rotated Images (ZIP)`
+                                : "Download Rotated Image"
+                              : tool.slug === "convert-to-jpg"
+                                ? "Download JPG File"
+                                : tool.slug === "convert-from-jpg"
+                                  ? `Download ${targetFormatLabel} File`
+                                  : tool.slug === "convert-to-png"
+                                    ? "Download PNG File"
+                                    : tool.slug === "convert-to-webp"
+                                      ? "Download WebP File"
+                                      : tool.slug === "image-to-pdf"
+                                        ? "Download PDF Document"
+                                        : tool.slug === "image-to-word"
+                                          ? "Download Word Document"
+                                          : tool.slug === "image-to-excel"
+                                            ? "Download Excel Sheet"
+                                            : tool.slug === "image-to-powerpoint"
+                                              ? "Download Presentation"
+                                              : isConversionTool
+                                                ? `Download ${targetFormatLabel} File`
+                                                : tool.slug === "resize-image"
+                                                  ? "Download Resized Image"
+                                                  : tool.slug === "crop-image"
+                                                    ? "Download Cropped Image"
+                                                    : tool.slug === "square-your-image"
+                                                      ? `Download 1:1 Square Image (${squareExportFormat})`
+                                                      : `Download ${tool.outputs || "Processed"} File`}
               </span>
               {newSize > 0 && !isOcrTool && (
                 <span className="shrink-0 rounded-full bg-background/20 px-2.5 py-0.5 text-xs font-bold font-mono">
@@ -10342,16 +10334,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 {isOcrTool
                   ? "Scan another Document"
                   : tool.slug === "compress-image"
-                  ? "Compress another Image"
-                  : isConversionTool
-                  ? "Convert another Image"
-                  : tool.slug === "resize-image"
-                  ? "Resize another Image"
-                  : tool.slug === "crop-image"
-                  ? "Crop another Image"
-                  : tool.slug === "square-your-image"
-                  ? "Square another Image"
-                  : "Process another File"}
+                    ? "Compress another Image"
+                    : isConversionTool
+                      ? "Convert another Image"
+                      : tool.slug === "resize-image"
+                        ? "Resize another Image"
+                        : tool.slug === "crop-image"
+                          ? "Crop another Image"
+                          : tool.slug === "square-your-image"
+                            ? "Square another Image"
+                            : "Process another File"}
               </span>
             </button>
           </div>
@@ -10745,8 +10737,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             </div>
           </div>
         ) : [
-            "octal-to-image", "hex-to-image", "decimal-to-image", "ascii-to-image",
-          ].includes(tool.slug) && textDecoderLandingMode === "plain_text" ? (
+          "octal-to-image", "hex-to-image", "decimal-to-image", "ascii-to-image",
+        ].includes(tool.slug) && textDecoderLandingMode === "plain_text" ? (
           /* Plain Text / Paste Input Card for Text Decoder Tools */
           <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 sm:p-10 w-full max-w-4xl mx-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3.5 self-start mb-6 w-full">
@@ -10758,19 +10750,19 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   {tool.slug === "octal-to-image"
                     ? "Paste Octal Byte Data"
                     : tool.slug === "hex-to-image"
-                    ? "Paste Hexadecimal Byte Data"
-                    : tool.slug === "decimal-to-image"
-                    ? "Paste Decimal Byte Data"
-                    : "Paste ASCII Art / Text"}
+                      ? "Paste Hexadecimal Byte Data"
+                      : tool.slug === "decimal-to-image"
+                        ? "Paste Decimal Byte Data"
+                        : "Paste ASCII Art / Text"}
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground font-semibold mt-0.5">
                   {tool.slug === "octal-to-image"
                     ? "Paste space-separated octal byte values to decode back to an image"
                     : tool.slug === "hex-to-image"
-                    ? "Paste hexadecimal byte values (e.g. 89 50 4E 47…) to reconstruct the image"
-                    : tool.slug === "decimal-to-image"
-                    ? "Paste decimal byte values (e.g. 137 80 78 71…) to decode back to an image"
-                    : "Paste ASCII art or plain text to render into a monospace image"}
+                      ? "Paste hexadecimal byte values (e.g. 89 50 4E 47…) to reconstruct the image"
+                      : tool.slug === "decimal-to-image"
+                        ? "Paste decimal byte values (e.g. 137 80 78 71…) to decode back to an image"
+                        : "Paste ASCII art or plain text to render into a monospace image"}
                 </p>
               </div>
             </div>
@@ -10827,10 +10819,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   tool.slug === "octal-to-image"
                     ? "Paste space-separated octal values (e.g. 137 120 116 107 15 12 32 12...)"
                     : tool.slug === "hex-to-image"
-                    ? "Paste hexadecimal byte string (e.g. 89 50 4E 47 0D 0A 1A 0A...)"
-                    : tool.slug === "decimal-to-image"
-                    ? "Paste decimal byte numbers (e.g. 137 80 78 71 13 10 26 10...)"
-                    : "Paste ASCII art or plain text here...\n\nExample:\n  _____\n |     |\n | o o |\n |  ^  |\n | \\_/ |\n |_____|\n"
+                      ? "Paste hexadecimal byte string (e.g. 89 50 4E 47 0D 0A 1A 0A...)"
+                      : tool.slug === "decimal-to-image"
+                        ? "Paste decimal byte numbers (e.g. 137 80 78 71 13 10 26 10...)"
+                        : "Paste ASCII art or plain text here...\n\nExample:\n  _____\n |     |\n | o o |\n |  ^  |\n | \\_/ |\n |_____|\n"
                 }
                 className="w-full rounded-2xl border-2 border-border bg-background p-4 text-xs sm:text-sm font-mono leading-relaxed focus:border-accent focus:outline-none shadow-inner"
               />
@@ -11066,11 +11058,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`group cursor-pointer flex flex-col items-center justify-center text-center rounded-3xl border-3 border-dashed px-8 py-24 sm:py-32 w-full transition-all duration-300 ${
-              isDraggingFile
+            className={`group cursor-pointer flex flex-col items-center justify-center text-center rounded-3xl border-3 border-dashed px-8 py-24 sm:py-32 w-full transition-all duration-300 ${isDraggingFile
                 ? "border-accent bg-accent/10 scale-[1.01] shadow-2xl"
                 : "border-border bg-card/60 hover:border-foreground hover:bg-card shadow-lg"
-            }`}
+              }`}
           >
             <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-foreground text-background shadow-xl transition-all group-hover:scale-110">
               <Upload className="h-10 w-10" />
@@ -11081,28 +11072,28 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               {tool.slug === "html-to-image"
                 ? "Select HTML File or Drag & Drop HTML Here"
                 : tool.slug === "binary-to-image"
-                ? "Select Binary (.bin) or Text (.txt) File or Drag & Drop Here"
-                : tool.slug === "base64-to-image"
-                ? "Select Base64 Text (.txt) File or Drag & Drop Here"
-                : tool.slug === "octal-to-image"
-                ? "Upload Octal Text File or Drag & Drop Here"
-                : tool.slug === "hex-to-image"
-                ? "Upload Hex Text File or Drag & Drop Here"
-                : tool.slug === "decimal-to-image"
-                ? "Upload Decimal Text File or Drag & Drop Here"
-                : tool.slug === "ascii-to-image"
-                ? "Upload ASCII Text File or Drag & Drop Here"
-                : tool.slug === "pdf-to-image"
-                ? "Select PDF File or Drag & Drop PDF Here"
-                : tool.slug === "word-to-image"
-                ? "Select Word Document (.docx) or Drag & Drop Here"
-                : tool.slug === "excel-to-image"
-                ? "Select Excel Spreadsheet (.xlsx) or Drag & Drop Here"
-                : tool.slug === "powerpoint-to-image"
-                ? "Select PowerPoint (.pptx) or Drag & Drop Here"
-                : tool.slug === "rotate-image"
-                ? "Select Image(s) or Drag & Drop Multiple Images Here"
-                : "Select File or Drag & Drop Image Here"}
+                  ? "Select Binary (.bin) or Text (.txt) File or Drag & Drop Here"
+                  : tool.slug === "base64-to-image"
+                    ? "Select Base64 Text (.txt) File or Drag & Drop Here"
+                    : tool.slug === "octal-to-image"
+                      ? "Upload Octal Text File or Drag & Drop Here"
+                      : tool.slug === "hex-to-image"
+                        ? "Upload Hex Text File or Drag & Drop Here"
+                        : tool.slug === "decimal-to-image"
+                          ? "Upload Decimal Text File or Drag & Drop Here"
+                          : tool.slug === "ascii-to-image"
+                            ? "Upload ASCII Text File or Drag & Drop Here"
+                            : tool.slug === "pdf-to-image"
+                              ? "Select PDF File or Drag & Drop PDF Here"
+                              : tool.slug === "word-to-image"
+                                ? "Select Word Document (.docx) or Drag & Drop Here"
+                                : tool.slug === "excel-to-image"
+                                  ? "Select Excel Spreadsheet (.xlsx) or Drag & Drop Here"
+                                  : tool.slug === "powerpoint-to-image"
+                                    ? "Select PowerPoint (.pptx) or Drag & Drop Here"
+                                    : tool.slug === "rotate-image"
+                                      ? "Select Image(s) or Drag & Drop Multiple Images Here"
+                                      : "Select File or Drag & Drop Image Here"}
             </h2>
 
             <p className="mt-3 max-w-md text-sm font-semibold text-muted-foreground md:text-base">
@@ -11122,22 +11113,22 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 {tool.slug === "html-to-image"
                   ? "Select HTML File"
                   : tool.slug === "binary-to-image"
-                  ? "Select Binary / Text File"
-                  : tool.slug === "base64-to-image"
-                  ? "Select Base64 File (.txt)"
-                  : ["octal-to-image","hex-to-image","decimal-to-image","ascii-to-image"].includes(tool.slug)
-                  ? "Upload Text File (.txt)"
-                  : tool.slug === "pdf-to-image"
-                  ? "Select PDF File"
-                  : tool.slug === "word-to-image"
-                  ? "Select Word Document"
-                  : tool.slug === "excel-to-image"
-                  ? "Select Excel Spreadsheet"
-                  : tool.slug === "powerpoint-to-image"
-                  ? "Select PowerPoint Presentation"
-                  : tool.slug === "rotate-image"
-                  ? "Select Images (Batch Supported)"
-                  : "Select Image File"}{" "}
+                    ? "Select Binary / Text File"
+                    : tool.slug === "base64-to-image"
+                      ? "Select Base64 File (.txt)"
+                      : ["octal-to-image", "hex-to-image", "decimal-to-image", "ascii-to-image"].includes(tool.slug)
+                        ? "Upload Text File (.txt)"
+                        : tool.slug === "pdf-to-image"
+                          ? "Select PDF File"
+                          : tool.slug === "word-to-image"
+                            ? "Select Word Document"
+                            : tool.slug === "excel-to-image"
+                              ? "Select Excel Spreadsheet"
+                              : tool.slug === "powerpoint-to-image"
+                                ? "Select PowerPoint Presentation"
+                                : tool.slug === "rotate-image"
+                                  ? "Select Images (Batch Supported)"
+                                  : "Select Image File"}{" "}
                 <span aria-hidden>→</span>
               </button>
 
@@ -11184,7 +11175,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 </button>
               )}
 
-              {["octal-to-image","hex-to-image","decimal-to-image","ascii-to-image"].includes(tool.slug) && (
+              {["octal-to-image", "hex-to-image", "decimal-to-image", "ascii-to-image"].includes(tool.slug) && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -11211,16 +11202,15 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         <div className={`grid items-start gap-6 lg:gap-8 w-full ${tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image" ? "lg:grid-cols-[1.15fr_1fr]" : "lg:grid-cols-[2fr_1.2fr]"}`}>
           {/* Canvas & Image Preview View */}
           <div
-            className={`min-w-0 relative flex flex-col w-full overflow-hidden rounded-3xl border-2 border-border bg-card/70 shadow-xl transition-[height] duration-200 ${
-              tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image" ? "lg:sticky lg:top-20" : ""
-            }`}
+            className={`min-w-0 relative flex flex-col w-full overflow-hidden rounded-3xl border-2 border-border bg-card/70 shadow-xl transition-[height] duration-200 ${tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image" ? "lg:sticky lg:top-20" : ""
+              }`}
             style={{
               height:
                 tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image"
                   ? "min(560px, calc(100vh - 150px))"
                   : settingsHeight
-                  ? `${Math.max(620, settingsHeight)}px`
-                  : "620px",
+                    ? `${Math.max(620, settingsHeight)}px`
+                    : "620px",
               minHeight: tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image" ? "420px" : "540px",
             }}
           >
@@ -11300,17 +11290,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onContextMenu={(e) => e.preventDefault()}
-              className={`relative flex-1 min-h-0 flex overflow-hidden select-none ${
-                tool.slug === "rotate-image" && rotateBatch.length > 1 && (!hasProcessed || isEditingSettings)
+              className={`relative flex-1 min-h-0 flex overflow-hidden select-none ${tool.slug === "rotate-image" && rotateBatch.length > 1 && (!hasProcessed || isEditingSettings)
                   ? "flex-col items-stretch justify-start p-2 sm:p-4 bg-background/20"
                   : tool.slug === "image-to-text-ocr" || tool.slug === "image-to-binary"
-                  ? "items-center justify-center p-4 md:p-6 min-h-[560px] bg-background/20"
-                  : tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image"
-                  ? "items-center justify-center p-3 sm:p-5 bg-secondary/15"
-                  : tool.slug === "resize-image"
-                  ? "items-center justify-center pt-10 pb-8 pl-6 pr-14 bg-background/20"
-                  : "items-center justify-center p-4 sm:p-6 md:p-8 bg-background/20"
-              }`}
+                    ? "items-center justify-center p-4 md:p-6 min-h-[560px] bg-background/20"
+                    : tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image"
+                      ? "items-center justify-center p-3 sm:p-5 bg-secondary/15"
+                      : tool.slug === "resize-image"
+                        ? "items-center justify-center pt-10 pb-8 pl-6 pr-14 bg-background/20"
+                        : "items-center justify-center p-4 sm:p-6 md:p-8 bg-background/20"
+                }`}
             >
               {tool.slug === "rotate-image" && rotateBatch.length > 1 && (!hasProcessed || isEditingSettings) ? (
                 /* MULTI-IMAGE BATCH ROTATION PREVIEW WORKSPACE */
@@ -11471,11 +11460,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                     prev.map((it) => (it.id === item.id ? { ...it, flipH: !it.flipH } : it))
                                   );
                                 }}
-                                className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-90 ${
-                                  item.flipH
+                                className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-90 ${item.flipH
                                     ? "border-accent bg-accent/20 text-accent"
                                     : "border-border bg-background text-foreground hover:bg-secondary hover:border-foreground"
-                                }`}
+                                  }`}
                                 title="Flip Horizontally"
                               >
                                 <FlipHorizontal className="h-3 w-3" />
@@ -11487,11 +11475,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                     prev.map((it) => (it.id === item.id ? { ...it, flipV: !it.flipV } : it))
                                   );
                                 }}
-                                className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-90 ${
-                                  item.flipV
+                                className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-90 ${item.flipV
                                     ? "border-accent bg-accent/20 text-accent"
                                     : "border-border bg-background text-foreground hover:bg-secondary hover:border-foreground"
-                                }`}
+                                  }`}
                                 title="Flip Vertically"
                               >
                                 <FlipVertical className="h-3 w-3" />
@@ -11517,182 +11504,149 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 /* Image Frame Wrapper */
                 <div
                   onContextMenu={(e) => e.preventDefault()}
-                  className={`relative max-w-full ${
-                    tool.slug === "resize-image"
+                  className={`relative max-w-full ${tool.slug === "resize-image"
                       ? "inline-block leading-none"
                       : "inline-flex items-center justify-center max-h-full"
-                  }`}
+                    }`}
                 >
-                {/* TOP DIMENSION LINE: Width (Shown ONLY on Resize Tool) */}
-                {tool.slug === "resize-image" && (
-                  <div
-                    className={`absolute -top-7 left-0 right-0 flex items-center justify-center pointer-events-none transition-all duration-300 z-10 ${
-                      focusedDim === "width"
-                        ? "text-accent scale-105 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]"
-                        : "text-accent"
-                    }`}
-                  >
-                    {/* Left tick | */}
-                    <div className="h-3.5 w-[2px] bg-accent rounded-full" />
-                    {/* Left dashed line */}
-                    <div className="flex-1 border-t-2 border-dashed border-accent/80 h-0" />
-                    {/* Center Small Box */}
-                    <div className="mx-2 flex items-center gap-1 rounded-md border-2 border-accent/60 bg-card px-2.5 py-0.5 text-xs font-black font-mono tracking-tight text-accent shadow-sm">
-                      <span>Width :</span>
-                      <AnimatedCounter
-                        value={targetWidth > 0 ? targetWidth : dimensions.width}
-                        suffix="px"
-                      />
-                    </div>
-                    {/* Right dashed line */}
-                    <div className="flex-1 border-t-2 border-dashed border-accent/80 h-0" />
-                    {/* Right tick | */}
-                    <div className="h-3.5 w-[2px] bg-accent rounded-full" />
-                  </div>
-                )}
-
-                {/* RIGHT DIMENSION LINE: Height (Shown ONLY on Resize Tool) */}
-                {tool.slug === "resize-image" && (
-                  <div
-                    className={`absolute top-0 bottom-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-300 z-10 ${
-                      focusedDim === "height"
-                        ? "text-accent scale-105 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]"
-                        : "text-accent"
-                    }`}
-                    style={{ left: "calc(100% + 8px)", top: 0, bottom: 0, height: "100%" }}
-                  >
-                    {/* Top tick ─ */}
-                    <div className="w-3 h-[1.5px] bg-accent rounded-full" />
-                    {/* Top dashed line */}
-                    <div className="flex-1 border-r-2 border-dashed border-accent/80 w-0" />
-                    {/* Center Small Box (Rotated cleanly, no digit overlap) */}
-                    <div className="my-2.5 -rotate-90 whitespace-nowrap rounded-md border-2 border-accent/60 bg-card px-2 py-0.5 text-[11px] font-black font-mono tracking-tight text-accent shadow-sm flex items-center gap-1">
-                      <span>Height :</span>
-                      <AnimatedCounter
-                        value={targetHeight > 0 ? targetHeight : dimensions.height}
-                        suffix="px"
-                      />
-                    </div>
-                    {/* Bottom dashed line */}
-                    <div className="flex-1 border-r-2 border-dashed border-accent/80 w-0" />
-                    {/* Bottom tick ─ */}
-                    <div className="w-3 h-[1.5px] bg-accent rounded-full" />
-                  </div>
-                )}
-
-                {/* BOTTOM-LEFT FLOATING OUTPUT SIZE BADGE (Shown on Resize Tool) */}
-                {tool.slug === "resize-image" && (
-                  <div className="absolute bottom-2.5 left-2.5 pointer-events-none z-10 flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/75 px-3 py-1.5 text-xs font-bold text-white shadow-xl backdrop-blur-md">
-                    <span className="text-[10px] uppercase font-extrabold text-white/70 tracking-wider">Output Size:</span>
-                    <span className="font-mono font-black text-amber-400">
-                      {(targetWidth > 0 ? targetWidth : dimensions.width)} × {(targetHeight > 0 ? targetHeight : dimensions.height)} px
-                    </span>
-                    {origSize > 0 && (
-                      <>
-                        <span className="text-white/40">•</span>
-                        <span className="font-mono font-extrabold text-emerald-400">
-                          {hasProcessed && newSize > 0 ? formatBytes(newSize) : `~${formatBytes(estimatedResizeBytes)}`}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Rotate Image Live Background Fill Backdrop */}
-                {tool.slug === "rotate-image" && imageSrc && (!hasProcessed || isEditingSettings) && (
-                  <div
-                    className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none -z-10 transition-all duration-300 shadow-xl"
-                    style={{
-                      backgroundColor: rotateBgMode === "color" ? rotateBgColor : undefined,
-                      background: rotateBgMode === "gradient" ? rotateBgGradient : undefined,
-                    }}
-                  >
-                    {rotateBgMode === "blur" && imageSrc && (
-                      <img
-                        src={imageSrc}
-                        alt="Blurred rotation backdrop"
-                        draggable={false}
-                        onDragStart={(e) => e.preventDefault()}
-                        onContextMenu={(e) => e.preventDefault()}
-                        className="w-full h-full object-cover filter blur-2xl scale-125 opacity-80 select-none workspace-protected-image pointer-events-none"
-                      />
-                    )}
-                    {rotateBgMode === "transparent" && (
-                      <div className="w-full h-full opacity-35 [background-image:linear-gradient(45deg,#888_25%,transparent_25%),linear-gradient(-45deg,#888_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#888_75%),linear-gradient(-45deg,transparent_75%,#888_75%)] [background-size:16px_16px] [background-position:0_0,0_8px,8px_-8px,-8px_0]" />
-                    )}
-                  </div>
-                )}
-
-                {/* 4a. Square Your Image Live 1:1 Interactive Preview Canvas */}
-                {tool.slug === "square-your-image" && imageSrc && (!hasProcessed || isEditingSettings) ? (
-                  <div
-                    onContextMenu={(e) => e.preventDefault()}
-                    className="relative flex flex-col items-center justify-center w-full h-full p-2 sm:p-4"
-                  >
-                    {/* 1:1 Live Square Frame */}
+                  {/* TOP DIMENSION LINE: Width (Shown ONLY on Resize Tool) */}
+                  {tool.slug === "resize-image" && (
                     <div
-                      className="relative aspect-square w-full max-w-[min(500px,calc(100vh-290px),88vw)] flex items-center justify-center overflow-hidden rounded-2xl border-2 border-border/80 shadow-2xl transition-all duration-300 select-none group"
+                      className={`absolute -top-7 left-0 right-0 flex items-center justify-center pointer-events-none transition-all duration-300 z-10 ${focusedDim === "width"
+                          ? "text-accent scale-105 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]"
+                          : "text-accent"
+                        }`}
+                    >
+                      {/* Left tick | */}
+                      <div className="h-3.5 w-[2px] bg-accent rounded-full" />
+                      {/* Left dashed line */}
+                      <div className="flex-1 border-t-2 border-dashed border-accent/80 h-0" />
+                      {/* Center Small Box */}
+                      <div className="mx-2 flex items-center gap-1 rounded-md border-2 border-accent/60 bg-card px-2.5 py-0.5 text-xs font-black font-mono tracking-tight text-accent shadow-sm">
+                        <span>Width :</span>
+                        <AnimatedCounter
+                          value={targetWidth > 0 ? targetWidth : dimensions.width}
+                          suffix="px"
+                        />
+                      </div>
+                      {/* Right dashed line */}
+                      <div className="flex-1 border-t-2 border-dashed border-accent/80 h-0" />
+                      {/* Right tick | */}
+                      <div className="h-3.5 w-[2px] bg-accent rounded-full" />
+                    </div>
+                  )}
+
+                  {/* RIGHT DIMENSION LINE: Height (Shown ONLY on Resize Tool) */}
+                  {tool.slug === "resize-image" && (
+                    <div
+                      className={`absolute top-0 bottom-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-300 z-10 ${focusedDim === "height"
+                          ? "text-accent scale-105 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]"
+                          : "text-accent"
+                        }`}
+                      style={{ left: "calc(100% + 8px)", top: 0, bottom: 0, height: "100%" }}
+                    >
+                      {/* Top tick ─ */}
+                      <div className="w-3 h-[1.5px] bg-accent rounded-full" />
+                      {/* Top dashed line */}
+                      <div className="flex-1 border-r-2 border-dashed border-accent/80 w-0" />
+                      {/* Center Small Box (Rotated cleanly, no digit overlap) */}
+                      <div className="my-2.5 -rotate-90 whitespace-nowrap rounded-md border-2 border-accent/60 bg-card px-2 py-0.5 text-[11px] font-black font-mono tracking-tight text-accent shadow-sm flex items-center gap-1">
+                        <span>Height :</span>
+                        <AnimatedCounter
+                          value={targetHeight > 0 ? targetHeight : dimensions.height}
+                          suffix="px"
+                        />
+                      </div>
+                      {/* Bottom dashed line */}
+                      <div className="flex-1 border-r-2 border-dashed border-accent/80 w-0" />
+                      {/* Bottom tick ─ */}
+                      <div className="w-3 h-[1.5px] bg-accent rounded-full" />
+                    </div>
+                  )}
+
+                  {/* BOTTOM-LEFT FLOATING OUTPUT SIZE BADGE (Shown on Resize Tool) */}
+                  {tool.slug === "resize-image" && (
+                    <div className="absolute bottom-2.5 left-2.5 pointer-events-none z-10 flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/75 px-3 py-1.5 text-xs font-bold text-white shadow-xl backdrop-blur-md">
+                      <span className="text-[10px] uppercase font-extrabold text-white/70 tracking-wider">Output Size:</span>
+                      <span className="font-mono font-black text-amber-400">
+                        {(targetWidth > 0 ? targetWidth : dimensions.width)} × {(targetHeight > 0 ? targetHeight : dimensions.height)} px
+                      </span>
+                      {origSize > 0 && (
+                        <>
+                          <span className="text-white/40">•</span>
+                          <span className="font-mono font-extrabold text-emerald-400">
+                            {hasProcessed && newSize > 0 ? formatBytes(newSize) : `~${formatBytes(estimatedResizeBytes)}`}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Rotate Image Live Background Fill Backdrop */}
+                  {tool.slug === "rotate-image" && imageSrc && (!hasProcessed || isEditingSettings) && (
+                    <div
+                      className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none -z-10 transition-all duration-300 shadow-xl"
                       style={{
-                        backgroundColor: squareBgMode === "color" ? squareBgColor : squareBgMode === "transparent" ? "transparent" : undefined,
-                        background: squareBgMode === "gradient" ? squareGradient : undefined,
+                        backgroundColor: rotateBgMode === "color" ? rotateBgColor : undefined,
+                        background: rotateBgMode === "gradient" ? rotateBgGradient : undefined,
                       }}
                     >
-                      {/* Transparent Checkerboard Grid */}
-                      {squareBgMode === "transparent" && (
-                        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(45deg,#888_25%,transparent_25%),linear-gradient(-45deg,#888_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#888_75%),linear-gradient(-45deg,transparent_75%,#888_75%)] [background-size:16px_16px] [background-position:0_0,0_8px,8px_-8px,-8px_0] pointer-events-none" />
-                      )}
-
-                      {/* Blurred Edges Backdrop */}
-                      {squareBgMode === "blur" && (
+                      {rotateBgMode === "blur" && imageSrc && (
                         <img
                           src={imageSrc}
-                          alt="Square blurred backdrop"
+                          alt="Blurred rotation backdrop"
                           draggable={false}
                           onDragStart={(e) => e.preventDefault()}
                           onContextMenu={(e) => e.preventDefault()}
-                          className="absolute inset-0 w-full h-full object-cover scale-125 pointer-events-none select-none transition-all duration-200 workspace-protected-image"
-                          style={{
-                            filter: `blur(${squareBlurAmount}px)`,
-                          }}
+                          className="w-full h-full object-cover filter blur-2xl scale-125 opacity-80 select-none workspace-protected-image pointer-events-none"
                         />
                       )}
+                      {rotateBgMode === "transparent" && (
+                        <div className="w-full h-full opacity-35 [background-image:linear-gradient(45deg,#888_25%,transparent_25%),linear-gradient(-45deg,#888_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#888_75%),linear-gradient(-45deg,transparent_75%,#888_75%)] [background-size:16px_16px] [background-position:0_0,0_8px,8px_-8px,-8px_0]" />
+                      )}
+                    </div>
+                  )}
 
-                      {/* Full Bleed Mode */}
-                      {squareBgMode === "fit" ? (
-                        <img
-                          ref={imgRef}
-                          src={imageSrc}
-                          alt="Full bleed 1:1 crop"
-                          draggable={false}
-                          onDragStart={(e) => e.preventDefault()}
-                          onContextMenu={(e) => e.preventDefault()}
-                          onLoad={() => {
-                            if (imgRef.current) {
-                              const rect = imgRef.current.getBoundingClientRect();
-                              if (rect.width > 0 && rect.height > 0) {
-                                setRenderedImgSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
-                              }
-                            }
-                          }}
-                          className="w-full h-full object-cover select-none transition-all duration-200 workspace-protected-image"
-                          style={{
-                            transform: `scale(${squareScale / 100})`,
-                            borderRadius: squareCornerRadius === 9999 ? "9999px" : `${squareCornerRadius}px`,
-                          }}
-                        />
-                      ) : (
-                        /* Scaled Centered Foreground Photo */
-                        <div
-                          className="relative z-10 flex items-center justify-center transition-all duration-200"
-                          style={{
-                            width: `${squareScale}%`,
-                            height: `${squareScale}%`,
-                          }}
-                        >
+                  {/* 4a. Square Your Image Live 1:1 Interactive Preview Canvas */}
+                  {tool.slug === "square-your-image" && imageSrc && (!hasProcessed || isEditingSettings) ? (
+                    <div
+                      onContextMenu={(e) => e.preventDefault()}
+                      className="relative flex flex-col items-center justify-center w-full h-full p-2 sm:p-4"
+                    >
+                      {/* 1:1 Live Square Frame */}
+                      <div
+                        className="relative aspect-square w-full max-w-[min(500px,calc(100vh-290px),88vw)] flex items-center justify-center overflow-hidden rounded-2xl border-2 border-border/80 shadow-2xl transition-all duration-300 select-none group"
+                        style={{
+                          backgroundColor: squareBgMode === "color" ? squareBgColor : squareBgMode === "transparent" ? "transparent" : undefined,
+                          background: squareBgMode === "gradient" ? squareGradient : undefined,
+                        }}
+                      >
+                        {/* Transparent Checkerboard Grid */}
+                        {squareBgMode === "transparent" && (
+                          <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(45deg,#888_25%,transparent_25%),linear-gradient(-45deg,#888_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#888_75%),linear-gradient(-45deg,transparent_75%,#888_75%)] [background-size:16px_16px] [background-position:0_0,0_8px,8px_-8px,-8px_0] pointer-events-none" />
+                        )}
+
+                        {/* Blurred Edges Backdrop */}
+                        {squareBgMode === "blur" && (
+                          <img
+                            src={imageSrc}
+                            alt="Square blurred backdrop"
+                            draggable={false}
+                            onDragStart={(e) => e.preventDefault()}
+                            onContextMenu={(e) => e.preventDefault()}
+                            className="absolute inset-0 w-full h-full object-cover scale-125 pointer-events-none select-none transition-all duration-200 workspace-protected-image"
+                            style={{
+                              filter: `blur(${squareBlurAmount}px)`,
+                            }}
+                          />
+                        )}
+
+                        {/* Full Bleed Mode */}
+                        {squareBgMode === "fit" ? (
                           <img
                             ref={imgRef}
                             src={imageSrc}
-                            alt="Square foreground"
+                            alt="Full bleed 1:1 crop"
                             draggable={false}
                             onDragStart={(e) => e.preventDefault()}
                             onContextMenu={(e) => e.preventDefault()}
@@ -11704,84 +11658,114 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 }
                               }
                             }}
-                            className="max-w-full max-h-full object-contain transition-all duration-200 block select-none workspace-protected-image"
+                            className="w-full h-full object-cover select-none transition-all duration-200 workspace-protected-image"
                             style={{
+                              transform: `scale(${squareScale / 100})`,
                               borderRadius: squareCornerRadius === 9999 ? "9999px" : `${squareCornerRadius}px`,
-                              boxShadow:
-                                squareShadow === "soft"
-                                  ? "0 14px 30px -4px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2)"
-                                  : squareShadow === "float"
-                                  ? "0 24px 50px -8px rgba(0, 0, 0, 0.65), 0 10px 20px rgba(0, 0, 0, 0.35)"
-                                  : squareShadow === "card"
-                                  ? "0 0 0 1px rgba(255,255,255,0.25), 0 8px 24px rgba(0,0,0,0.3)"
-                                  : "none",
                             }}
                           />
+                        ) : (
+                          /* Scaled Centered Foreground Photo */
+                          <div
+                            className="relative z-10 flex items-center justify-center transition-all duration-200"
+                            style={{
+                              width: `${squareScale}%`,
+                              height: `${squareScale}%`,
+                            }}
+                          >
+                            <img
+                              ref={imgRef}
+                              src={imageSrc}
+                              alt="Square foreground"
+                              draggable={false}
+                              onDragStart={(e) => e.preventDefault()}
+                              onContextMenu={(e) => e.preventDefault()}
+                              onLoad={() => {
+                                if (imgRef.current) {
+                                  const rect = imgRef.current.getBoundingClientRect();
+                                  if (rect.width > 0 && rect.height > 0) {
+                                    setRenderedImgSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+                                  }
+                                }
+                              }}
+                              className="max-w-full max-h-full object-contain transition-all duration-200 block select-none workspace-protected-image"
+                              style={{
+                                borderRadius: squareCornerRadius === 9999 ? "9999px" : `${squareCornerRadius}px`,
+                                boxShadow:
+                                  squareShadow === "soft"
+                                    ? "0 14px 30px -4px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2)"
+                                    : squareShadow === "float"
+                                      ? "0 24px 50px -8px rgba(0, 0, 0, 0.65), 0 10px 20px rgba(0, 0, 0, 0.35)"
+                                      : squareShadow === "card"
+                                        ? "0 0 0 1px rgba(255,255,255,0.25), 0 8px 24px rgba(0,0,0,0.3)"
+                                        : "none",
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Live 1:1 Badge in top-right */}
+                        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold tracking-tight shadow-md border border-white/10 pointer-events-none">
+                          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>1:1 Live Square</span>
+                          <span className="opacity-70 text-[10px] font-mono">
+                            ({Math.max(dimensions.width || 0, dimensions.height || 0)}×{Math.max(dimensions.width || 0, dimensions.height || 0)})
+                          </span>
                         </div>
-                      )}
 
-                      {/* Live 1:1 Badge in top-right */}
-                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold tracking-tight shadow-md border border-white/10 pointer-events-none">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>1:1 Live Square</span>
-                        <span className="opacity-70 text-[10px] font-mono">
-                          ({Math.max(dimensions.width || 0, dimensions.height || 0)}×{Math.max(dimensions.width || 0, dimensions.height || 0)})
-                        </span>
-                      </div>
-
-                      {/* Mode indicator pill in bottom-left */}
-                      <div className="absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-mono tracking-tight border border-white/10 pointer-events-none flex items-center gap-1.5">
-                        <span className="opacity-60">Mode:</span>
-                        <span className="font-bold text-white capitalize">
-                          {squareBgMode === "blur"
-                            ? `Blur (${squareBlurAmount}px)`
-                            : squareBgMode === "color"
-                            ? squareBgColor
-                            : squareBgMode === "gradient"
-                            ? "Gradient"
-                            : squareBgMode === "transparent"
-                            ? "Transparent"
-                            : "Full Bleed Fit"}
-                        </span>
+                        {/* Mode indicator pill in bottom-left */}
+                        <div className="absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white/90 text-[10px] font-mono tracking-tight border border-white/10 pointer-events-none flex items-center gap-1.5">
+                          <span className="opacity-60">Mode:</span>
+                          <span className="font-bold text-white capitalize">
+                            {squareBgMode === "blur"
+                              ? `Blur (${squareBlurAmount}px)`
+                              : squareBgMode === "color"
+                                ? squareBgColor
+                                : squareBgMode === "gradient"
+                                  ? "Gradient"
+                                  : squareBgMode === "transparent"
+                                    ? "Transparent"
+                                    : "Full Bleed Fit"}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <img
-                    ref={imgRef}
-                    src={(tool.slug === "watermark-image" && (!hasProcessed || isEditingSettings)) || (tool.slug === "rotate-image" && (!hasProcessed || isEditingSettings)) || (tool.slug === "blur-face" && (!hasProcessed || isEditingSettings)) || (tool.slug === "meme-generator" && (!hasProcessed || isEditingSettings)) ? (imageSrc || undefined) : (processedSrc || imageSrc || undefined)}
-                    alt="Workspace preview"
-                    draggable={false}
-                    onDragStart={(e) => e.preventDefault()}
-                    onContextMenu={(e) => e.preventDefault()}
-                    onLoad={() => {
-                      if (imgRef.current) {
-                        const rect = imgRef.current.getBoundingClientRect();
-                        if (rect.width > 0 && rect.height > 0) {
-                          setRenderedImgSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+                  ) : (
+                    <img
+                      ref={imgRef}
+                      src={(tool.slug === "watermark-image" && (!hasProcessed || isEditingSettings)) || (tool.slug === "rotate-image" && (!hasProcessed || isEditingSettings)) || (tool.slug === "blur-face" && (!hasProcessed || isEditingSettings)) || (tool.slug === "meme-generator" && (!hasProcessed || isEditingSettings)) ? (imageSrc || undefined) : (processedSrc || imageSrc || undefined)}
+                      alt="Workspace preview"
+                      draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onLoad={() => {
+                        if (imgRef.current) {
+                          const rect = imgRef.current.getBoundingClientRect();
+                          if (rect.width > 0 && rect.height > 0) {
+                            setRenderedImgSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+                          }
                         }
-                      }
-                      if (tool.slug === "color-picker-from-image" && imageSrc) {
-                        extractMostCommonColors(imageSrc);
-                      }
-                    }}
-                    onMouseMove={handleImageMouseMove}
-                    onMouseEnter={handleImageMouseEnter}
-                    onMouseLeave={handleImageMouseLeave}
-                    onClick={handleImageClick}
-                    className="max-h-full max-w-full w-auto h-auto object-contain pointer-events-auto shadow-md rounded-md border border-border/40 block select-none workspace-protected-image"
-                    style={{
-                      maxHeight: tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image"
-                        ? "min(480px, calc(100vh - 240px))"
-                        : tool.slug === "resize-image"
-                        ? "min(500px, calc(100vh - 290px))"
-                        : settingsHeight
-                        ? `${Math.max(tool.slug === "image-to-text-ocr" || tool.slug === "image-to-binary" ? 600 : 540, settingsHeight - 90)}px`
-                        : "580px",
-                      maxWidth: "100%",
-                      cursor: tool.slug === "color-picker-from-image" ? "crosshair" : "default",
-                      transform: tool.slug === "rotate-image"
-                        ? `scale(${(() => {
+                        if (tool.slug === "color-picker-from-image" && imageSrc) {
+                          extractMostCommonColors(imageSrc);
+                        }
+                      }}
+                      onMouseMove={handleImageMouseMove}
+                      onMouseEnter={handleImageMouseEnter}
+                      onMouseLeave={handleImageMouseLeave}
+                      onClick={handleImageClick}
+                      className="max-h-full max-w-full w-auto h-auto object-contain pointer-events-auto shadow-md rounded-md border border-border/40 block select-none workspace-protected-image"
+                      style={{
+                        maxHeight: tool.slug === "watermark-image" || tool.slug === "meme-generator" || tool.slug === "color-picker-from-image"
+                          ? "min(480px, calc(100vh - 240px))"
+                          : tool.slug === "resize-image"
+                            ? "min(500px, calc(100vh - 290px))"
+                            : settingsHeight
+                              ? `${Math.max(tool.slug === "image-to-text-ocr" || tool.slug === "image-to-binary" ? 600 : 540, settingsHeight - 90)}px`
+                              : "580px",
+                        maxWidth: "100%",
+                        cursor: tool.slug === "color-picker-from-image" ? "crosshair" : "default",
+                        transform: tool.slug === "rotate-image"
+                          ? `scale(${(() => {
                             const rad = (rotation * Math.PI) / 180;
                             const s = Math.abs(Math.sin(rad));
                             const c = Math.abs(Math.cos(rad));
@@ -11791,564 +11775,557 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             const bH = curW * s + curH * c;
                             return bW > 0 && bH > 0 ? Math.min(1, curW / bW, curH / bH) : 1;
                           })()}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`
-                        : undefined,
-                      transformOrigin: "center center",
-                      transition: tool.slug === "rotate-image"
-                        ? "transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1)"
-                        : undefined,
-                    }}
-                  />
-                )}
+                          : undefined,
+                        transformOrigin: "center center",
+                        transition: tool.slug === "rotate-image"
+                          ? "transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1)"
+                          : undefined,
+                      }}
+                    />
+                  )}
 
-                {/* 4b. Color Picker Live Magnifying Zoom Loupe (Follows Mouse Cursor via Direct RAF DOM - 120fps hardware smooth) */}
-                {tool.slug === "color-picker-from-image" && (
-                  <div
-                    ref={loupeRef}
-                    className="pointer-events-none absolute z-50 flex flex-col items-center select-none"
-                    style={{
-                      display: "none",
-                      willChange: "left, top, transform",
-                    }}
-                  >
-                    {/* Circular Magnifier Glass */}
-                    <div className="relative h-[134px] w-[134px] rounded-full p-[3px] bg-gradient-to-b from-white via-white/80 to-neutral-500 shadow-[0_16px_40px_rgba(0,0,0,0.65),0_0_0_1px_rgba(0,0,0,0.4)]">
-                      <div className="relative h-full w-full rounded-full overflow-hidden bg-neutral-950 ring-1 ring-black/80 flex items-center justify-center">
-                        <canvas
-                          ref={loupeCanvasRef}
-                          width={126}
-                          height={126}
-                          className="h-[126px] w-[126px] block [image-rendering:pixelated]"
-                        />
-                        {/* Center Target Reticle Box */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="h-[16px] w-[16px] border-2 border-white shadow-[0_0_4px_black,inset_0_0_2px_black] rounded-[2px]" />
-                        </div>
-                      </div>
-                      {/* Directional Tick pointing directly to cursor */}
-                      <div
-                        ref={loupeTickRef}
-                        className="absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-[7px] border-x-transparent -bottom-2 border-t-[9px] border-t-neutral-500"
-                      />
-                    </div>
-
-                    {/* Floating Hover Color & Copy Badge */}
-                    <div className="mt-2.5 flex items-center gap-2 rounded-full bg-neutral-950/95 px-3 py-1.5 text-xs font-mono font-black text-white shadow-2xl border border-white/20 backdrop-blur-md">
-                      <span
-                        ref={loupeDotRef}
-                        className="h-3.5 w-3.5 rounded-full border border-white/60 shadow-xs shrink-0"
-                        style={{ backgroundColor: pickedHex }}
-                      />
-                      <span ref={loupeHexRef} className="tracking-wide text-xs">
-                        {pickedHex}
-                      </span>
-                      <span className="text-[10px] font-sans font-bold text-neutral-400 border-l border-white/20 pl-1.5 uppercase">
-                        Click to Copy
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* 5. Live Rotate Real-time Animated Status Badge */}
-                {tool.slug === "rotate-image" && imageSrc && (
-                  <div className="absolute top-2 left-2 z-30 pointer-events-none rounded-full bg-black/80 backdrop-blur-md border border-white/10 px-3 py-1.5 text-xs font-bold text-white shadow-xl flex items-center gap-2 animate-in fade-in duration-200">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/20 text-accent">
-                      <RotateCw className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="font-mono font-black text-accent">
-                      {((rotation % 360) + 360) % 360}°
-                    </span>
-                    {(flipH || flipV) && (
-                      <>
-                        <span className="text-white/30">•</span>
-                        <span className="text-[11px] font-semibold text-emerald-400">
-                          {flipH && flipV ? "Flipped H + V" : flipH ? "Flipped H" : "Flipped V"}
-                        </span>
-                      </>
-                    )}
-                    <span className="text-white/30">•</span>
-                    <span className="text-[11px] font-mono text-white/70">
-                      {Math.abs(rotation % 180) === 90 ? `${dimensions.height}×${dimensions.width}px` : `${dimensions.width}×${dimensions.height}px`}
-                    </span>
-                  </div>
-                )}
-
-                {/* 6. Live Watermark Interactive Real-time Preview Overlay */}
-                {tool.slug === "watermark-image" && imageSrc && (!hasProcessed || isEditingSettings) && (
-                  <div
-                    onClick={handleWatermarkOverlayClick}
-                    onMouseMove={handleWatermarkOverlayMouseMove}
-                    onMouseUp={handleWatermarkOverlayMouseUp}
-                    onMouseLeave={handleWatermarkOverlayMouseUp}
-                    className={`absolute inset-0 z-20 select-none overflow-hidden ${
-                      wmPosition === "tile" ? "cursor-default" : "cursor-crosshair"
-                    }`}
-                    title={wmPosition === "tile" ? "Tiled Watermark Pattern" : "Click or drag to position watermark"}
-                  >
-                    {/* Position hint pill */}
-                    <div className="absolute top-2 left-2 z-30 pointer-events-none rounded-full bg-black/75 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold text-white shadow-md flex items-center gap-1.5 opacity-85 hover:opacity-100 transition-opacity">
-                      <Move className="h-3 w-3 text-accent" />
-                      <span>
-                        {wmPosition === "tile"
-                          ? "Tiled Pattern"
-                          : wmPosition === "custom"
-                          ? `Custom: ${wmCustomCoord.xPercent}%, ${wmCustomCoord.yPercent}%`
-                          : `Position: ${wmPosition.replace("_", " ").toUpperCase()}`}
-                      </span>
-                      <span className="text-white/40">•</span>
-                      <span className="text-accent font-extrabold">{Math.round(wmOpacity * 100)}% Opacity</span>
-                    </div>
-
-                    {/* Watermark Rendering */}
-                    {wmPosition === "tile" ? (
-                      <div
-                        className="w-full h-full flex flex-wrap items-center justify-around content-around pointer-events-none"
-                        style={{
-                          opacity: Math.max(0.05, Math.min(1, wmOpacity)),
-                          transform: `rotate(${wmRotation || -30}deg) scale(1.3)`,
-                        }}
-                      >
-                        {Array.from({ length: 24 }).map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="p-4 whitespace-nowrap"
-                            style={{
-                              fontSize: `${Math.max(10, Math.round(wmFontSize * (((renderedImgSize?.width || dimensions.width || 600)) / 1000)))}px`,
-                              fontFamily: wmFontFamily,
-                              fontWeight: wmBold ? "bold" : "normal",
-                              fontStyle: wmItalic ? "italic" : "normal",
-                              color: wmColor,
-                              textShadow:
-                                wmStroke === "dark"
-                                  ? "0 0 2px #000, 0 0 4px #000, 0 2px 4px rgba(0,0,0,0.8)"
-                                  : wmStroke === "light"
-                                  ? "0 0 2px #fff, 0 0 4px #fff, 0 2px 4px rgba(255,255,255,0.8)"
-                                  : "0 1px 3px rgba(0,0,0,0.6)",
-                              WebkitTextStroke:
-                                wmStroke === "dark"
-                                  ? "0.5px rgba(0,0,0,0.9)"
-                                  : wmStroke === "light"
-                                  ? "0.5px rgba(255,255,255,0.9)"
-                                  : undefined,
-                            }}
-                          >
-                            {wmMode === "logo" && wmLogoSrc ? (
-                              <img
-                                src={wmLogoSrc}
-                                alt="Watermark logo"
-                                className="object-contain"
-                                style={{
-                                  width: `${Math.max(20, Math.round(((renderedImgSize?.width || dimensions.width || 600)) * 0.12))}px`,
-                                }}
-                              />
-                            ) : (
-                              wmText || "Watermark"
-                            )}
+                  {/* 4b. Color Picker Live Magnifying Zoom Loupe (Follows Mouse Cursor via Direct RAF DOM - 120fps hardware smooth) */}
+                  {tool.slug === "color-picker-from-image" && (
+                    <div
+                      ref={loupeRef}
+                      className="pointer-events-none absolute z-50 flex flex-col items-center select-none"
+                      style={{
+                        display: "none",
+                        willChange: "left, top, transform",
+                      }}
+                    >
+                      {/* Circular Magnifier Glass */}
+                      <div className="relative h-[134px] w-[134px] rounded-full p-[3px] bg-gradient-to-b from-white via-white/80 to-neutral-500 shadow-[0_16px_40px_rgba(0,0,0,0.65),0_0_0_1px_rgba(0,0,0,0.4)]">
+                        <div className="relative h-full w-full rounded-full overflow-hidden bg-neutral-950 ring-1 ring-black/80 flex items-center justify-center">
+                          <canvas
+                            ref={loupeCanvasRef}
+                            width={126}
+                            height={126}
+                            className="h-[126px] w-[126px] block [image-rendering:pixelated]"
+                          />
+                          {/* Center Target Reticle Box */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="h-[16px] w-[16px] border-2 border-white shadow-[0_0_4px_black,inset_0_0_2px_black] rounded-[2px]" />
                           </div>
-                        ))}
+                        </div>
+                        {/* Directional Tick pointing directly to cursor */}
+                        <div
+                          ref={loupeTickRef}
+                          className="absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-[7px] border-x-transparent -bottom-2 border-t-[9px] border-t-neutral-500"
+                        />
                       </div>
-                    ) : (
-                      (() => {
-                        const curW = renderedImgSize?.width || dimensions.width || 600;
-                        const previewScale = curW / 1000;
-                        const dispFontSize = Math.max(10, Math.round(wmFontSize * previewScale));
-                        const logoDispW = Math.max(20, Math.round(curW * (wmLogoScale / 100)));
 
-                        let posStyle: React.CSSProperties = {
-                          position: "absolute",
-                          opacity: Math.max(0.05, Math.min(1, wmOpacity)),
-                          transition: isDraggingWm ? "none" : "all 0.15s ease-out",
-                        };
+                      {/* Floating Hover Color & Copy Badge */}
+                      <div className="mt-2.5 flex items-center gap-2 rounded-full bg-neutral-950/95 px-3 py-1.5 text-xs font-mono font-black text-white shadow-2xl border border-white/20 backdrop-blur-md">
+                        <span
+                          ref={loupeDotRef}
+                          className="h-3.5 w-3.5 rounded-full border border-white/60 shadow-xs shrink-0"
+                          style={{ backgroundColor: pickedHex }}
+                        />
+                        <span ref={loupeHexRef} className="tracking-wide text-xs">
+                          {pickedHex}
+                        </span>
+                        <span className="text-[10px] font-sans font-bold text-neutral-400 border-l border-white/20 pl-1.5 uppercase">
+                          Click to Copy
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-                        if (wmPosition === "top_left") {
-                          posStyle = { ...posStyle, left: `${wmMargin}%`, top: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "top left" };
-                        } else if (wmPosition === "top_center") {
-                          posStyle = { ...posStyle, left: "50%", top: `${wmMargin}%`, transform: `translate(-50%, 0) rotate(${wmRotation}deg)` };
-                        } else if (wmPosition === "top_right") {
-                          posStyle = { ...posStyle, right: `${wmMargin}%`, top: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "top right" };
-                        } else if (wmPosition === "middle_left") {
-                          posStyle = { ...posStyle, left: `${wmMargin}%`, top: "50%", transform: `translate(0, -50%) rotate(${wmRotation}deg)` };
-                        } else if (wmPosition === "center") {
-                          posStyle = { ...posStyle, left: "50%", top: "50%", transform: `translate(-50%, -50%) rotate(${wmRotation}deg)` };
-                        } else if (wmPosition === "middle_right") {
-                          posStyle = { ...posStyle, right: `${wmMargin}%`, top: "50%", transform: `translate(0, -50%) rotate(${wmRotation}deg)` };
-                        } else if (wmPosition === "bottom_left") {
-                          posStyle = { ...posStyle, left: `${wmMargin}%`, bottom: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "bottom left" };
-                        } else if (wmPosition === "bottom_center") {
-                          posStyle = { ...posStyle, left: "50%", bottom: `${wmMargin}%`, transform: `translate(-50%, 0) rotate(${wmRotation}deg)` };
-                        } else if (wmPosition === "bottom_right") {
-                          posStyle = { ...posStyle, right: `${wmMargin}%`, bottom: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "bottom right" };
-                        } else if (wmPosition === "custom") {
-                          posStyle = { ...posStyle, left: `${wmCustomCoord.xPercent}%`, top: `${wmCustomCoord.yPercent}%`, transform: `translate(-50%, -50%) rotate(${wmRotation}deg)` };
+                  {/* 5. Live Rotate Real-time Animated Status Badge */}
+                  {tool.slug === "rotate-image" && imageSrc && (
+                    <div className="absolute top-2 left-2 z-30 pointer-events-none rounded-full bg-black/80 backdrop-blur-md border border-white/10 px-3 py-1.5 text-xs font-bold text-white shadow-xl flex items-center gap-2 animate-in fade-in duration-200">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/20 text-accent">
+                        <RotateCw className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="font-mono font-black text-accent">
+                        {((rotation % 360) + 360) % 360}°
+                      </span>
+                      {(flipH || flipV) && (
+                        <>
+                          <span className="text-white/30">•</span>
+                          <span className="text-[11px] font-semibold text-emerald-400">
+                            {flipH && flipV ? "Flipped H + V" : flipH ? "Flipped H" : "Flipped V"}
+                          </span>
+                        </>
+                      )}
+                      <span className="text-white/30">•</span>
+                      <span className="text-[11px] font-mono text-white/70">
+                        {Math.abs(rotation % 180) === 90 ? `${dimensions.height}×${dimensions.width}px` : `${dimensions.width}×${dimensions.height}px`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 6. Live Watermark Interactive Real-time Preview Overlay */}
+                  {tool.slug === "watermark-image" && imageSrc && (!hasProcessed || isEditingSettings) && (
+                    <div
+                      onClick={handleWatermarkOverlayClick}
+                      onMouseMove={handleWatermarkOverlayMouseMove}
+                      onMouseUp={handleWatermarkOverlayMouseUp}
+                      onMouseLeave={handleWatermarkOverlayMouseUp}
+                      className={`absolute inset-0 z-20 select-none overflow-hidden ${wmPosition === "tile" ? "cursor-default" : "cursor-crosshair"
+                        }`}
+                      title={wmPosition === "tile" ? "Tiled Watermark Pattern" : "Click or drag to position watermark"}
+                    >
+                      {/* Position hint pill */}
+                      <div className="absolute top-2 left-2 z-30 pointer-events-none rounded-full bg-black/75 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold text-white shadow-md flex items-center gap-1.5 opacity-85 hover:opacity-100 transition-opacity">
+                        <Move className="h-3 w-3 text-accent" />
+                        <span>
+                          {wmPosition === "tile"
+                            ? "Tiled Pattern"
+                            : wmPosition === "custom"
+                              ? `Custom: ${wmCustomCoord.xPercent}%, ${wmCustomCoord.yPercent}%`
+                              : `Position: ${wmPosition.replace("_", " ").toUpperCase()}`}
+                        </span>
+                        <span className="text-white/40">•</span>
+                        <span className="text-accent font-extrabold">{Math.round(wmOpacity * 100)}% Opacity</span>
+                      </div>
+
+                      {/* Watermark Rendering */}
+                      {wmPosition === "tile" ? (
+                        <div
+                          className="w-full h-full flex flex-wrap items-center justify-around content-around pointer-events-none"
+                          style={{
+                            opacity: Math.max(0.05, Math.min(1, wmOpacity)),
+                            transform: `rotate(${wmRotation || -30}deg) scale(1.3)`,
+                          }}
+                        >
+                          {Array.from({ length: 24 }).map((_, idx) => (
+                            <div
+                              key={idx}
+                              className="p-4 whitespace-nowrap"
+                              style={{
+                                fontSize: `${Math.max(10, Math.round(wmFontSize * (((renderedImgSize?.width || dimensions.width || 600)) / 1000)))}px`,
+                                fontFamily: wmFontFamily,
+                                fontWeight: wmBold ? "bold" : "normal",
+                                fontStyle: wmItalic ? "italic" : "normal",
+                                color: wmColor,
+                                textShadow:
+                                  wmStroke === "dark"
+                                    ? "0 0 2px #000, 0 0 4px #000, 0 2px 4px rgba(0,0,0,0.8)"
+                                    : wmStroke === "light"
+                                      ? "0 0 2px #fff, 0 0 4px #fff, 0 2px 4px rgba(255,255,255,0.8)"
+                                      : "0 1px 3px rgba(0,0,0,0.6)",
+                                WebkitTextStroke:
+                                  wmStroke === "dark"
+                                    ? "0.5px rgba(0,0,0,0.9)"
+                                    : wmStroke === "light"
+                                      ? "0.5px rgba(255,255,255,0.9)"
+                                      : undefined,
+                              }}
+                            >
+                              {wmMode === "logo" && wmLogoSrc ? (
+                                <img
+                                  src={wmLogoSrc}
+                                  alt="Watermark logo"
+                                  className="object-contain"
+                                  style={{
+                                    width: `${Math.max(20, Math.round(((renderedImgSize?.width || dimensions.width || 600)) * 0.12))}px`,
+                                  }}
+                                />
+                              ) : (
+                                wmText || "Watermark"
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        (() => {
+                          const curW = renderedImgSize?.width || dimensions.width || 600;
+                          const previewScale = curW / 1000;
+                          const dispFontSize = Math.max(10, Math.round(wmFontSize * previewScale));
+                          const logoDispW = Math.max(20, Math.round(curW * (wmLogoScale / 100)));
+
+                          let posStyle: React.CSSProperties = {
+                            position: "absolute",
+                            opacity: Math.max(0.05, Math.min(1, wmOpacity)),
+                            transition: isDraggingWm ? "none" : "all 0.15s ease-out",
+                          };
+
+                          if (wmPosition === "top_left") {
+                            posStyle = { ...posStyle, left: `${wmMargin}%`, top: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "top left" };
+                          } else if (wmPosition === "top_center") {
+                            posStyle = { ...posStyle, left: "50%", top: `${wmMargin}%`, transform: `translate(-50%, 0) rotate(${wmRotation}deg)` };
+                          } else if (wmPosition === "top_right") {
+                            posStyle = { ...posStyle, right: `${wmMargin}%`, top: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "top right" };
+                          } else if (wmPosition === "middle_left") {
+                            posStyle = { ...posStyle, left: `${wmMargin}%`, top: "50%", transform: `translate(0, -50%) rotate(${wmRotation}deg)` };
+                          } else if (wmPosition === "center") {
+                            posStyle = { ...posStyle, left: "50%", top: "50%", transform: `translate(-50%, -50%) rotate(${wmRotation}deg)` };
+                          } else if (wmPosition === "middle_right") {
+                            posStyle = { ...posStyle, right: `${wmMargin}%`, top: "50%", transform: `translate(0, -50%) rotate(${wmRotation}deg)` };
+                          } else if (wmPosition === "bottom_left") {
+                            posStyle = { ...posStyle, left: `${wmMargin}%`, bottom: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "bottom left" };
+                          } else if (wmPosition === "bottom_center") {
+                            posStyle = { ...posStyle, left: "50%", bottom: `${wmMargin}%`, transform: `translate(-50%, 0) rotate(${wmRotation}deg)` };
+                          } else if (wmPosition === "bottom_right") {
+                            posStyle = { ...posStyle, right: `${wmMargin}%`, bottom: `${wmMargin}%`, transform: `rotate(${wmRotation}deg)`, transformOrigin: "bottom right" };
+                          } else if (wmPosition === "custom") {
+                            posStyle = { ...posStyle, left: `${wmCustomCoord.xPercent}%`, top: `${wmCustomCoord.yPercent}%`, transform: `translate(-50%, -50%) rotate(${wmRotation}deg)` };
+                          }
+
+                          return (
+                            <div
+                              style={posStyle}
+                              onMouseDown={handleWatermarkMouseDown}
+                              className="group cursor-grab active:cursor-grabbing pointer-events-auto p-1 rounded-lg hover:ring-2 hover:ring-accent/70 transition-shadow"
+                            >
+                              {wmMode === "logo" && wmLogoSrc ? (
+                                <div className="relative inline-block">
+                                  <img
+                                    src={wmLogoSrc}
+                                    alt="Logo watermark"
+                                    className="object-contain block drop-shadow-md pointer-events-none select-none"
+                                    style={{ width: `${logoDispW}px` }}
+                                  />
+                                  <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 bg-accent text-white p-1 rounded-full shadow transition-opacity">
+                                    <Move className="h-3 w-3" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  className="relative inline-flex items-center gap-1 select-none whitespace-nowrap"
+                                  style={{
+                                    fontSize: `${dispFontSize}px`,
+                                    fontFamily: wmFontFamily,
+                                    fontWeight: wmBold ? "bold" : "normal",
+                                    fontStyle: wmItalic ? "italic" : "normal",
+                                    color: wmColor,
+                                    backgroundColor:
+                                      wmBgBadge === "dark_pill"
+                                        ? "rgba(0,0,0,0.65)"
+                                        : wmBgBadge === "light_pill"
+                                          ? "rgba(255,255,255,0.75)"
+                                          : "transparent",
+                                    padding: wmBgBadge !== "none" ? "4px 14px" : "2px 4px",
+                                    borderRadius: wmBgBadge !== "none" ? "9999px" : "4px",
+                                    backdropFilter: wmBgBadge !== "none" ? "blur(4px)" : "none",
+                                    textShadow:
+                                      wmStroke === "dark"
+                                        ? "0 0 3px #000, 0 0 6px #000, 0 2px 6px rgba(0,0,0,0.85)"
+                                        : wmStroke === "light"
+                                          ? "0 0 3px #fff, 0 0 6px #fff, 0 2px 6px rgba(255,255,255,0.85)"
+                                          : "0 1px 4px rgba(0,0,0,0.6)",
+                                    WebkitTextStroke:
+                                      wmStroke === "dark"
+                                        ? "0.75px rgba(0,0,0,0.9)"
+                                        : wmStroke === "light"
+                                          ? "0.75px rgba(255,255,255,0.9)"
+                                          : undefined,
+                                  }}
+                                >
+                                  <span>{wmText || "Watermark"}</span>
+                                  <div className="opacity-0 group-hover:opacity-100 ml-1.5 p-0.5 rounded-full bg-accent text-white shadow inline-flex items-center justify-center transition-opacity">
+                                    <Move className="h-2.5 w-2.5" />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+                  )}
+
+                  {/* 7. Live Face Blur Interactive Overlay (Draggable, Resizable, Adjustable) */}
+                  {tool.slug === "blur-face" && imageSrc && (!hasProcessed || isEditingSettings) && (
+                    <div
+                      className="absolute inset-0 z-20 pointer-events-none select-none overflow-visible"
+                      onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                          setActiveFaceId(null);
                         }
+                      }}
+                    >
+                      {/* Minimal Non-Intrusive Bottom-Left Badge (Leaves Face 100% Clear) */}
+                      <div className="absolute bottom-2.5 left-2.5 z-30 pointer-events-auto rounded-full bg-black/80 backdrop-blur-md px-3 py-1 text-xs font-bold text-white shadow-xl flex items-center gap-2 border border-white/10">
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-accent/20 text-accent">
+                          {isDetectingFaces ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Wand2 className="h-3 w-3" />
+                          )}
+                        </div>
+                        <span className="font-extrabold text-white/90 text-[11px]">
+                          {isDetectingFaces
+                            ? "Scanning faces…"
+                            : faceRegions.length === 0
+                              ? "No blur regions"
+                              : `${faceRegions.length} ${faceRegions.length === 1 ? "Face Region" : "Face Regions"}`}
+                        </span>
+                        <span className="text-white/30">•</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFaceOutlines((prev) => !prev)}
+                          className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold cursor-pointer transition-colors ${showFaceOutlines
+                              ? "bg-white/20 text-white hover:bg-white/30"
+                              : "bg-white/10 text-white/60 hover:text-white"
+                            }`}
+                          title={showFaceOutlines ? "Hide outlines" : "Show adjustment handles"}
+                        >
+                          {showFaceOutlines ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
+                          <span>{showFaceOutlines ? "Handles On" : "Clean View"}</span>
+                        </button>
+                      </div>
+
+                      {/* Render each face blur region with interactive move and resize handles */}
+                      {faceRegions.map((face, idx) => {
+                        const isEllipse = faceShape === "ellipse";
+                        const isActive = activeFaceId === face.id;
+                        const isHovered = hoveredFaceId === face.id;
 
                         return (
                           <div
-                            style={posStyle}
-                            onMouseDown={handleWatermarkMouseDown}
-                            className="group cursor-grab active:cursor-grabbing pointer-events-auto p-1 rounded-lg hover:ring-2 hover:ring-accent/70 transition-shadow"
+                            key={face.id}
+                            className="absolute pointer-events-auto"
+                            style={{
+                              left: `${face.x}%`,
+                              top: `${face.y}%`,
+                              width: `${face.w}%`,
+                              height: `${face.h}%`,
+                            }}
+                            onMouseEnter={() => setHoveredFaceId(face.id)}
+                            onMouseLeave={() => setHoveredFaceId(null)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveFaceId(face.id);
+                            }}
                           >
-                            {wmMode === "logo" && wmLogoSrc ? (
-                              <div className="relative inline-block">
-                                <img
-                                  src={wmLogoSrc}
-                                  alt="Logo watermark"
-                                  className="object-contain block drop-shadow-md pointer-events-none select-none"
-                                  style={{ width: `${logoDispW}px` }}
+                            {/* 1. Face Blur Body Layer (Draggable) */}
+                            <div
+                              className={`w-full h-full transition-[box-shadow,border] duration-100 ${isEllipse ? "rounded-full" : "rounded-2xl"
+                                } ${showFaceOutlines && (isActive || isHovered)
+                                  ? isActive
+                                    ? "ring-2 ring-accent ring-offset-2 ring-offset-black/50 shadow-2xl"
+                                    : "ring-1 ring-accent/80 shadow-md"
+                                  : showFaceOutlines
+                                    ? "ring-1 ring-white/60 border border-black/30"
+                                    : ""
+                                }`}
+                              style={{
+                                backdropFilter:
+                                  faceBlurType === "blackout"
+                                    ? undefined
+                                    : `blur(${Math.max(8, Math.round(faceBlurStrength * 0.85))}px)`,
+                                backgroundColor:
+                                  faceBlurType === "blackout"
+                                    ? "rgba(0, 0, 0, 0.98)"
+                                    : faceBlurType === "pixelate"
+                                      ? "rgba(255, 255, 255, 0.05)"
+                                      : "rgba(255, 255, 255, 0.02)",
+                                boxShadow:
+                                  faceBlurType === "blackout"
+                                    ? "0 4px 20px rgba(0, 0, 0, 0.5)"
+                                    : "0 0 20px rgba(0, 0, 0, 0.1)",
+                                cursor: "move",
+                              }}
+                              onMouseDown={(e) => handleFaceMouseDown(e, face.id, "move")}
+                              onTouchStart={(e) => handleFaceTouchStart(e, face.id, "move")}
+                              title="Drag to reposition blur area"
+                            >
+                              {/* Pixelate mosaic grid preview */}
+                              {faceBlurType === "pixelate" && (
+                                <div
+                                  className={`w-full h-full pointer-events-none opacity-40 ${isEllipse ? "rounded-full" : "rounded-2xl"
+                                    }`}
+                                  style={{
+                                    backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.7) 1.5px, transparent 1.5px)`,
+                                    backgroundSize: "6px 6px",
+                                  }}
                                 />
-                                <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 bg-accent text-white p-1 rounded-full shadow transition-opacity">
-                                  <Move className="h-3 w-3" />
-                                </div>
-                              </div>
-                            ) : (
+                              )}
+                            </div>
+
+                            {/* 2. Floating Action Tag (smartly flips to bottom when near top border) */}
+                            {showFaceOutlines && (isActive || isHovered) && (
                               <div
-                                className="relative inline-flex items-center gap-1 select-none whitespace-nowrap"
-                                style={{
-                                  fontSize: `${dispFontSize}px`,
-                                  fontFamily: wmFontFamily,
-                                  fontWeight: wmBold ? "bold" : "normal",
-                                  fontStyle: wmItalic ? "italic" : "normal",
-                                  color: wmColor,
-                                  backgroundColor:
-                                    wmBgBadge === "dark_pill"
-                                      ? "rgba(0,0,0,0.65)"
-                                      : wmBgBadge === "light_pill"
-                                      ? "rgba(255,255,255,0.75)"
-                                      : "transparent",
-                                  padding: wmBgBadge !== "none" ? "4px 14px" : "2px 4px",
-                                  borderRadius: wmBgBadge !== "none" ? "9999px" : "4px",
-                                  backdropFilter: wmBgBadge !== "none" ? "blur(4px)" : "none",
-                                  textShadow:
-                                    wmStroke === "dark"
-                                      ? "0 0 3px #000, 0 0 6px #000, 0 2px 6px rgba(0,0,0,0.85)"
-                                      : wmStroke === "light"
-                                      ? "0 0 3px #fff, 0 0 6px #fff, 0 2px 6px rgba(255,255,255,0.85)"
-                                      : "0 1px 4px rgba(0,0,0,0.6)",
-                                  WebkitTextStroke:
-                                    wmStroke === "dark"
-                                      ? "0.75px rgba(0,0,0,0.9)"
-                                      : wmStroke === "light"
-                                      ? "0.75px rgba(255,255,255,0.9)"
-                                      : undefined,
-                                }}
+                                className={`absolute ${face.y < 8 ? "-bottom-7" : "-top-7"
+                                  } left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg transition-all ${isActive
+                                    ? "bg-accent text-accent-foreground scale-105"
+                                    : "bg-black/85 text-white border border-white/20"
+                                  }`}
                               >
-                                <span>{wmText || "Watermark"}</span>
-                                <div className="opacity-0 group-hover:opacity-100 ml-1.5 p-0.5 rounded-full bg-accent text-white shadow inline-flex items-center justify-center transition-opacity">
-                                  <Move className="h-2.5 w-2.5" />
-                                </div>
+                                <span>Face #{idx + 1}</span>
+                                <span className="opacity-40">•</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteFace(face.id);
+                                  }}
+                                  className="hover:text-red-300 p-0.5 rounded cursor-pointer transition-colors"
+                                  title="Delete this blur area"
+                                >
+                                  <Trash2 className="h-2.5 w-2.5" />
+                                </button>
                               </div>
+                            )}
+
+                            {/* 3. 8 Interactive Resize Handles (Clean uniform circular dots) */}
+                            {showFaceOutlines && isActive && (
+                              <>
+                                {/* 4 Corners: NW, NE, SW, SE */}
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "nw")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "nw")}
+                                  className="absolute -top-1.5 -left-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nwse-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Top-Left"
+                                />
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "ne")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "ne")}
+                                  className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nesw-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Top-Right"
+                                />
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "sw")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "sw")}
+                                  className="absolute -bottom-1.5 -left-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nesw-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Bottom-Left"
+                                />
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "se")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "se")}
+                                  className="absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nwse-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Bottom-Right"
+                                />
+
+                                {/* 4 Midpoints: N, S, W, E (Uniform clean round dots) */}
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "n")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "n")}
+                                  className="absolute -top-1.5 left-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ns-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Height (Top Edge)"
+                                />
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "s")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "s")}
+                                  className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ns-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Height (Bottom Edge)"
+                                />
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "w")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "w")}
+                                  className="absolute top-1/2 -left-1.5 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ew-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Width (Left Edge)"
+                                />
+                                <div
+                                  onMouseDown={(e) => handleFaceMouseDown(e, face.id, "e")}
+                                  onTouchStart={(e) => handleFaceTouchStart(e, face.id, "e")}
+                                  className="absolute top-1/2 -right-1.5 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ew-resize z-30 hover:scale-125 active:scale-130 transition-transform"
+                                  title="Resize Width (Right Edge)"
+                                />
+                              </>
                             )}
                           </div>
                         );
-                      })()
-                    )}
-                  </div>
-                )}
+                      })}
+                    </div>
+                  )}
 
-                {/* 7. Live Face Blur Interactive Overlay (Draggable, Resizable, Adjustable) */}
-                {tool.slug === "blur-face" && imageSrc && (!hasProcessed || isEditingSettings) && (
-                  <div
-                    className="absolute inset-0 z-20 pointer-events-none select-none overflow-visible"
-                    onClick={(e) => {
-                      if (e.target === e.currentTarget) {
-                        setActiveFaceId(null);
-                      }
-                    }}
-                  >
-                    {/* Minimal Non-Intrusive Bottom-Left Badge (Leaves Face 100% Clear) */}
-                    <div className="absolute bottom-2.5 left-2.5 z-30 pointer-events-auto rounded-full bg-black/80 backdrop-blur-md px-3 py-1 text-xs font-bold text-white shadow-xl flex items-center gap-2 border border-white/10">
-                      <div className="flex h-4 w-4 items-center justify-center rounded-full bg-accent/20 text-accent">
-                        {isDetectingFaces ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Wand2 className="h-3 w-3" />
+                  {/* 8. Live Meme Interactive Real-time Preview Overlay */}
+                  {tool.slug === "meme-generator" && imageSrc && (!hasProcessed || isEditingSettings) && (
+                    <div className="absolute inset-0 z-20 pointer-events-none select-none flex flex-col justify-between p-3 overflow-hidden">
+                      {/* Floating live indicator badge */}
+                      <div className="absolute top-2 left-2 z-30 pointer-events-none rounded-full bg-black/80 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold text-white shadow-md flex items-center gap-1.5 border border-white/10 opacity-75 hover:opacity-100 transition-opacity">
+                        <Sparkle className="h-3 w-3 text-accent" />
+                        <span>Live Meme Preview</span>
+                        <span className="text-white/40">•</span>
+                        <span className="text-accent font-mono">{memeFontSize}px</span>
+                      </div>
+
+                      {/* Top Meme Text Block */}
+                      <div
+                        style={{
+                          paddingTop: `${memeTopPosPercent}%`,
+                          textAlign: memeTextAlign,
+                        }}
+                        className="w-full pointer-events-auto cursor-grab active:cursor-grabbing group relative"
+                        onMouseDown={(e) => handleMemeTextMouseDown(e, "top")}
+                        title="Drag up or down to adjust top text position"
+                      >
+                        {topText.trim() ? (
+                          <div
+                            style={{
+                              fontFamily: memeFontFamily,
+                              fontSize: `${Math.max(12, Math.round((renderedImgSize?.width || dimensions.width || 600) * (memeFontSize / 700)))}px`,
+                              color: memeTextColor,
+                              WebkitTextStroke:
+                                memeStrokeWidth > 0
+                                  ? `${Math.max(1, Math.round((renderedImgSize?.width || 600) * (memeStrokeWidth / 600)))}px ${memeStrokeColor}`
+                                  : undefined,
+                              textShadow: memeTextShadow ? "0 2px 10px rgba(0,0,0,0.85)" : undefined,
+                              textTransform: memeAllCaps ? "uppercase" : "none",
+                              lineHeight: 1.15,
+                              wordBreak: "break-word",
+                            }}
+                            className="font-black tracking-wide drop-shadow-md select-none px-2 transition-[color,font-size] duration-75"
+                          >
+                            {topText}
+                          </div>
+                        ) : null}
+                        {topText.trim() && (
+                          <div className="absolute -top-1 right-2 opacity-0 group-hover:opacity-100 bg-accent text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow pointer-events-none transition-opacity">
+                            ↕ Drag Position
+                          </div>
                         )}
                       </div>
-                      <span className="font-extrabold text-white/90 text-[11px]">
-                        {isDetectingFaces
-                          ? "Scanning faces…"
-                          : faceRegions.length === 0
-                          ? "No blur regions"
-                          : `${faceRegions.length} ${faceRegions.length === 1 ? "Face Region" : "Face Regions"}`}
-                      </span>
-                      <span className="text-white/30">•</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowFaceOutlines((prev) => !prev)}
-                        className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold cursor-pointer transition-colors ${
-                          showFaceOutlines
-                            ? "bg-white/20 text-white hover:bg-white/30"
-                            : "bg-white/10 text-white/60 hover:text-white"
-                        }`}
-                        title={showFaceOutlines ? "Hide outlines" : "Show adjustment handles"}
+
+                      {/* Bottom Meme Text Block */}
+                      <div
+                        style={{
+                          paddingBottom: `${memeBottomPosPercent}%`,
+                          textAlign: memeTextAlign,
+                        }}
+                        className="w-full pointer-events-auto cursor-grab active:cursor-grabbing group relative"
+                        onMouseDown={(e) => handleMemeTextMouseDown(e, "bottom")}
+                        title="Drag up or down to adjust bottom text position"
                       >
-                        {showFaceOutlines ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
-                        <span>{showFaceOutlines ? "Handles On" : "Clean View"}</span>
-                      </button>
-                    </div>
-
-                    {/* Render each face blur region with interactive move and resize handles */}
-                    {faceRegions.map((face, idx) => {
-                      const isEllipse = faceShape === "ellipse";
-                      const isActive = activeFaceId === face.id;
-                      const isHovered = hoveredFaceId === face.id;
-
-                      return (
-                        <div
-                          key={face.id}
-                          className="absolute pointer-events-auto"
-                          style={{
-                            left: `${face.x}%`,
-                            top: `${face.y}%`,
-                            width: `${face.w}%`,
-                            height: `${face.h}%`,
-                          }}
-                          onMouseEnter={() => setHoveredFaceId(face.id)}
-                          onMouseLeave={() => setHoveredFaceId(null)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveFaceId(face.id);
-                          }}
-                        >
-                          {/* 1. Face Blur Body Layer (Draggable) */}
+                        {bottomText.trim() ? (
                           <div
-                            className={`w-full h-full transition-[box-shadow,border] duration-100 ${
-                              isEllipse ? "rounded-full" : "rounded-2xl"
-                            } ${
-                              showFaceOutlines && (isActive || isHovered)
-                                ? isActive
-                                  ? "ring-2 ring-accent ring-offset-2 ring-offset-black/50 shadow-2xl"
-                                  : "ring-1 ring-accent/80 shadow-md"
-                                : showFaceOutlines
-                                ? "ring-1 ring-white/60 border border-black/30"
-                                : ""
-                            }`}
                             style={{
-                              backdropFilter:
-                                faceBlurType === "blackout"
-                                  ? undefined
-                                  : `blur(${Math.max(8, Math.round(faceBlurStrength * 0.85))}px)`,
-                              backgroundColor:
-                                faceBlurType === "blackout"
-                                  ? "rgba(0, 0, 0, 0.98)"
-                                  : faceBlurType === "pixelate"
-                                  ? "rgba(255, 255, 255, 0.05)"
-                                  : "rgba(255, 255, 255, 0.02)",
-                              boxShadow:
-                                faceBlurType === "blackout"
-                                  ? "0 4px 20px rgba(0, 0, 0, 0.5)"
-                                  : "0 0 20px rgba(0, 0, 0, 0.1)",
-                              cursor: "move",
+                              fontFamily: memeFontFamily,
+                              fontSize: `${Math.max(12, Math.round((renderedImgSize?.width || dimensions.width || 600) * (memeFontSize / 700)))}px`,
+                              color: memeTextColor,
+                              WebkitTextStroke:
+                                memeStrokeWidth > 0
+                                  ? `${Math.max(1, Math.round((renderedImgSize?.width || 600) * (memeStrokeWidth / 600)))}px ${memeStrokeColor}`
+                                  : undefined,
+                              textShadow: memeTextShadow ? "0 2px 10px rgba(0,0,0,0.85)" : undefined,
+                              textTransform: memeAllCaps ? "uppercase" : "none",
+                              lineHeight: 1.15,
+                              wordBreak: "break-word",
                             }}
-                            onMouseDown={(e) => handleFaceMouseDown(e, face.id, "move")}
-                            onTouchStart={(e) => handleFaceTouchStart(e, face.id, "move")}
-                            title="Drag to reposition blur area"
+                            className="font-black tracking-wide drop-shadow-md select-none px-2 transition-[color,font-size] duration-75"
                           >
-                            {/* Pixelate mosaic grid preview */}
-                            {faceBlurType === "pixelate" && (
-                              <div
-                                className={`w-full h-full pointer-events-none opacity-40 ${
-                                  isEllipse ? "rounded-full" : "rounded-2xl"
-                                }`}
-                                style={{
-                                  backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.7) 1.5px, transparent 1.5px)`,
-                                  backgroundSize: "6px 6px",
-                                }}
-                              />
-                            )}
+                            {bottomText}
                           </div>
-
-                          {/* 2. Floating Action Tag (smartly flips to bottom when near top border) */}
-                          {showFaceOutlines && (isActive || isHovered) && (
-                            <div
-                              className={`absolute ${
-                                face.y < 8 ? "-bottom-7" : "-top-7"
-                              } left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg transition-all ${
-                                isActive
-                                  ? "bg-accent text-accent-foreground scale-105"
-                                  : "bg-black/85 text-white border border-white/20"
-                              }`}
-                            >
-                              <span>Face #{idx + 1}</span>
-                              <span className="opacity-40">•</span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteFace(face.id);
-                                }}
-                                className="hover:text-red-300 p-0.5 rounded cursor-pointer transition-colors"
-                                title="Delete this blur area"
-                              >
-                                <Trash2 className="h-2.5 w-2.5" />
-                              </button>
-                            </div>
-                          )}
-
-                          {/* 3. 8 Interactive Resize Handles (Clean uniform circular dots) */}
-                          {showFaceOutlines && isActive && (
-                            <>
-                              {/* 4 Corners: NW, NE, SW, SE */}
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "nw")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "nw")}
-                                className="absolute -top-1.5 -left-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nwse-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Top-Left"
-                              />
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "ne")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "ne")}
-                                className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nesw-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Top-Right"
-                              />
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "sw")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "sw")}
-                                className="absolute -bottom-1.5 -left-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nesw-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Bottom-Left"
-                              />
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "se")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "se")}
-                                className="absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-nwse-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Bottom-Right"
-                              />
-
-                              {/* 4 Midpoints: N, S, W, E (Uniform clean round dots) */}
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "n")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "n")}
-                                className="absolute -top-1.5 left-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ns-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Height (Top Edge)"
-                              />
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "s")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "s")}
-                                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ns-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Height (Bottom Edge)"
-                              />
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "w")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "w")}
-                                className="absolute top-1/2 -left-1.5 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ew-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Width (Left Edge)"
-                              />
-                              <div
-                                onMouseDown={(e) => handleFaceMouseDown(e, face.id, "e")}
-                                onTouchStart={(e) => handleFaceTouchStart(e, face.id, "e")}
-                                className="absolute top-1/2 -right-1.5 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white border-2 border-accent shadow-md cursor-ew-resize z-30 hover:scale-125 active:scale-130 transition-transform"
-                                title="Resize Width (Right Edge)"
-                              />
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* 8. Live Meme Interactive Real-time Preview Overlay */}
-                {tool.slug === "meme-generator" && imageSrc && (!hasProcessed || isEditingSettings) && (
-                  <div className="absolute inset-0 z-20 pointer-events-none select-none flex flex-col justify-between p-3 overflow-hidden">
-                    {/* Floating live indicator badge */}
-                    <div className="absolute top-2 left-2 z-30 pointer-events-none rounded-full bg-black/80 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold text-white shadow-md flex items-center gap-1.5 border border-white/10 opacity-75 hover:opacity-100 transition-opacity">
-                      <Sparkle className="h-3 w-3 text-accent" />
-                      <span>Live Meme Preview</span>
-                      <span className="text-white/40">•</span>
-                      <span className="text-accent font-mono">{memeFontSize}px</span>
-                    </div>
-
-                    {/* Top Meme Text Block */}
-                    <div
-                      style={{
-                        paddingTop: `${memeTopPosPercent}%`,
-                        textAlign: memeTextAlign,
-                      }}
-                      className="w-full pointer-events-auto cursor-grab active:cursor-grabbing group relative"
-                      onMouseDown={(e) => handleMemeTextMouseDown(e, "top")}
-                      title="Drag up or down to adjust top text position"
-                    >
-                      {topText.trim() ? (
-                        <div
-                          style={{
-                            fontFamily: memeFontFamily,
-                            fontSize: `${Math.max(12, Math.round((renderedImgSize?.width || dimensions.width || 600) * (memeFontSize / 700)))}px`,
-                            color: memeTextColor,
-                            WebkitTextStroke:
-                              memeStrokeWidth > 0
-                                ? `${Math.max(1, Math.round((renderedImgSize?.width || 600) * (memeStrokeWidth / 600)))}px ${memeStrokeColor}`
-                                : undefined,
-                            textShadow: memeTextShadow ? "0 2px 10px rgba(0,0,0,0.85)" : undefined,
-                            textTransform: memeAllCaps ? "uppercase" : "none",
-                            lineHeight: 1.15,
-                            wordBreak: "break-word",
-                          }}
-                          className="font-black tracking-wide drop-shadow-md select-none px-2 transition-[color,font-size] duration-75"
-                        >
-                          {topText}
-                        </div>
-                      ) : null}
-                      {topText.trim() && (
-                        <div className="absolute -top-1 right-2 opacity-0 group-hover:opacity-100 bg-accent text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow pointer-events-none transition-opacity">
-                          ↕ Drag Position
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bottom Meme Text Block */}
-                    <div
-                      style={{
-                        paddingBottom: `${memeBottomPosPercent}%`,
-                        textAlign: memeTextAlign,
-                      }}
-                      className="w-full pointer-events-auto cursor-grab active:cursor-grabbing group relative"
-                      onMouseDown={(e) => handleMemeTextMouseDown(e, "bottom")}
-                      title="Drag up or down to adjust bottom text position"
-                    >
-                      {bottomText.trim() ? (
-                        <div
-                          style={{
-                            fontFamily: memeFontFamily,
-                            fontSize: `${Math.max(12, Math.round((renderedImgSize?.width || dimensions.width || 600) * (memeFontSize / 700)))}px`,
-                            color: memeTextColor,
-                            WebkitTextStroke:
-                              memeStrokeWidth > 0
-                                ? `${Math.max(1, Math.round((renderedImgSize?.width || 600) * (memeStrokeWidth / 600)))}px ${memeStrokeColor}`
-                                : undefined,
-                            textShadow: memeTextShadow ? "0 2px 10px rgba(0,0,0,0.85)" : undefined,
-                            textTransform: memeAllCaps ? "uppercase" : "none",
-                            lineHeight: 1.15,
-                            wordBreak: "break-word",
-                          }}
-                          className="font-black tracking-wide drop-shadow-md select-none px-2 transition-[color,font-size] duration-75"
-                        >
-                          {bottomText}
-                        </div>
-                      ) : null}
-                      {bottomText.trim() && (
-                        <div className="absolute -bottom-1 right-2 opacity-0 group-hover:opacity-100 bg-accent text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow pointer-events-none transition-opacity">
-                          ↕ Drag Position
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Smooth Loading Indicator Backdrop */}
-                {processing && (
-                  <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md rounded-2xl animate-in fade-in duration-200">
-                    <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card border border-border shadow-2xl">
-                      <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                      <div className="text-center">
-                        <p className="text-sm font-extrabold text-foreground">
-                          {tool.slug === "html-to-image" ? "Rendering HTML to Image…" : "Processing Image…"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">High-definition 2x rendering</p>
+                        ) : null}
+                        {bottomText.trim() && (
+                          <div className="absolute -bottom-1 right-2 opacity-0 group-hover:opacity-100 bg-accent text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow pointer-events-none transition-opacity">
+                            ↕ Drag Position
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+
+                  {/* Smooth Loading Indicator Backdrop */}
+                  {processing && (
+                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md rounded-2xl animate-in fade-in duration-200">
+                      <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card border border-border shadow-2xl">
+                        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                        <div className="text-center">
+                          <p className="text-sm font-extrabold text-foreground">
+                            {tool.slug === "html-to-image" ? "Rendering HTML to Image…" : "Processing Image…"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">High-definition 2x rendering</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Color Picker Hover Swatch (Updated via Direct RAF DOM) */}
               {tool.slug === "color-picker-from-image" && (
@@ -12483,11 +12460,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           {/* Tool Controls & Settings Panel */}
           <div
             ref={settingsPanelRef}
-            className={`min-w-0 rounded-3xl border-2 border-border bg-card shadow-md flex flex-col ${
-              tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image"
+            className={`min-w-0 rounded-3xl border-2 border-border bg-card shadow-md flex flex-col ${tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image"
                 ? "p-3.5 sm:p-4 space-y-3 max-h-[min(580px,calc(100vh-140px))] overflow-y-auto"
                 : "p-5 sm:p-6 space-y-5"
-            }`}
+              }`}
           >
             <div className={`flex items-center justify-between border-b border-border ${tool.slug === "meme-generator" || tool.slug === "color-picker-from-image" || tool.slug === "square-your-image" ? "pb-2" : "pb-3.5"}`}>
               <div>
@@ -12515,11 +12491,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         type="button"
                         data-active={compressMode === "quality"}
                         onClick={() => setCompressMode("quality")}
-                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs md:text-sm font-black cursor-pointer ${
-                          compressMode === "quality"
+                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs md:text-sm font-black cursor-pointer ${compressMode === "quality"
                             ? "wobbly-active bg-foreground text-background shadow-md scale-[1.01]"
                             : "text-muted-foreground hover:text-foreground hover:bg-card/40"
-                        }`}
+                          }`}
                       >
                         <Sliders className="h-4 w-4" />
                         <span>Quality</span>
@@ -12531,11 +12506,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           setCompressMode("size");
                           if (!targetSizeInput) setTargetSizeInput("200");
                         }}
-                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs md:text-sm font-black cursor-pointer ${
-                          compressMode === "size"
+                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs md:text-sm font-black cursor-pointer ${compressMode === "size"
                             ? "wobbly-active bg-foreground text-background shadow-md scale-[1.01]"
                             : "text-muted-foreground hover:text-foreground hover:bg-card/40"
-                        }`}
+                          }`}
                       >
                         <Wand2 className="h-4 w-4" />
                         <span>Size</span>
@@ -12552,13 +12526,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-bold text-foreground">Quality Compression Seekbar:</span>
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
-                                quality >= 80
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${quality >= 80
                                   ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
                                   : quality >= 50
-                                  ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
-                                  : "bg-orange-500/15 text-orange-500 border border-orange-500/30"
-                              }`}
+                                    ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                                    : "bg-orange-500/15 text-orange-500 border border-orange-500/30"
+                                }`}
                             >
                               {quality >= 80 ? "High Fidelity" : quality >= 50 ? "Balanced Size" : "Max Savings"}
                             </span>
@@ -12578,11 +12551,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             onChange={(e) => setQuality(Number(e.target.value))}
                             className="unique-seekbar"
                             style={{
-                              background: `linear-gradient(to right, var(--color-accent) 0%, var(--color-accent) ${
-                                ((quality - 5) / (98 - 5)) * 100
-                              }%, color-mix(in oklab, var(--color-foreground) 12%, transparent) ${
-                                ((quality - 5) / (98 - 5)) * 100
-                              }%, color-mix(in oklab, var(--color-foreground) 12%, transparent) 100%)`,
+                              background: `linear-gradient(to right, var(--color-accent) 0%, var(--color-accent) ${((quality - 5) / (98 - 5)) * 100
+                                }%, color-mix(in oklab, var(--color-foreground) 12%, transparent) ${((quality - 5) / (98 - 5)) * 100
+                                }%, color-mix(in oklab, var(--color-foreground) 12%, transparent) 100%)`,
                             }}
                           />
                         </div>
@@ -12624,11 +12595,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             type="button"
                             data-active={quality === btn.val}
                             onClick={() => setQuality(btn.val)}
-                            className={`wobbly-pill flex-1 rounded-2xl border-2 py-2.5 text-xs font-bold cursor-pointer ${
-                              quality === btn.val
+                            className={`wobbly-pill flex-1 rounded-2xl border-2 py-2.5 text-xs font-bold cursor-pointer ${quality === btn.val
                                 ? "wobbly-active border-foreground bg-foreground text-background shadow-md scale-[1.01]"
                                 : "border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             {btn.label}
                           </button>
@@ -12657,11 +12627,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
                       {/* Unified Input & KB/MB Unit Segmented Box */}
                       <div
-                        className={`flex items-center gap-2 rounded-2xl border-2 bg-background p-1.5 transition-all shadow-inner ${
-                          isTargetSizeExceeding
+                        className={`flex items-center gap-2 rounded-2xl border-2 bg-background p-1.5 transition-all shadow-inner ${isTargetSizeExceeding
                             ? "border-destructive focus-within:border-destructive focus-within:ring-2 focus-within:ring-destructive/20"
                             : "border-border focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20"
-                        }`}
+                          }`}
                       >
                         <input
                           type="number"
@@ -12669,9 +12638,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           placeholder="e.g. 200"
                           value={targetSizeInput}
                           onChange={(e) => setTargetSizeInput(e.target.value)}
-                          className={`flex-1 bg-transparent px-3 py-2 text-base font-extrabold focus:outline-none ${
-                            isTargetSizeExceeding ? "text-destructive" : "text-foreground"
-                          }`}
+                          className={`flex-1 bg-transparent px-3 py-2 text-base font-extrabold focus:outline-none ${isTargetSizeExceeding ? "text-destructive" : "text-foreground"
+                            }`}
                         />
 
                         {/* Custom KB / MB Segmented Unit Box with Wobbly Switch */}
@@ -12682,11 +12650,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               type="button"
                               data-active={targetSizeUnit === unit}
                               onClick={() => setTargetSizeUnit(unit)}
-                              className={`wobbly-btn rounded-lg px-4 py-1.5 text-xs font-black cursor-pointer ${
-                                targetSizeUnit === unit
+                              className={`wobbly-btn rounded-lg px-4 py-1.5 text-xs font-black cursor-pointer ${targetSizeUnit === unit
                                   ? "wobbly-active bg-foreground text-background shadow-md scale-[1.03]"
                                   : "text-muted-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               {unit}
                             </button>
@@ -12716,11 +12683,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 setTargetSizeInput(preset.val);
                                 setTargetSizeUnit(preset.unit);
                               }}
-                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer ${
-                                targetSizeInput === preset.val && targetSizeUnit === preset.unit
+                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer ${targetSizeInput === preset.val && targetSizeUnit === preset.unit
                                   ? "border-accent bg-accent/20 text-accent font-extrabold shadow-xs"
                                   : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               {preset.label}
                             </button>
@@ -12744,10 +12710,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         {compressFormat === "auto"
                           ? "Auto (Best compression)"
                           : compressFormat === "image/webp"
-                          ? "WebP (Ultra compact)"
-                          : compressFormat === "image/jpeg"
-                          ? "JPG (Standard)"
-                          : "PNG (Lossless)"}
+                            ? "WebP (Ultra compact)"
+                            : compressFormat === "image/jpeg"
+                              ? "JPG (Standard)"
+                              : "PNG (Lossless)"}
                       </span>
                     </div>
 
@@ -12763,11 +12729,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           type="button"
                           data-active={compressFormat === fmt.value}
                           onClick={() => setCompressFormat(fmt.value)}
-                          className={`wobbly-btn rounded-lg py-2 text-xs font-black cursor-pointer ${
-                            compressFormat === fmt.value
+                          className={`wobbly-btn rounded-lg py-2 text-xs font-black cursor-pointer ${compressFormat === fmt.value
                               ? "wobbly-active bg-foreground text-background shadow-md scale-[1.02]"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {fmt.label}
                         </button>
@@ -12808,11 +12773,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         type="button"
                         data-active={resizeQualityMode === "same"}
                         onClick={() => setResizeQualityMode("same")}
-                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs md:text-sm font-black cursor-pointer ${
-                          resizeQualityMode === "same"
+                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs md:text-sm font-black cursor-pointer ${resizeQualityMode === "same"
                             ? "wobbly-active bg-foreground text-background shadow-md scale-[1.01]"
                             : "text-muted-foreground hover:text-foreground hover:bg-card/40"
-                        }`}
+                          }`}
                       >
                         <Sliders className="h-4 w-4" />
                         <span>Same Quality</span>
@@ -12821,11 +12785,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         type="button"
                         data-active={resizeQualityMode === "improved"}
                         onClick={() => setResizeQualityMode("improved")}
-                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs md:text-sm font-black cursor-pointer ${
-                          resizeQualityMode === "improved"
+                        className={`wobbly-btn flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs md:text-sm font-black cursor-pointer ${resizeQualityMode === "improved"
                             ? "wobbly-active bg-foreground text-background shadow-md scale-[1.01]"
                             : "text-muted-foreground hover:text-foreground hover:bg-card/40"
-                        }`}
+                          }`}
                       >
                         <Wand2 className="h-4 w-4 text-accent" />
                         <span>Quality Improvement</span>
@@ -12853,11 +12816,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               setTargetHeight(Math.round((dimensions.height * pct) / 100));
                             }
                           }}
-                          className={`wobbly-pill flex-1 rounded-xl border py-2 text-xs font-bold cursor-pointer ${
-                            scalePercent === pct
+                          className={`wobbly-pill flex-1 rounded-xl border py-2 text-xs font-bold cursor-pointer ${scalePercent === pct
                               ? "wobbly-active bg-foreground text-background shadow-md scale-[1.02]"
                               : "border-border text-muted-foreground hover:border-foreground"
-                          }`}
+                            }`}
                         >
                           {pct}%
                         </button>
@@ -12983,11 +12945,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={ratio}
                           type="button"
                           onClick={() => applyCropAspectPreset(ratio)}
-                          className={`rounded-xl border px-3 py-2 text-xs font-bold uppercase transition-all ${
-                            cropAspect === ratio
+                          className={`rounded-xl border px-3 py-2 text-xs font-bold uppercase transition-all ${cropAspect === ratio
                               ? "bg-foreground text-background"
                               : "border-border text-muted-foreground hover:border-foreground"
-                          }`}
+                            }`}
                         >
                           {ratio}
                         </button>
@@ -13052,11 +13013,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         key={fmt.label}
                         type="button"
                         onClick={() => setTargetFormat(fmt.value as any)}
-                        className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${
-                          targetFormat === fmt.value
+                        className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${targetFormat === fmt.value
                             ? "border-foreground bg-foreground text-background shadow-md scale-[1.02]"
                             : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <span className="text-xs font-extrabold">{fmt.label}</span>
                         <span className="text-[10px] font-mono opacity-80">{fmt.sub}</span>
@@ -13094,11 +13054,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={fmt}
                               type="button"
                               onClick={() => setRotateBatchOutputFormat(fmt)}
-                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                                rotateBatchOutputFormat === fmt
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${rotateBatchOutputFormat === fmt
                                   ? "bg-foreground text-background shadow-xs"
                                   : "text-muted-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               {fmt}
                             </button>
@@ -13204,11 +13163,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             );
                           }
                         }}
-                        className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 px-3 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                          flipH
+                        className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 px-3 text-xs font-bold transition-all cursor-pointer shadow-2xs ${flipH
                             ? "border-accent bg-accent/15 text-accent ring-1 ring-accent/30 font-black"
                             : "border-border bg-background text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <FlipHorizontal className="h-3.5 w-3.5" />
                         <span>Flip Horizontal</span>
@@ -13226,11 +13184,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             );
                           }
                         }}
-                        className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 px-3 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                          flipV
+                        className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 px-3 text-xs font-bold transition-all cursor-pointer shadow-2xs ${flipV
                             ? "border-accent bg-accent/15 text-accent ring-1 ring-accent/30 font-black"
                             : "border-border bg-background text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <FlipVertical className="h-3.5 w-3.5" />
                         <span>Flip Vertical</span>
@@ -13324,11 +13281,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 );
                               }
                             }}
-                            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                              ((rotation % 360) + 360) % 360 === chip.val
+                            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-mono font-bold transition-all cursor-pointer ${((rotation % 360) + 360) % 360 === chip.val
                                 ? "border-foreground bg-foreground text-background shadow-xs"
                                 : "border-border bg-background text-muted-foreground hover:border-foreground"
-                            }`}
+                              }`}
                           >
                             {chip.label}
                           </button>
@@ -13394,11 +13350,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.id}
                           type="button"
                           onClick={() => setRotateBgMode(item.id as any)}
-                          className={`flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer ${
-                            rotateBgMode === item.id
+                          className={`flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer ${rotateBgMode === item.id
                               ? "bg-foreground text-background shadow-xs font-black"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="truncate">{item.label}</span>
                         </button>
@@ -13429,11 +13384,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={sw.hex}
                               type="button"
                               onClick={() => setRotateBgColor(sw.hex)}
-                              className={`h-6 w-6 rounded-lg border-2 transition-transform hover:scale-110 cursor-pointer shadow-2xs ${
-                                rotateBgColor.toLowerCase() === sw.hex.toLowerCase()
+                              className={`h-6 w-6 rounded-lg border-2 transition-transform hover:scale-110 cursor-pointer shadow-2xs ${rotateBgColor.toLowerCase() === sw.hex.toLowerCase()
                                   ? "scale-110 ring-2 ring-accent ring-offset-1 ring-offset-background"
                                   : sw.border
-                              }`}
+                                }`}
                               style={{ backgroundColor: sw.hex }}
                               title={sw.name}
                             />
@@ -13451,11 +13405,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={grad.id}
                               type="button"
                               onClick={() => setRotateBgGradient(grad.css)}
-                              className={`flex flex-col items-center justify-center p-1.5 rounded-lg border text-center transition-all cursor-pointer overflow-hidden ${
-                                rotateBgGradient === grad.css
+                              className={`flex flex-col items-center justify-center p-1.5 rounded-lg border text-center transition-all cursor-pointer overflow-hidden ${rotateBgGradient === grad.css
                                   ? "border-accent ring-1 ring-accent/40 bg-accent/5 font-black"
                                   : "border-border hover:border-foreground"
-                              }`}
+                                }`}
                             >
                               <div
                                 className="w-full h-5 rounded shadow-2xs border border-white/20 mb-1"
@@ -13493,11 +13446,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setWmMode("text")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                          wmMode === "text"
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${wmMode === "text"
                             ? "bg-foreground text-background shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <Type className="h-3.5 w-3.5" />
                         <span>Text Watermark</span>
@@ -13505,11 +13457,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setWmMode("logo")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                          wmMode === "logo"
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${wmMode === "logo"
                             ? "bg-foreground text-background shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <ImageIcon className="h-3.5 w-3.5" />
                         <span>Logo / Image</span>
@@ -13521,11 +13472,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setWmSubTab("style")}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg transition-all cursor-pointer ${
-                          wmSubTab === "style"
+                        className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg transition-all cursor-pointer ${wmSubTab === "style"
                             ? "bg-accent text-accent-foreground font-black shadow-2xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <Palette className="h-3 w-3" />
                         <span>{wmMode === "text" ? "Text & Style" : "Logo Image"}</span>
@@ -13533,11 +13483,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setWmSubTab("position")}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg transition-all cursor-pointer ${
-                          wmSubTab === "position"
+                        className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg transition-all cursor-pointer ${wmSubTab === "position"
                             ? "bg-accent text-accent-foreground font-black shadow-2xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <Move className="h-3 w-3" />
                         <span>
@@ -13548,11 +13497,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setWmSubTab("all")}
-                        className={`px-2 py-1 rounded-lg transition-all cursor-pointer text-[10px] ${
-                          wmSubTab === "all"
+                        className={`px-2 py-1 rounded-lg transition-all cursor-pointer text-[10px] ${wmSubTab === "all"
                             ? "bg-foreground text-background font-black shadow-2xs"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                         title="View all settings simultaneously"
                       >
                         All
@@ -13635,9 +13583,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             <button
                               type="button"
                               onClick={() => setWmBold(!wmBold)}
-                              className={`h-7 w-7 rounded-md text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
-                                wmBold ? "bg-foreground text-background shadow-2xs" : "text-muted-foreground hover:text-foreground"
-                              }`}
+                              className={`h-7 w-7 rounded-md text-xs font-black transition-all cursor-pointer flex items-center justify-center ${wmBold ? "bg-foreground text-background shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                                }`}
                               title="Toggle Bold"
                             >
                               <Bold className="h-3 w-3" />
@@ -13645,9 +13592,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             <button
                               type="button"
                               onClick={() => setWmItalic(!wmItalic)}
-                              className={`h-7 w-7 rounded-md text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
-                                wmItalic ? "bg-foreground text-background shadow-2xs" : "text-muted-foreground hover:text-foreground"
-                              }`}
+                              className={`h-7 w-7 rounded-md text-xs font-black transition-all cursor-pointer flex items-center justify-center ${wmItalic ? "bg-foreground text-background shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                                }`}
                               title="Toggle Italic"
                             >
                               <Italic className="h-3 w-3" />
@@ -13665,11 +13611,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                   key={sz}
                                   type="button"
                                   onClick={() => setWmFontSize(sz)}
-                                  className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${
-                                    Math.abs(wmFontSize - sz) <= 3
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${Math.abs(wmFontSize - sz) <= 3
                                       ? "border-accent bg-accent/15 text-accent"
                                       : "border-border/60 text-muted-foreground hover:text-foreground"
-                                  }`}
+                                    }`}
                                 >
                                   {sz}px
                                 </button>
@@ -13719,11 +13664,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 key={sw.hex}
                                 type="button"
                                 onClick={() => setWmColor(sw.hex)}
-                                className={`h-6 w-6 rounded-lg border transition-transform hover:scale-110 cursor-pointer shadow-2xs ${
-                                  wmColor.toLowerCase() === sw.hex
+                                className={`h-6 w-6 rounded-lg border transition-transform hover:scale-110 cursor-pointer shadow-2xs ${wmColor.toLowerCase() === sw.hex
                                     ? "scale-110 ring-2 ring-accent ring-offset-1 ring-offset-background"
                                     : "border-border/60"
-                                }`}
+                                  }`}
                                 style={{ backgroundColor: sw.hex }}
                                 title={sw.name}
                               />
@@ -13745,11 +13689,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                   key={st.id}
                                   type="button"
                                   onClick={() => setWmStroke(st.id as any)}
-                                  className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold cursor-pointer transition-all ${
-                                    wmStroke === st.id
+                                  className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold cursor-pointer transition-all ${wmStroke === st.id
                                       ? "bg-foreground text-background shadow-2xs font-black"
                                       : "text-muted-foreground hover:text-foreground"
-                                  }`}
+                                    }`}
                                 >
                                   {st.label}
                                 </button>
@@ -13769,11 +13712,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                   key={bg.id}
                                   type="button"
                                   onClick={() => setWmBgBadge(bg.id as any)}
-                                  className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold cursor-pointer transition-all ${
-                                    wmBgBadge === bg.id
+                                  className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold cursor-pointer transition-all ${wmBgBadge === bg.id
                                       ? "bg-foreground text-background shadow-2xs font-black"
                                       : "text-muted-foreground hover:text-foreground"
-                                  }`}
+                                    }`}
                                 >
                                   {bg.label}
                                 </button>
@@ -13835,11 +13777,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                     key={sc}
                                     type="button"
                                     onClick={() => setWmLogoScale(sc)}
-                                    className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${
-                                      Math.abs(wmLogoScale - sc) <= 4
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${Math.abs(wmLogoScale - sc) <= 4
                                         ? "border-accent bg-accent/15 text-accent"
                                         : "border-border/60 text-muted-foreground hover:text-foreground"
-                                    }`}
+                                      }`}
                                   >
                                     {sc}%
                                   </button>
@@ -13891,8 +13832,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             {wmPosition === "tile"
                               ? "Tiled Pattern"
                               : wmPosition === "custom"
-                              ? `Custom (${wmCustomCoord.xPercent}%, ${wmCustomCoord.yPercent}%)`
-                              : wmPosition.replace("_", " ")}
+                                ? `Custom (${wmCustomCoord.xPercent}%, ${wmCustomCoord.yPercent}%)`
+                                : wmPosition.replace("_", " ")}
                           </span>
                         </div>
 
@@ -13915,11 +13856,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 type="button"
                                 onClick={() => setWmPosition(pos.id as any)}
                                 title={pos.title}
-                                className={`h-7 w-7 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center ${
-                                  wmPosition === pos.id
+                                className={`h-7 w-7 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center ${wmPosition === pos.id
                                     ? "border-accent bg-accent text-white shadow-2xs font-black scale-105"
                                     : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/50"
-                                }`}
+                                  }`}
                               >
                                 {pos.label}
                               </button>
@@ -13931,11 +13871,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             <button
                               type="button"
                               onClick={() => setWmPosition(wmPosition === "tile" ? "bottom_right" : "tile")}
-                              className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl border text-[11px] font-extrabold transition-all cursor-pointer ${
-                                wmPosition === "tile"
+                              className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl border text-[11px] font-extrabold transition-all cursor-pointer ${wmPosition === "tile"
                                   ? "border-accent bg-accent/15 text-accent shadow-2xs ring-1 ring-accent/30"
                                   : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/50"
-                              }`}
+                                }`}
                             >
                               <Grid3X3 className="h-3.5 w-3.5" />
                               <span>{wmPosition === "tile" ? "Tiled Active ✓" : "Tile Across Image"}</span>
@@ -13976,11 +13915,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 key={ang.label}
                                 type="button"
                                 onClick={() => setWmRotation(ang.val)}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${
-                                  wmRotation === ang.val
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${wmRotation === ang.val
                                     ? "border-accent bg-accent/15 text-accent"
                                     : "border-border/60 text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 {ang.label}
                               </button>
@@ -14016,11 +13954,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 key={pct.label}
                                 type="button"
                                 onClick={() => setWmOpacity(pct.val)}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${
-                                  Math.abs(wmOpacity - pct.val) < 0.05
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold cursor-pointer border ${Math.abs(wmOpacity - pct.val) < 0.05
                                     ? "border-accent bg-accent/15 text-accent"
                                     : "border-border/60 text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 {pct.label}
                               </button>
@@ -14064,11 +14001,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.id}
                           type="button"
                           onClick={() => setWmRemovalMode(item.id as any)}
-                          className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                            wmRemovalMode === item.id
+                          className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer ${wmRemovalMode === item.id
                               ? "border-accent bg-accent/10 shadow-md ring-2 ring-accent/30"
                               : "border-border bg-card hover:border-foreground/40 hover:bg-secondary/50"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between w-full">
                             <span className="text-xs font-extrabold text-foreground">{item.name}</span>
@@ -14134,11 +14070,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={item.id}
                             type="button"
                             onClick={() => setWmInpaintEngine(item.id as any)}
-                            className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                              wmInpaintEngine === item.id
+                            className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${wmInpaintEngine === item.id
                                 ? "bg-foreground text-background shadow-md font-black border-foreground scale-[1.02]"
                                 : "border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             <span className="text-xs font-black">{item.name}</span>
                             <span className={`text-[10px] mt-0.5 ${wmInpaintEngine === item.id ? "text-background/80" : "text-muted-foreground"}`}>
@@ -14187,14 +14122,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setWmPreserveDetails(!wmPreserveDetails)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          wmPreserveDetails ? "bg-accent" : "bg-muted"
-                        }`}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${wmPreserveDetails ? "bg-accent" : "bg-muted"
+                          }`}
                       >
                         <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            wmPreserveDetails ? "translate-x-5" : "translate-x-0"
-                          }`}
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${wmPreserveDetails ? "translate-x-5" : "translate-x-0"
+                            }`}
                         />
                       </button>
                     </div>
@@ -14234,11 +14167,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.factor}
                           type="button"
                           onClick={() => setUpscaleFactor(item.factor)}
-                          className={`flex flex-col items-center justify-center rounded-2xl border py-3.5 px-3 text-center transition-all cursor-pointer ${
-                            upscaleFactor === item.factor
+                          className={`flex flex-col items-center justify-center rounded-2xl border py-3.5 px-3 text-center transition-all cursor-pointer ${upscaleFactor === item.factor
                               ? "bg-foreground text-background shadow-lg scale-[1.02] border-foreground font-black"
                               : "border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-sm font-black">{item.label}</span>
                           <span className={`text-[11px] font-semibold mt-0.5 ${upscaleFactor === item.factor ? "text-background/80" : "text-muted-foreground"}`}>
@@ -14265,11 +14197,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.mode}
                           type="button"
                           onClick={() => setUpscaleEngineMode(item.mode as any)}
-                          className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                            upscaleEngineMode === item.mode
+                          className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer ${upscaleEngineMode === item.mode
                               ? "border-accent bg-accent/10 shadow-md ring-2 ring-accent/30"
                               : "border-border bg-card hover:border-foreground/40 hover:bg-secondary/50"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-extrabold text-foreground">{item.name}</span>
                           <span className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.desc}</span>
@@ -14339,14 +14270,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <button
                       type="button"
                       onClick={() => setUpscaleFaceRefinement(!upscaleFaceRefinement)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        upscaleFaceRefinement ? "bg-accent" : "bg-muted"
-                      }`}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${upscaleFaceRefinement ? "bg-accent" : "bg-muted"
+                        }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          upscaleFaceRefinement ? "translate-x-5" : "translate-x-0"
-                        }`}
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${upscaleFaceRefinement ? "translate-x-5" : "translate-x-0"
+                          }`}
                       />
                     </button>
                   </div>
@@ -14411,11 +14340,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setShowFaceOutlines((prev) => !prev)}
-                          className={`flex items-center justify-center h-6 w-6 rounded-lg border transition-colors cursor-pointer ${
-                            showFaceOutlines
+                          className={`flex items-center justify-center h-6 w-6 rounded-lg border transition-colors cursor-pointer ${showFaceOutlines
                               ? "border-accent/40 bg-accent/15 text-accent"
                               : "border-border bg-secondary text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                           title={showFaceOutlines ? "Hide outlines" : "Show adjustment handles"}
                         >
                           {showFaceOutlines ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
@@ -14452,11 +14380,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                   setActiveFaceId(f.id);
                                   setShowFaceOutlines(true);
                                 }}
-                                className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                                  (activeFaceId === f.id || (!activeFaceId && i === 0))
+                                className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold whitespace-nowrap transition-all cursor-pointer ${(activeFaceId === f.id || (!activeFaceId && i === 0))
                                     ? "bg-accent text-accent-foreground shadow-xs"
                                     : "bg-secondary text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 #{i + 1}
                               </button>
@@ -14590,11 +14517,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={st.id}
                               type="button"
                               onClick={() => setFaceBlurType(st.id as any)}
-                              className={`py-1 rounded-lg text-center text-xs font-bold transition-all cursor-pointer ${
-                                faceBlurType === st.id
+                              className={`py-1 rounded-lg text-center text-xs font-bold transition-all cursor-pointer ${faceBlurType === st.id
                                   ? "bg-foreground text-background shadow-xs font-black"
                                   : "text-muted-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               {st.name}
                             </button>
@@ -14616,11 +14542,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={sh.id}
                               type="button"
                               onClick={() => setFaceShape(sh.id as any)}
-                              className={`py-1 rounded-lg text-center text-xs font-bold transition-all cursor-pointer ${
-                                faceShape === sh.id
+                              className={`py-1 rounded-lg text-center text-xs font-bold transition-all cursor-pointer ${faceShape === sh.id
                                   ? "bg-foreground text-background shadow-xs font-black"
                                   : "text-muted-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               {sh.name}
                             </button>
@@ -14661,11 +14586,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 key={preset.label}
                                 type="button"
                                 onClick={() => setFaceBlurStrength(preset.val)}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                                  faceBlurStrength === preset.val
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${faceBlurStrength === preset.val
                                     ? "bg-foreground text-background"
                                     : "bg-secondary text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 {preset.label}
                               </button>
@@ -14777,9 +14701,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setIsFontDropdownOpen((prev) => !prev)}
-                          className={`w-full rounded-xl border bg-card px-2.5 py-1.5 text-xs font-black text-foreground hover:border-accent hover:bg-accent/5 focus:border-accent focus:outline-none transition-all flex items-center justify-between gap-1.5 cursor-pointer shadow-2xs ${
-                            isFontDropdownOpen ? "border-accent ring-2 ring-accent/20" : "border-input"
-                          }`}
+                          className={`w-full rounded-xl border bg-card px-2.5 py-1.5 text-xs font-black text-foreground hover:border-accent hover:bg-accent/5 focus:border-accent focus:outline-none transition-all flex items-center justify-between gap-1.5 cursor-pointer shadow-2xs ${isFontDropdownOpen ? "border-accent ring-2 ring-accent/20" : "border-input"
+                            }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span
@@ -14793,9 +14716,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             </span>
                           </div>
                           <ChevronDown
-                            className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-200 ${
-                              isFontDropdownOpen ? "rotate-180 text-accent" : ""
-                            }`}
+                            className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-200 ${isFontDropdownOpen ? "rotate-180 text-accent" : ""
+                              }`}
                           />
                         </button>
 
@@ -14812,11 +14734,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                     setMemeFontFamily(f.val);
                                     setIsFontDropdownOpen(false);
                                   }}
-                                  className={`w-full rounded-xl px-2.5 py-2 flex items-center justify-between text-left transition-all cursor-pointer ${
-                                    isSelected
+                                  className={`w-full rounded-xl px-2.5 py-2 flex items-center justify-between text-left transition-all cursor-pointer ${isSelected
                                       ? "bg-accent/15 text-accent font-black border border-accent/30 shadow-xs"
                                       : "text-foreground hover:bg-secondary/80 hover:text-foreground"
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <span
@@ -14879,11 +14800,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={s.label}
                           type="button"
                           onClick={() => setMemeFontSize(s.val)}
-                          className={`flex-1 py-1 rounded-lg border text-center text-[10px] font-bold transition-all cursor-pointer ${
-                            memeFontSize === s.val
+                          className={`flex-1 py-1 rounded-lg border text-center text-[10px] font-bold transition-all cursor-pointer ${memeFontSize === s.val
                               ? "border-foreground bg-foreground text-background shadow-xs font-black"
                               : "border-border bg-card text-muted-foreground hover:border-foreground"
-                          }`}
+                            }`}
                         >
                           {s.label.split(" ")[0]}
                         </button>
@@ -14912,11 +14832,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={c.color}
                             type="button"
                             onClick={() => setMemeTextColor(c.color)}
-                            className={`h-5 w-5 rounded-full border transition-all cursor-pointer flex items-center justify-center ${
-                              memeTextColor.toLowerCase() === c.color.toLowerCase()
+                            className={`h-5 w-5 rounded-full border transition-all cursor-pointer flex items-center justify-center ${memeTextColor.toLowerCase() === c.color.toLowerCase()
                                 ? "ring-2 ring-accent scale-110 shadow-xs"
                                 : "border-black/20 hover:scale-105"
-                            }`}
+                              }`}
                             style={{ backgroundColor: c.color }}
                             title={c.label}
                           >
@@ -14949,11 +14868,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={sw.label}
                             type="button"
                             onClick={() => setMemeStrokeWidth(sw.val)}
-                            className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-all cursor-pointer ${
-                              memeStrokeWidth === sw.val
+                            className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-all cursor-pointer ${memeStrokeWidth === sw.val
                                 ? "bg-foreground text-background shadow-xs font-black border-foreground"
                                 : "border-border bg-card text-muted-foreground hover:border-foreground"
-                            }`}
+                              }`}
                           >
                             {sw.label}
                           </button>
@@ -14968,9 +14886,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setMemeTextAlign("left")}
-                          className={`p-1 rounded text-xs transition-all cursor-pointer ${
-                            memeTextAlign === "left" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`p-1 rounded text-xs transition-all cursor-pointer ${memeTextAlign === "left" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:text-foreground"
+                            }`}
                           title="Align Left"
                         >
                           <AlignLeft className="h-3.5 w-3.5" />
@@ -14978,9 +14895,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setMemeTextAlign("center")}
-                          className={`p-1 rounded text-xs transition-all cursor-pointer ${
-                            memeTextAlign === "center" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`p-1 rounded text-xs transition-all cursor-pointer ${memeTextAlign === "center" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:text-foreground"
+                            }`}
                           title="Align Center"
                         >
                           <AlignCenter className="h-3.5 w-3.5" />
@@ -14988,9 +14904,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setMemeTextAlign("right")}
-                          className={`p-1 rounded text-xs transition-all cursor-pointer ${
-                            memeTextAlign === "right" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`p-1 rounded text-xs transition-all cursor-pointer ${memeTextAlign === "right" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:text-foreground"
+                            }`}
                           title="Align Right"
                         >
                           <AlignRight className="h-3.5 w-3.5" />
@@ -15001,11 +14916,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setMemeAllCaps(!memeAllCaps)}
-                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-black transition-all cursor-pointer ${
-                          memeAllCaps
+                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-black transition-all cursor-pointer ${memeAllCaps
                             ? "bg-foreground text-background shadow-xs border-foreground"
                             : "border-border bg-card text-muted-foreground hover:border-foreground"
-                        }`}
+                          }`}
                       >
                         CAPS: {memeAllCaps ? "ON" : "OFF"}
                       </button>
@@ -15014,11 +14928,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setMemeTextShadow(!memeTextShadow)}
-                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-black transition-all cursor-pointer ${
-                          memeTextShadow
+                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-black transition-all cursor-pointer ${memeTextShadow
                             ? "bg-foreground text-background shadow-xs border-foreground"
                             : "border-border bg-card text-muted-foreground hover:border-foreground"
-                        }`}
+                          }`}
                       >
                         Shadow: {memeTextShadow ? "ON" : "OFF"}
                       </button>
@@ -15125,11 +15038,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.id}
                           type="button"
                           onClick={() => setBinaryOutputMode(item.id as any)}
-                          className={`rounded-xl border py-2 px-1 text-center text-[11px] font-extrabold transition-all cursor-pointer ${
-                            binaryOutputMode === item.id
+                          className={`rounded-xl border py-2 px-1 text-center text-[11px] font-extrabold transition-all cursor-pointer ${binaryOutputMode === item.id
                               ? "bg-foreground text-background shadow-md scale-[1.02]"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {item.label}
                         </button>
@@ -15154,11 +15066,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={delim.id}
                             type="button"
                             onClick={() => setBinaryDelimiter(delim.id as any)}
-                            className={`rounded-xl border py-2 text-xs font-bold transition-all cursor-pointer ${
-                              binaryDelimiter === delim.id
+                            className={`rounded-xl border py-2 text-xs font-bold transition-all cursor-pointer ${binaryDelimiter === delim.id
                                 ? "bg-foreground text-background shadow-xs"
                                 : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             {delim.label}
                           </button>
@@ -15193,11 +15104,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={bit.id}
                             type="button"
                             onClick={() => setBinaryBitDepth(bit.id)}
-                            className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all cursor-pointer ${
-                              binaryBitDepth === bit.id
+                            className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all cursor-pointer ${binaryBitDepth === bit.id
                                 ? "bg-foreground text-background shadow-xs font-black"
                                 : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             {bit.label}
                           </button>
@@ -15415,11 +15325,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={item.id}
                             type="button"
                             onClick={() => setSquareBgMode(item.id as any)}
-                            className={`flex flex-col items-center justify-center gap-1 rounded-lg py-1.5 px-0.5 text-center text-[10px] font-black transition-all cursor-pointer ${
-                              isSelected
+                            className={`flex flex-col items-center justify-center gap-1 rounded-lg py-1.5 px-0.5 text-center text-[10px] font-black transition-all cursor-pointer ${isSelected
                                 ? "bg-foreground text-background shadow-xs scale-[1.02]"
                                 : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                            }`}
+                              }`}
                           >
                             <Icon className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate w-full text-center leading-tight">{item.label}</span>
@@ -15445,11 +15354,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 key={preset.val}
                                 type="button"
                                 onClick={() => setSquareBlurAmount(preset.val)}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-all cursor-pointer ${
-                                  squareBlurAmount === preset.val
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-all cursor-pointer ${squareBlurAmount === preset.val
                                     ? "bg-foreground text-background border-foreground shadow-2xs"
                                     : "border-border/60 bg-card text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 {preset.label}
                               </button>
@@ -15500,20 +15408,18 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             type="button"
                             onClick={() => setSquareBgColor(color.value)}
                             title={color.name}
-                            className={`h-5 w-full rounded-md border flex items-center justify-center transition-all cursor-pointer ${
-                              squareBgColor.toLowerCase() === color.value.toLowerCase()
+                            className={`h-5 w-full rounded-md border flex items-center justify-center transition-all cursor-pointer ${squareBgColor.toLowerCase() === color.value.toLowerCase()
                                 ? "border-foreground ring-2 ring-foreground/20 scale-105 shadow-2xs"
                                 : "border-border/80 hover:scale-105"
-                            }`}
+                              }`}
                             style={{ backgroundColor: color.value }}
                           >
                             {squareBgColor.toLowerCase() === color.value.toLowerCase() && (
                               <Check
-                                className={`h-2.5 w-2.5 ${
-                                  color.value === "#ffffff" || color.value === "#f8fafc" || color.value === "#e2e8f0"
+                                className={`h-2.5 w-2.5 ${color.value === "#ffffff" || color.value === "#f8fafc" || color.value === "#e2e8f0"
                                     ? "text-black"
                                     : "text-white"
-                                }`}
+                                  }`}
                               />
                             )}
                           </button>
@@ -15533,11 +15439,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={grad.name}
                             type="button"
                             onClick={() => setSquareGradient(grad.value)}
-                            className={`flex items-center gap-2 p-1 rounded-lg border text-left transition-all cursor-pointer ${
-                              squareGradient === grad.value
+                            className={`flex items-center gap-2 p-1 rounded-lg border text-left transition-all cursor-pointer ${squareGradient === grad.value
                                 ? "border-foreground bg-card ring-1 ring-foreground/30 shadow-2xs"
                                 : "border-border/80 bg-card/60 hover:bg-card hover:border-foreground/40"
-                            }`}
+                              }`}
                           >
                             <div
                               className="h-4 w-4 rounded-md shrink-0 border border-black/10 shadow-2xs"
@@ -15587,11 +15492,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 key={preset.val}
                                 type="button"
                                 onClick={() => setSquareScale(preset.val)}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-all cursor-pointer ${
-                                  squareScale === preset.val
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-all cursor-pointer ${squareScale === preset.val
                                     ? "bg-foreground text-background border-foreground shadow-2xs"
                                     : "border-border bg-card text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 {preset.label}
                               </button>
@@ -15634,11 +15538,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             type="button"
                             onClick={() => setSquareCornerRadius(preset.val)}
                             title={preset.val === 9999 ? "Circular Crop" : `${preset.val}px corner radius`}
-                            className={`py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
-                              squareCornerRadius === preset.val
+                            className={`py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${squareCornerRadius === preset.val
                                 ? "bg-foreground text-background border-foreground shadow-2xs"
                                 : "border-border bg-card text-muted-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             {preset.label}
                           </button>
@@ -15663,11 +15566,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={s.id}
                             type="button"
                             onClick={() => setSquareShadow(s.id as any)}
-                            className={`py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
-                              squareShadow === s.id
+                            className={`py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${squareShadow === s.id
                                 ? "bg-foreground text-background border-foreground shadow-2xs"
                                 : "border-border bg-card text-muted-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             {s.label}
                           </button>
@@ -15692,11 +15594,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={fmt}
                           type="button"
                           onClick={() => setSquareExportFormat(fmt)}
-                          className={`rounded-xl border py-1.5 text-center text-xs font-black transition-all cursor-pointer ${
-                            squareExportFormat === fmt
+                          className={`rounded-xl border py-1.5 text-center text-xs font-black transition-all cursor-pointer ${squareExportFormat === fmt
                               ? "bg-foreground text-background border-foreground shadow-xs scale-[1.01]"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {fmt}
                         </button>
@@ -15718,11 +15619,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setBinaryInputTab("paste")}
-                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                          binaryInputTab === "paste"
+                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${binaryInputTab === "paste"
                             ? "bg-foreground text-background shadow-md font-black scale-[1.02]"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <FileText className="h-4 w-4" />
                         <span>Paste Binary Code</span>
@@ -15730,11 +15630,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setBinaryInputTab("upload")}
-                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                          binaryInputTab === "upload"
+                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${binaryInputTab === "upload"
                             ? "bg-foreground text-background shadow-md font-black scale-[1.02]"
                             : "text-muted-foreground hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <Upload className="h-4 w-4" />
                         <span>Upload File (.bin / .txt)</span>
@@ -15926,11 +15825,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 }
                               }
                             }}
-                            className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                              binaryTheme === key
+                            className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all cursor-pointer ${binaryTheme === key
                                 ? "border-foreground bg-foreground text-background shadow-xs font-bold"
                                 : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             <div
                               className="h-4 w-4 rounded-full border border-white/20 shadow-xs"
@@ -15969,11 +15867,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               }
                             }
                           }}
-                          className={`py-1.5 rounded-xl border text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                            binaryPixelBlockSize === size
+                          className={`py-1.5 rounded-xl border text-[11px] font-mono font-bold transition-all cursor-pointer ${binaryPixelBlockSize === size
                               ? "border-foreground bg-foreground text-background shadow-xs font-black"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {size}px
                         </button>
@@ -16043,11 +15940,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={fmt}
                           type="button"
                           onClick={() => setBase64ExportFormat(fmt)}
-                          className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-xl border font-bold text-xs transition-all cursor-pointer ${
-                            base64ExportFormat === fmt
+                          className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-xl border font-bold text-xs transition-all cursor-pointer ${base64ExportFormat === fmt
                               ? "border-accent bg-accent/15 text-accent shadow-xs scale-[1.02]"
                               : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                          }`}
+                            }`}
                         >
                           <span className="font-black text-sm">{fmt}</span>
                           <span className="text-[9px] opacity-75">
@@ -16117,46 +16013,46 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 "hex-to-image",
                 "decimal-to-image",
               ].includes(tool.slug) && (
-                <div className="space-y-2.5 rounded-2xl border border-border bg-card/60 p-3.5 shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground font-black text-xs shadow-inner">
-                      <FileText className="h-3.5 w-3.5" />
-                    </span>
-                    <div>
-                      <label className="text-xs font-black text-foreground block">
-                        Encoded Input Data
-                      </label>
-                      <span className="text-[10px] text-muted-foreground block">
-                        {inputConvertText
-                          ? `${inputConvertText.trim().split(/\s+/).length.toLocaleString()} tokens · ${inputConvertText.length.toLocaleString()} chars`
-                          : "No data loaded"}
+                  <div className="space-y-2.5 rounded-2xl border border-border bg-card/60 p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-foreground font-black text-xs shadow-inner">
+                        <FileText className="h-3.5 w-3.5" />
                       </span>
+                      <div>
+                        <label className="text-xs font-black text-foreground block">
+                          Encoded Input Data
+                        </label>
+                        <span className="text-[10px] text-muted-foreground block">
+                          {inputConvertText
+                            ? `${inputConvertText.trim().split(/\s+/).length.toLocaleString()} tokens · ${inputConvertText.length.toLocaleString()} chars`
+                            : "No data loaded"}
+                        </span>
+                      </div>
                     </div>
+                    {inputConvertText && (
+                      <div className="rounded-xl bg-background border border-border p-2.5 max-h-20 overflow-y-auto">
+                        <p className="text-[10px] font-mono text-muted-foreground break-all leading-relaxed">
+                          {inputConvertText.slice(0, 180)}{inputConvertText.length > 180 ? "…" : ""}
+                        </p>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageSrc(null);
+                        setProcessedSrc(null);
+                        setFile(null);
+                        setHasProcessed(false);
+                        setIsEditingSettings(false);
+                        setTextDecoderLandingMode("plain_text");
+                      }}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-background py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:border-foreground transition-all cursor-pointer"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>Upload Another File or Edit Input</span>
+                    </button>
                   </div>
-                  {inputConvertText && (
-                    <div className="rounded-xl bg-background border border-border p-2.5 max-h-20 overflow-y-auto">
-                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-relaxed">
-                        {inputConvertText.slice(0, 180)}{inputConvertText.length > 180 ? "…" : ""}
-                      </p>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImageSrc(null);
-                      setProcessedSrc(null);
-                      setFile(null);
-                      setHasProcessed(false);
-                      setIsEditingSettings(false);
-                      setTextDecoderLandingMode("plain_text");
-                    }}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-background py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:border-foreground transition-all cursor-pointer"
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    <span>Upload Another File or Edit Input</span>
-                  </button>
-                </div>
-              )}
+                )}
 
 
 
@@ -16195,21 +16091,21 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       const activeObj =
                         ocrLanguage === "custom"
                           ? {
-                              code: ocrCustomLanguage || "custom",
-                              name: ocrCustomLanguage ? `Custom Code (${ocrCustomLanguage})` : "Custom OCR Code",
-                              nativeName: ocrCustomLanguage || "Custom Code",
-                              flag: "⚙️",
-                              region: "User Custom Tesseract String",
-                              category: "Multi-Language" as const,
-                            }
+                            code: ocrCustomLanguage || "custom",
+                            name: ocrCustomLanguage ? `Custom Code (${ocrCustomLanguage})` : "Custom OCR Code",
+                            nativeName: ocrCustomLanguage || "Custom Code",
+                            flag: "⚙️",
+                            region: "User Custom Tesseract String",
+                            category: "Multi-Language" as const,
+                          }
                           : OCR_SUPPORTED_LANGUAGES.find((l) => l.code === ocrLanguage) || {
-                              code: ocrLanguage,
-                              name: ocrLanguage,
-                              nativeName: ocrLanguage,
-                              flag: "🌐",
-                              region: "Standard Script",
-                              category: "Popular" as const,
-                            };
+                            code: ocrLanguage,
+                            name: ocrLanguage,
+                            nativeName: ocrLanguage,
+                            flag: "🌐",
+                            region: "Standard Script",
+                            category: "Popular" as const,
+                          };
 
                       return (
                         <div
@@ -16284,11 +16180,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               setOcrLanguage(item.code);
                               toast.success(`OCR language set to ${item.name} (${item.code})`);
                             }}
-                            className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold transition-all cursor-pointer truncate ${
-                              ocrLanguage === item.code
+                            className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold transition-all cursor-pointer truncate ${ocrLanguage === item.code
                                 ? "bg-foreground text-background font-black shadow-xs ring-1 ring-foreground"
                                 : "border border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground hover:bg-muted"
-                            }`}
+                              }`}
                           >
                             <span className="text-sm shrink-0">{item.flag}</span>
                             <span className="truncate">{item.name}</span>
@@ -16467,11 +16362,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               setOcrOutputStructure(mode.id as any);
                               recomputeOcrOutput(skipBarcodeAndQr, ocrContrastMode, mode.id as any);
                             }}
-                            className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-1.5 text-center transition-all cursor-pointer gap-1 ${
-                              isSelected
+                            className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-1.5 text-center transition-all cursor-pointer gap-1 ${isSelected
                                 ? "border-foreground bg-foreground text-background shadow-xs font-bold"
                                 : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             <IconComp className={`h-4 w-4 ${isSelected ? "text-background" : "text-foreground"}`} />
                             <span className="text-xs font-extrabold leading-tight">{mode.label}</span>
@@ -16503,11 +16397,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               setOcrContrastMode(f.id as any);
                               recomputeOcrOutput(skipBarcodeAndQr, f.id as any, ocrOutputStructure);
                             }}
-                            className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-1.5 text-center transition-all cursor-pointer gap-1 ${
-                              isSelected
+                            className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-1.5 text-center transition-all cursor-pointer gap-1 ${isSelected
                                 ? "border-foreground bg-foreground text-background shadow-xs font-bold"
                                 : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             <IconComp className={`h-4 w-4 ${isSelected ? "text-background" : "text-foreground"}`} />
                             <span className="text-xs font-extrabold leading-tight">{f.label}</span>
@@ -16528,47 +16421,47 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 "image-to-decimal",
                 "image-to-ascii",
               ].includes(tool.slug) && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-muted-foreground block">
-                      Generated {tool.name} Output
-                    </label>
-                    {binaryOutputText && (
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(binaryOutputText, tool.name)}
-                        className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-foreground hover:text-background transition-all shadow-xs"
-                      >
-                        {copiedFormat === tool.name ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-500" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5 text-accent" />
-                        )}
-                        <span>{copiedFormat === tool.name ? "Copied!" : "Copy Output"}</span>
-                      </button>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-muted-foreground block">
+                        Generated {tool.name} Output
+                      </label>
+                      {binaryOutputText && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(binaryOutputText, tool.name)}
+                          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-foreground hover:text-background transition-all shadow-xs"
+                        >
+                          {copiedFormat === tool.name ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-500" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5 text-accent" />
+                          )}
+                          <span>{copiedFormat === tool.name ? "Copied!" : "Copy Output"}</span>
+                        </button>
+                      )}
+                    </div>
+                    {hasProcessed && binaryOutputText ? (
+                      <textarea
+                        rows={8}
+                        value={binaryOutputText}
+                        readOnly
+                        onClick={(e) => {
+                          (e.target as HTMLTextAreaElement).select();
+                          copyToClipboard(binaryOutputText, tool.name);
+                        }}
+                        title="Click anywhere to select all and copy"
+                        className="w-full cursor-pointer rounded-2xl border-2 border-border bg-background p-3.5 text-xs font-mono leading-relaxed focus:border-accent focus:outline-none break-all"
+                      />
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-border bg-background/60 p-4 text-center">
+                        <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                          ⚡ Upload an image and click <strong className="text-foreground">Convert / Process Image</strong> to generate {tool.name} output.
+                        </p>
+                      </div>
                     )}
                   </div>
-                  {hasProcessed && binaryOutputText ? (
-                    <textarea
-                      rows={8}
-                      value={binaryOutputText}
-                      readOnly
-                      onClick={(e) => {
-                        (e.target as HTMLTextAreaElement).select();
-                        copyToClipboard(binaryOutputText, tool.name);
-                      }}
-                      title="Click anywhere to select all and copy"
-                      className="w-full cursor-pointer rounded-2xl border-2 border-border bg-background p-3.5 text-xs font-mono leading-relaxed focus:border-accent focus:outline-none break-all"
-                    />
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-border bg-background/60 p-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
-                        ⚡ Upload an image and click <strong className="text-foreground">Convert / Process Image</strong> to generate {tool.name} output.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
 
               {/* 15.5 HTML TO IMAGE CONTROLS */}
               {tool.slug === "html-to-image" && (
@@ -16703,18 +16596,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setHtmlOutputFormat("PNG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all ${
-                            htmlOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all ${htmlOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           PNG
                         </button>
                         <button
                           type="button"
                           onClick={() => setHtmlOutputFormat("JPG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all ${
-                            htmlOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all ${htmlOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           JPG
                         </button>
@@ -16730,9 +16621,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   {/* File Info Bar */}
                   <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-muted/40 border border-border">
                     <div className="flex items-center gap-2.5 truncate">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold shadow-xs ${
-                        pdfIsPasswordProtected && !pdfIsUnlocked ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
-                      }`}>
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold shadow-xs ${pdfIsPasswordProtected && !pdfIsUnlocked ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
+                        }`}>
                         {pdfIsPasswordProtected && !pdfIsUnlocked ? <Lock className="h-4 w-4" /> : <FileDown className="h-4 w-4" />}
                       </div>
                       <div className="truncate">
@@ -16743,8 +16633,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           {pdfIsPasswordProtected && !pdfIsUnlocked
                             ? "Password Protected"
                             : file
-                            ? `${formatBytes(file.size)} · ${pdfTotalPages} ${pdfTotalPages === 1 ? "page" : "pages"}`
-                            : "Ready to convert"}
+                              ? `${formatBytes(file.size)} · ${pdfTotalPages} ${pdfTotalPages === 1 ? "page" : "pages"}`
+                              : "Ready to convert"}
                         </p>
                       </div>
                     </div>
@@ -16848,11 +16738,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             <button
                               type="button"
                               onClick={() => setPdfPageMode("all")}
-                              className={`flex flex-col items-center justify-center rounded-2xl border-2 p-3 text-center transition-all cursor-pointer ${
-                                pdfPageMode === "all"
+                              className={`flex flex-col items-center justify-center rounded-2xl border-2 p-3 text-center transition-all cursor-pointer ${pdfPageMode === "all"
                                   ? "border-accent bg-accent/10 shadow-sm"
                                   : "border-border bg-card/60 hover:border-foreground/50"
-                              }`}
+                                }`}
                             >
                               <span className={`text-xs font-extrabold inline-flex items-center gap-1.5 ${pdfPageMode === "all" ? "text-accent" : "text-foreground"}`}>
                                 <Layers className="h-3.5 w-3.5" />
@@ -16866,11 +16755,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             <button
                               type="button"
                               onClick={() => setPdfPageMode("single")}
-                              className={`flex flex-col items-center justify-center rounded-2xl border-2 p-3 text-center transition-all cursor-pointer ${
-                                pdfPageMode === "single"
+                              className={`flex flex-col items-center justify-center rounded-2xl border-2 p-3 text-center transition-all cursor-pointer ${pdfPageMode === "single"
                                   ? "border-accent bg-accent/10 shadow-sm"
                                   : "border-border bg-card/60 hover:border-foreground/50"
-                              }`}
+                                }`}
                             >
                               <span className={`text-xs font-extrabold inline-flex items-center gap-1.5 ${pdfPageMode === "single" ? "text-accent" : "text-foreground"}`}>
                                 <FileText className="h-3.5 w-3.5" />
@@ -16937,11 +16825,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={item.scale}
                               type="button"
                               onClick={() => setPdfDpiScale(item.scale)}
-                              className={`flex flex-col items-center justify-center rounded-xl border py-2 px-1 text-center transition-all cursor-pointer ${
-                                pdfDpiScale === item.scale
+                              className={`flex flex-col items-center justify-center rounded-xl border py-2 px-1 text-center transition-all cursor-pointer ${pdfDpiScale === item.scale
                                   ? "border-foreground bg-foreground text-background shadow-xs font-bold"
                                   : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               <span className="text-xs font-extrabold">{item.label}</span>
                               <span className="text-[10px] opacity-80">{item.sub}</span>
@@ -16971,18 +16858,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             <button
                               type="button"
                               onClick={() => setPdfDocOutputFormat("PNG")}
-                              className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                                pdfDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                              }`}
+                              className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${pdfDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                                }`}
                             >
                               PNG
                             </button>
                             <button
                               type="button"
                               onClick={() => setPdfDocOutputFormat("JPG")}
-                              className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                                pdfDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                              }`}
+                              className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${pdfDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                                }`}
                             >
                               JPG
                             </button>
@@ -17039,11 +16924,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setWordPageMode("all")}
-                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                            wordPageMode === "all"
+                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${wordPageMode === "all"
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-black">All {wordTotalPages} Pages</span>
                           <span className="text-[10px] text-muted-foreground font-normal mt-0.5">Zip Bundle</span>
@@ -17052,11 +16936,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setWordPageMode("single")}
-                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                            wordPageMode === "single"
+                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${wordPageMode === "single"
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-black">Single Page</span>
                           <span className="text-[10px] text-muted-foreground font-normal mt-0.5">Page {wordDocPage}</span>
@@ -17124,11 +17007,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.font}
                           type="button"
                           onClick={() => setWordDocFont(item.font)}
-                          className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
-                            wordDocFont === item.font
+                          className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${wordDocFont === item.font
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {item.label}
                         </button>
@@ -17158,18 +17040,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setWordDocOutputFormat("PNG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                            wordDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${wordDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           PNG
                         </button>
                         <button
                           type="button"
                           onClick={() => setWordDocOutputFormat("JPG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                            wordDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${wordDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           JPG
                         </button>
@@ -17188,14 +17068,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <button
                       type="button"
                       onClick={() => setWordDocShowHeader((v) => !v)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        wordDocShowHeader ? "bg-accent" : "bg-muted"
-                      }`}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${wordDocShowHeader ? "bg-accent" : "bg-muted"
+                        }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-md ring-0 transition duration-200 ease-in-out ${
-                          wordDocShowHeader ? "translate-x-5" : "translate-x-0"
-                        }`}
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-md ring-0 transition duration-200 ease-in-out ${wordDocShowHeader ? "translate-x-5" : "translate-x-0"
+                          }`}
                       />
                     </button>
                   </div>
@@ -17247,11 +17125,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setExcelSheetMode("all")}
-                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                            excelSheetMode === "all"
+                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${excelSheetMode === "all"
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-black">All {excelTotalSheets} Sheets</span>
                           <span className="text-[10px] text-muted-foreground font-normal mt-0.5">Zip Bundle</span>
@@ -17260,11 +17137,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setExcelSheetMode("single")}
-                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                            excelSheetMode === "single"
+                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${excelSheetMode === "single"
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-black">Specific Sheet</span>
                           <span className="text-[10px] text-muted-foreground font-normal mt-0.5">Sheet {excelDocSheet}</span>
@@ -17338,11 +17214,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.id}
                           type="button"
                           onClick={() => setExcelTheme(item.id as any)}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                            excelTheme === item.id
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${excelTheme === item.id
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-bold block">{item.label}</span>
                           <span className="text-[10px] text-muted-foreground">{item.desc}</span>
@@ -17362,11 +17237,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <button
                       type="button"
                       onClick={() => setExcelShowHeader((v) => !v)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                        excelShowHeader
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${excelShowHeader
                           ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                           : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       {excelShowHeader ? "✓ Header Shown" : "✕ Hide Header"}
                     </button>
@@ -17379,11 +17253,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       <button
                         type="button"
                         onClick={() => setExcelGridLines(!excelGridLines)}
-                        className={`w-full py-2 px-3 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer ${
-                          excelGridLines
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer ${excelGridLines
                             ? "border-accent bg-accent/10 text-foreground"
                             : "border-border bg-background text-muted-foreground"
-                        }`}
+                          }`}
                       >
                         {excelGridLines ? "✓ Grid Visible" : "✕ Grid Hidden"}
                       </button>
@@ -17395,18 +17268,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setExcelDocOutputFormat("PNG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                            excelDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${excelDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           PNG
                         </button>
                         <button
                           type="button"
                           onClick={() => setExcelDocOutputFormat("JPG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                            excelDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${excelDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           JPG
                         </button>
@@ -17461,11 +17332,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setPptSlideMode("all")}
-                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                            pptSlideMode === "all"
+                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${pptSlideMode === "all"
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-black">All {pptTotalSlides} Slides</span>
                           <span className="text-[10px] text-muted-foreground font-normal mt-0.5">Zip Bundle</span>
@@ -17474,11 +17344,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setPptSlideMode("single")}
-                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                            pptSlideMode === "single"
+                          className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${pptSlideMode === "single"
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-black">Single Slide</span>
                           <span className="text-[10px] text-muted-foreground font-normal mt-0.5">Slide {pptDocSlide}</span>
@@ -17539,11 +17408,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                   key={sNum}
                                   type="button"
                                   onClick={() => setPptDocSlide(sNum)}
-                                  className={`h-7 px-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                                    pptDocSlide === sNum
+                                  className={`h-7 px-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${pptDocSlide === sNum
                                       ? "border-foreground bg-foreground text-background shadow-xs font-black"
                                       : "border-border bg-background text-muted-foreground hover:text-foreground"
-                                  }`}
+                                    }`}
                                 >
                                   {sNum}
                                 </button>
@@ -17569,11 +17437,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={item.id}
                           type="button"
                           onClick={() => setPptTheme(item.id as any)}
-                          className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all cursor-pointer ${
-                            pptTheme === item.id
+                          className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all cursor-pointer ${pptTheme === item.id
                               ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {item.label}
                         </button>
@@ -17596,18 +17463,16 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         <button
                           type="button"
                           onClick={() => setPptDocOutputFormat("PNG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                            pptDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${pptDocOutputFormat === "PNG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           PNG
                         </button>
                         <button
                           type="button"
                           onClick={() => setPptDocOutputFormat("JPG")}
-                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${
-                            pptDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
-                          }`}
+                          className={`rounded-lg py-1.5 text-xs font-extrabold transition-all cursor-pointer ${pptDocOutputFormat === "JPG" ? "bg-foreground text-background shadow-xs" : "text-muted-foreground"
+                            }`}
                         >
                           JPG
                         </button>
@@ -17710,11 +17575,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                 setPickedHsl(item.hsl);
                                 copyToClipboard(item.hex, "HEX");
                               }}
-                              className={`group relative flex items-center gap-2 p-1.5 rounded-xl border transition-all cursor-pointer text-left ${
-                                isSelected
+                              className={`group relative flex items-center gap-2 p-1.5 rounded-xl border transition-all cursor-pointer text-left ${isSelected
                                   ? "border-accent bg-accent/10 shadow-2xs ring-1 ring-accent/40"
                                   : "border-border bg-background hover:border-foreground/50 hover:bg-muted/30"
-                              }`}
+                                }`}
                             >
                               {/* Swatch circle */}
                               <div className="relative shrink-0">
@@ -17862,9 +17726,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               setPickedHsl(hsl);
                               copyToClipboard(hex, "HEX");
                             }}
-                            className={`group relative h-7 w-7 rounded-lg border-2 transition-all hover:scale-110 active:scale-95 shadow-2xs focus:outline-none cursor-pointer ${
-                              pickedHex === hex ? "border-accent ring-2 ring-accent/30 scale-105" : "border-white/50"
-                            }`}
+                            className={`group relative h-7 w-7 rounded-lg border-2 transition-all hover:scale-110 active:scale-95 shadow-2xs focus:outline-none cursor-pointer ${pickedHex === hex ? "border-accent ring-2 ring-accent/30 scale-105" : "border-white/50"
+                              }`}
                             style={{ backgroundColor: hex }}
                             title={`Select & Copy ${hex}`}
                           >
@@ -17918,11 +17781,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={opt.id}
                           type="button"
                           onClick={() => setPdfPageSize(opt.id as any)}
-                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                            pdfPageSize === opt.id
+                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${pdfPageSize === opt.id
                               ? "border-accent bg-accent/10 text-foreground font-bold shadow-xs ring-1 ring-accent"
                               : "border-border bg-background/80 text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-extrabold">{opt.label}</span>
                           <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
@@ -17947,11 +17809,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={m.id}
                           type="button"
                           onClick={() => setPdfMargin(m.id as any)}
-                          className={`py-2 text-[11px] font-extrabold rounded-xl transition-all cursor-pointer ${
-                            pdfMargin === m.id
+                          className={`py-2 text-[11px] font-extrabold rounded-xl transition-all cursor-pointer ${pdfMargin === m.id
                               ? "bg-foreground text-background shadow-xs font-black"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {m.label}
                         </button>
@@ -18059,11 +17920,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             setOcrLanguage(item.code);
                             toast.success(`OCR language set to ${item.name}`);
                           }}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold transition-all cursor-pointer ${
-                            ocrLanguage === item.code
+                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold transition-all cursor-pointer ${ocrLanguage === item.code
                               ? "bg-foreground text-background font-black shadow-xs"
                               : "border border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span>{item.flag}</span>
                           <span>{item.name}</span>
@@ -18087,11 +17947,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={m.id}
                           type="button"
                           onClick={() => setWordDocMode(m.id as any)}
-                          className={`flex flex-col items-center justify-center rounded-xl border py-2 px-1 text-center transition-all cursor-pointer ${
-                            wordDocMode === m.id
+                          className={`flex flex-col items-center justify-center rounded-xl border py-2 px-1 text-center transition-all cursor-pointer ${wordDocMode === m.id
                               ? "border-foreground bg-foreground text-background shadow-xs font-bold"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-extrabold">{m.label}</span>
                           <span className="text-[10px] opacity-80">{m.sub}</span>
@@ -18113,11 +17972,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={font}
                               type="button"
                               onClick={() => setWordFontFamily(font)}
-                              className={`py-1.5 px-2 rounded-xl border text-xs font-bold truncate transition-all cursor-pointer ${
-                                wordFontFamily === font
+                              className={`py-1.5 px-2 rounded-xl border text-xs font-bold truncate transition-all cursor-pointer ${wordFontFamily === font
                                   ? "border-foreground bg-foreground text-background shadow-xs font-black"
                                   : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                              }`}
+                                }`}
                               style={{ fontFamily: font }}
                             >
                               {font}
@@ -18137,11 +17995,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               key={size}
                               type="button"
                               onClick={() => setWordFontSize(size)}
-                              className={`py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                                wordFontSize === size
+                              className={`py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${wordFontSize === size
                                   ? "bg-foreground text-background font-black shadow-xs"
                                   : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               {size} pt {size === 11 ? "(Standard)" : ""}
                             </button>
@@ -18248,11 +18105,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             setOcrLanguage(item.code);
                             toast.success(`OCR language set to ${item.name}`);
                           }}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold transition-all cursor-pointer ${
-                            ocrLanguage === item.code
+                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold transition-all cursor-pointer ${ocrLanguage === item.code
                               ? "bg-foreground text-background font-black shadow-xs"
                               : "border border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span>{item.flag}</span>
                           <span>{item.name}</span>
@@ -18277,11 +18133,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={p.id}
                           type="button"
                           onClick={() => setExcelParserMode(p.id as any)}
-                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                            excelParserMode === p.id
+                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${excelParserMode === p.id
                               ? "border-emerald-500 bg-emerald-500/10 text-foreground font-bold shadow-xs ring-1 ring-emerald-500"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-extrabold">{p.label}</span>
                           <span className="text-[10px] text-muted-foreground">{p.sub}</span>
@@ -18420,11 +18275,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             setOcrLanguage(item.code);
                             toast.success(`OCR language set to ${item.name}`);
                           }}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold transition-all cursor-pointer ${
-                            ocrLanguage === item.code
+                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold transition-all cursor-pointer ${ocrLanguage === item.code
                               ? "bg-foreground text-background font-black shadow-xs"
                               : "border border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span>{item.flag}</span>
                           <span>{item.name}</span>
@@ -18448,11 +18302,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={m.id}
                           type="button"
                           onClick={() => setPptxSlideMode(m.id as any)}
-                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                            pptxSlideMode === m.id
+                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${pptxSlideMode === m.id
                               ? "border-orange-500 bg-orange-500/10 text-foreground font-bold shadow-xs ring-1 ring-orange-500"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-extrabold">{m.label}</span>
                           <span className="text-[10px] text-muted-foreground">{m.sub}</span>
@@ -18491,11 +18344,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           key={t.id}
                           type="button"
                           onClick={() => setPptxTheme(t.id as any)}
-                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                            pptxTheme === t.id
+                          className={`flex flex-col text-left p-2.5 rounded-xl border transition-all cursor-pointer ${pptxTheme === t.id
                               ? "border-orange-500 bg-orange-500/10 text-foreground font-bold shadow-xs ring-1 ring-orange-500"
                               : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-extrabold">{t.name}</span>
                           <span className="text-[10px] text-muted-foreground">{t.desc}</span>
@@ -18672,15 +18524,13 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       (tool.slug === "pdf-to-image" && pdfIsPasswordProtected && !pdfIsUnlocked) ||
                       (tool.slug === "compress-image" && compressMode === "size" && isTargetSizeExceeding)
                     }
-                    className={`w-full flex items-center justify-center gap-2 transition-all border-2 ${
-                      tool.slug === "square-your-image" || tool.slug === "meme-generator"
+                    className={`w-full flex items-center justify-center gap-2 transition-all border-2 ${tool.slug === "square-your-image" || tool.slug === "meme-generator"
                         ? "rounded-xl px-4 py-2.5 text-sm font-black shadow-md"
                         : "rounded-2xl px-6 py-4 text-base font-extrabold shadow-xl"
-                    } ${
-                      tool.slug === "pdf-to-image" && pdfIsPasswordProtected && !pdfIsUnlocked
+                      } ${tool.slug === "pdf-to-image" && pdfIsPasswordProtected && !pdfIsUnlocked
                         ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 cursor-not-allowed opacity-80"
                         : "bg-accent text-accent-foreground border-accent hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    }`}
+                      }`}
                   >
                     {processing ? (
                       <>
@@ -18689,32 +18539,32 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                           {tool.slug === "compress-image"
                             ? "Compressing Image…"
                             : tool.slug === "image-to-word"
-                            ? ocrProgressStatus || "Extracting Text & Building Word Doc…"
-                            : tool.slug === "image-to-excel"
-                            ? ocrProgressStatus || "Extracting Table & Building Excel Sheet…"
-                            : tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text"
-                            ? ocrProgressStatus || "Extracting Text with OCR…"
-                            : tool.slug === "binary-to-image"
-                            ? "Decoding Binary Data…"
-                            : tool.slug === "html-to-image"
-                            ? "Rendering HTML to Image…"
-                            : tool.slug === "pdf-to-image"
-                            ? pdfConvertingProgress
-                              ? `Converting Page ${pdfConvertingProgress.current} of ${pdfConvertingProgress.total}…`
-                              : "Rendering PDF to Image…"
-                            : tool.slug === "word-to-image"
-                            ? "Rendering Word Document to Image…"
-                            : tool.slug === "excel-to-image"
-                            ? "Rendering Excel Sheet to Image…"
-                            : tool.slug === "powerpoint-to-image"
-                            ? pptConvertingProgress
-                              ? `Converting Slide ${pptConvertingProgress.current} of ${pptConvertingProgress.total}…`
-                              : "Rendering PowerPoint Slide to Image…"
-                            : tool.slug === "rotate-image"
-                            ? rotateBatch.length > 1
-                              ? `Rotating All ${rotateBatch.length} Images…`
-                              : "Rotating Image…"
-                            : "Processing Image…"}
+                              ? ocrProgressStatus || "Extracting Text & Building Word Doc…"
+                              : tool.slug === "image-to-excel"
+                                ? ocrProgressStatus || "Extracting Table & Building Excel Sheet…"
+                                : tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text"
+                                  ? ocrProgressStatus || "Extracting Text with OCR…"
+                                  : tool.slug === "binary-to-image"
+                                    ? "Decoding Binary Data…"
+                                    : tool.slug === "html-to-image"
+                                      ? "Rendering HTML to Image…"
+                                      : tool.slug === "pdf-to-image"
+                                        ? pdfConvertingProgress
+                                          ? `Converting Page ${pdfConvertingProgress.current} of ${pdfConvertingProgress.total}…`
+                                          : "Rendering PDF to Image…"
+                                        : tool.slug === "word-to-image"
+                                          ? "Rendering Word Document to Image…"
+                                          : tool.slug === "excel-to-image"
+                                            ? "Rendering Excel Sheet to Image…"
+                                            : tool.slug === "powerpoint-to-image"
+                                              ? pptConvertingProgress
+                                                ? `Converting Slide ${pptConvertingProgress.current} of ${pptConvertingProgress.total}…`
+                                                : "Rendering PowerPoint Slide to Image…"
+                                              : tool.slug === "rotate-image"
+                                                ? rotateBatch.length > 1
+                                                  ? `Rotating All ${rotateBatch.length} Images…`
+                                                  : "Rotating Image…"
+                                                : "Processing Image…"}
                         </span>
                       </>
                     ) : tool.slug === "pdf-to-image" && pdfIsPasswordProtected && !pdfIsUnlocked ? (
@@ -18730,97 +18580,97 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             ? tool.slug === "compress-image"
                               ? "Re-compress Image"
                               : tool.slug === "image-to-word"
-                              ? "Re-extract Text (Word)"
-                              : tool.slug === "image-to-excel"
-                              ? "Re-extract Table (Excel)"
-                              : tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text"
-                              ? "Re-extract Text (OCR)"
-                              : tool.slug === "binary-to-image"
-                              ? "Re-convert Binary to Image"
-                              : tool.slug === "base64-to-image"
-                              ? `Re-export Image (${base64ExportFormat})`
-                              : tool.slug === "html-to-image"
-                              ? "Re-render HTML to Image"
-                              : tool.slug === "pdf-to-image"
-                              ? pdfPageMode === "all" && pdfTotalPages > 1
-                                ? `Re-convert All ${pdfTotalPages} Pages (ZIP)`
-                                : `Re-convert Page ${pdfDocPage} to ${pdfDocOutputFormat}`
-                              : tool.slug === "word-to-image"
-                              ? wordPageMode === "all" && wordTotalPages > 1
-                                ? `Re-convert All ${wordTotalPages} Pages (ZIP)`
-                                : `Re-convert Page ${wordDocPage} to ${wordDocOutputFormat}`
-                              : tool.slug === "excel-to-image"
-                              ? excelSheetMode === "all" && excelTotalSheets > 1
-                                ? `Re-convert All ${excelTotalSheets} Sheets (ZIP)`
-                                : `Re-convert Sheet ${excelDocSheet} to ${excelDocOutputFormat}`
-                              : tool.slug === "powerpoint-to-image"
-                              ? pptSlideMode === "all" && pptTotalSlides > 1
-                                ? `Re-convert All ${pptTotalSlides} Slides (ZIP)`
-                                : `Re-convert Slide ${pptDocSlide} to ${pptDocOutputFormat}`
-                              : tool.slug === "watermark-image"
-                              ? "Update Watermarked Image"
-                              : tool.slug === "square-your-image"
-                              ? "Update 1:1 Square Image"
-                              : tool.slug === "rotate-image"
-                              ? rotateBatch.length > 1
-                                ? `Update All ${rotateBatch.length} Rotated Images (ZIP)`
-                                : "Update Rotated Image"
-                              : tool.slug === "blur-face"
-                              ? "Update Blurred Faces"
-                              : tool.slug === "meme-generator"
-                              ? "Update Meme Image"
-                              : tool.slug === "resize-image"
-                              ? "Update Resized Image"
-                              : tool.slug === "crop-image"
-                              ? "Update Cropped Image"
-                              : `Re-process ${tool.name}`
+                                ? "Re-extract Text (Word)"
+                                : tool.slug === "image-to-excel"
+                                  ? "Re-extract Table (Excel)"
+                                  : tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text"
+                                    ? "Re-extract Text (OCR)"
+                                    : tool.slug === "binary-to-image"
+                                      ? "Re-convert Binary to Image"
+                                      : tool.slug === "base64-to-image"
+                                        ? `Re-export Image (${base64ExportFormat})`
+                                        : tool.slug === "html-to-image"
+                                          ? "Re-render HTML to Image"
+                                          : tool.slug === "pdf-to-image"
+                                            ? pdfPageMode === "all" && pdfTotalPages > 1
+                                              ? `Re-convert All ${pdfTotalPages} Pages (ZIP)`
+                                              : `Re-convert Page ${pdfDocPage} to ${pdfDocOutputFormat}`
+                                            : tool.slug === "word-to-image"
+                                              ? wordPageMode === "all" && wordTotalPages > 1
+                                                ? `Re-convert All ${wordTotalPages} Pages (ZIP)`
+                                                : `Re-convert Page ${wordDocPage} to ${wordDocOutputFormat}`
+                                              : tool.slug === "excel-to-image"
+                                                ? excelSheetMode === "all" && excelTotalSheets > 1
+                                                  ? `Re-convert All ${excelTotalSheets} Sheets (ZIP)`
+                                                  : `Re-convert Sheet ${excelDocSheet} to ${excelDocOutputFormat}`
+                                                : tool.slug === "powerpoint-to-image"
+                                                  ? pptSlideMode === "all" && pptTotalSlides > 1
+                                                    ? `Re-convert All ${pptTotalSlides} Slides (ZIP)`
+                                                    : `Re-convert Slide ${pptDocSlide} to ${pptDocOutputFormat}`
+                                                  : tool.slug === "watermark-image"
+                                                    ? "Update Watermarked Image"
+                                                    : tool.slug === "square-your-image"
+                                                      ? "Update 1:1 Square Image"
+                                                      : tool.slug === "rotate-image"
+                                                        ? rotateBatch.length > 1
+                                                          ? `Update All ${rotateBatch.length} Rotated Images (ZIP)`
+                                                          : "Update Rotated Image"
+                                                        : tool.slug === "blur-face"
+                                                          ? "Update Blurred Faces"
+                                                          : tool.slug === "meme-generator"
+                                                            ? "Update Meme Image"
+                                                            : tool.slug === "resize-image"
+                                                              ? "Update Resized Image"
+                                                              : tool.slug === "crop-image"
+                                                                ? "Update Cropped Image"
+                                                                : `Re-process ${tool.name}`
                             : tool.slug === "compress-image"
-                            ? "Compress Image"
-                            : tool.slug === "image-to-word"
-                            ? "Extract Text to Word (.docx)"
-                            : tool.slug === "image-to-excel"
-                            ? "Extract Table to Excel (.xlsx)"
-                            : tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text"
-                            ? "Extract Text with OCR"
-                            : tool.slug === "binary-to-image"
-                            ? "Convert Binary to Image"
-                            : tool.slug === "base64-to-image"
-                            ? `Export Image (${base64ExportFormat})`
-                            : tool.slug === "html-to-image"
-                            ? "Render HTML to Image"
-                            : tool.slug === "pdf-to-image"
-                            ? pdfPageMode === "all" && pdfTotalPages > 1
-                              ? `Convert All ${pdfTotalPages} Pages to ${pdfDocOutputFormat} (ZIP)`
-                              : `Convert Page ${pdfDocPage} to ${pdfDocOutputFormat}`
-                            : tool.slug === "word-to-image"
-                            ? wordPageMode === "all" && wordTotalPages > 1
-                              ? `Convert All ${wordTotalPages} Pages to ${wordDocOutputFormat} (ZIP)`
-                              : `Convert Page ${wordDocPage} to ${wordDocOutputFormat}`
-                            : tool.slug === "excel-to-image"
-                            ? excelSheetMode === "all" && excelTotalSheets > 1
-                              ? `Convert All ${excelTotalSheets} Sheets to ${excelDocOutputFormat} (ZIP)`
-                              : `Convert Sheet ${excelDocSheet} to ${excelDocOutputFormat}`
-                            : tool.slug === "powerpoint-to-image"
-                            ? pptSlideMode === "all" && pptTotalSlides > 1
-                              ? `Convert All ${pptTotalSlides} Slides to ${pptDocOutputFormat} (ZIP)`
-                              : `Convert Slide ${pptDocSlide} to ${pptDocOutputFormat}`
-                            : tool.slug === "watermark-image"
-                            ? "Apply Watermark & View Output"
-                            : tool.slug === "square-your-image"
-                            ? "Square Image & View Output"
-                            : tool.slug === "rotate-image"
-                            ? rotateBatch.length > 1
-                              ? `Rotate All ${rotateBatch.length} Images to ${rotateBatchOutputFormat} (ZIP)`
-                              : "Apply Rotation & View Output"
-                            : tool.slug === "blur-face"
-                            ? "Apply Face Blur & View Output"
-                            : tool.slug === "meme-generator"
-                            ? "Generate Meme & View Output"
-                            : tool.slug === "resize-image"
-                            ? "Resize Image & View Output"
-                            : tool.slug === "crop-image"
-                            ? "Crop Image & View Output"
-                            : "Convert / Process Image"}
+                              ? "Compress Image"
+                              : tool.slug === "image-to-word"
+                                ? "Extract Text to Word (.docx)"
+                                : tool.slug === "image-to-excel"
+                                  ? "Extract Table to Excel (.xlsx)"
+                                  : tool.slug === "image-to-text-ocr" || tool.slug === "image-to-text"
+                                    ? "Extract Text with OCR"
+                                    : tool.slug === "binary-to-image"
+                                      ? "Convert Binary to Image"
+                                      : tool.slug === "base64-to-image"
+                                        ? `Export Image (${base64ExportFormat})`
+                                        : tool.slug === "html-to-image"
+                                          ? "Render HTML to Image"
+                                          : tool.slug === "pdf-to-image"
+                                            ? pdfPageMode === "all" && pdfTotalPages > 1
+                                              ? `Convert All ${pdfTotalPages} Pages to ${pdfDocOutputFormat} (ZIP)`
+                                              : `Convert Page ${pdfDocPage} to ${pdfDocOutputFormat}`
+                                            : tool.slug === "word-to-image"
+                                              ? wordPageMode === "all" && wordTotalPages > 1
+                                                ? `Convert All ${wordTotalPages} Pages to ${wordDocOutputFormat} (ZIP)`
+                                                : `Convert Page ${wordDocPage} to ${wordDocOutputFormat}`
+                                              : tool.slug === "excel-to-image"
+                                                ? excelSheetMode === "all" && excelTotalSheets > 1
+                                                  ? `Convert All ${excelTotalSheets} Sheets to ${excelDocOutputFormat} (ZIP)`
+                                                  : `Convert Sheet ${excelDocSheet} to ${excelDocOutputFormat}`
+                                                : tool.slug === "powerpoint-to-image"
+                                                  ? pptSlideMode === "all" && pptTotalSlides > 1
+                                                    ? `Convert All ${pptTotalSlides} Slides to ${pptDocOutputFormat} (ZIP)`
+                                                    : `Convert Slide ${pptDocSlide} to ${pptDocOutputFormat}`
+                                                  : tool.slug === "watermark-image"
+                                                    ? "Apply Watermark & View Output"
+                                                    : tool.slug === "square-your-image"
+                                                      ? "Square Image & View Output"
+                                                      : tool.slug === "rotate-image"
+                                                        ? rotateBatch.length > 1
+                                                          ? `Rotate All ${rotateBatch.length} Images to ${rotateBatchOutputFormat} (ZIP)`
+                                                          : "Apply Rotation & View Output"
+                                                        : tool.slug === "blur-face"
+                                                          ? "Apply Face Blur & View Output"
+                                                          : tool.slug === "meme-generator"
+                                                            ? "Generate Meme & View Output"
+                                                            : tool.slug === "resize-image"
+                                                              ? "Resize Image & View Output"
+                                                              : tool.slug === "crop-image"
+                                                                ? "Crop Image & View Output"
+                                                                : "Convert / Process Image"}
                         </span>
                       </>
                     )}
@@ -18832,11 +18682,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   <button
                     type="button"
                     onClick={() => setIsEditingSettings(false)}
-                    className={`w-full flex items-center justify-center gap-2 border-2 border-border bg-card font-bold text-muted-foreground hover:text-foreground hover:border-foreground transition-all cursor-pointer ${
-                      tool.slug === "square-your-image" || tool.slug === "meme-generator"
+                    className={`w-full flex items-center justify-center gap-2 border-2 border-border bg-card font-bold text-muted-foreground hover:text-foreground hover:border-foreground transition-all cursor-pointer ${tool.slug === "square-your-image" || tool.slug === "meme-generator"
                         ? "rounded-xl px-4 py-2 text-xs"
                         : "rounded-2xl px-6 py-3.5 text-sm"
-                    }`}
+                      }`}
                   >
                     <span>Cancel & View Processed Result</span>
                   </button>
@@ -19044,11 +18893,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             key={item.id}
                             type="button"
                             onClick={() => setFullscreenActiveIndex(idx)}
-                            className={`group/thumb relative h-13 w-13 sm:h-15 sm:w-15 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 flex items-center justify-center bg-zinc-900 ${
-                              isSelected
+                            className={`group/thumb relative h-13 w-13 sm:h-15 sm:w-15 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 flex items-center justify-center bg-zinc-900 ${isSelected
                                 ? "border-accent ring-2 ring-accent/60 scale-105 shadow-lg shadow-accent/20"
                                 : "border-white/20 opacity-60 hover:opacity-100 hover:border-white/60"
-                            }`}
+                              }`}
                             title={`${idx + 1}. ${item.name}`}
                           >
                             <img
@@ -19057,9 +18905,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               className="h-full w-full object-contain p-1"
                             />
                             <span
-                              className={`absolute top-1 left-1 rounded px-1 text-[9px] font-mono font-black ${
-                                isSelected ? "bg-accent text-accent-foreground" : "bg-black/80 text-white/90"
-                              }`}
+                              className={`absolute top-1 left-1 rounded px-1 text-[9px] font-mono font-black ${isSelected ? "bg-accent text-accent-foreground" : "bg-black/80 text-white/90"
+                                }`}
                             >
                               {idx + 1}
                             </span>
@@ -19584,9 +19431,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 lineHeight: "1.6",
                 borderColor: "transparent",
               }}
-              className={`flex-1 p-3 font-mono focus:outline-none resize-none overflow-auto select-text selection:bg-accent/30 ${
-                editorLineWrap ? "whitespace-pre-wrap break-all" : "whitespace-pre overflow-x-auto"
-              }`}
+              className={`flex-1 p-3 font-mono focus:outline-none resize-none overflow-auto select-text selection:bg-accent/30 ${editorLineWrap ? "whitespace-pre-wrap break-all" : "whitespace-pre overflow-x-auto"
+                }`}
             />
           </div>
 
@@ -19691,27 +19537,24 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 <button
                   type="button"
                   onClick={() => setHtmlEditorViewMode("code")}
-                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    htmlEditorViewMode === "code" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${htmlEditorViewMode === "code" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   Code Only
                 </button>
                 <button
                   type="button"
                   onClick={() => setHtmlEditorViewMode("split")}
-                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    htmlEditorViewMode === "split" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${htmlEditorViewMode === "split" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   Split Live Preview
                 </button>
                 <button
                   type="button"
                   onClick={() => setHtmlEditorViewMode("preview")}
-                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    htmlEditorViewMode === "preview" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${htmlEditorViewMode === "preview" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   Preview Only
                 </button>
@@ -19860,8 +19703,8 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               htmlEditorViewMode === "code"
                 ? "1fr"
                 : htmlEditorViewMode === "preview"
-                ? "1fr"
-                : "1fr 1fr",
+                  ? "1fr"
+                  : "1fr 1fr",
           }}>
             {/* Code Editor Pane */}
             {htmlEditorViewMode !== "preview" && (
