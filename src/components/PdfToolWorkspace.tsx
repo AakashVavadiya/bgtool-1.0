@@ -1070,14 +1070,14 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
                 height: isBoxKind ? `${item.heightPercent ?? 6}%` : undefined,
               }}
               className={`pdf-edit-box absolute group ${isBoxKind
-                  ? isSelected
-                    ? activeShape !== "rect"
-                      ? "z-30 outline-1 outline-dashed outline-[#ff5500]/75"
-                      : "z-30 ring-2 ring-[#ff5500]"
-                    : "z-20 hover:outline-1 hover:outline-dashed hover:outline-[#ff5500]/60"
-                  : isSelected
-                    ? "z-30 border-b border-dashed border-[#ff5500]"
-                    : "z-20"
+                ? isSelected
+                  ? activeShape !== "rect"
+                    ? "z-30 outline-1 outline-dashed outline-[#ff5500]/75"
+                    : "z-30 ring-2 ring-[#ff5500]"
+                  : "z-20 hover:outline-1 hover:outline-dashed hover:outline-[#ff5500]/60"
+                : isSelected
+                  ? "z-30 border-b border-dashed border-[#ff5500]"
+                  : "z-20"
                 }`}
             >
               {/* Floating Action Bar above selected box (Carbon Black, White & Brand Orange) */}
@@ -2454,7 +2454,7 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
 
           <p className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-            <span>Enterprise-grade security &amp; privacy · No file size limits</span>
+            <span>Enterprise-grade security &amp; privacy · Safe File Processing</span>
           </p>
         </div>
       )}
