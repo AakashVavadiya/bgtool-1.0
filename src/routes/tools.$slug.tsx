@@ -17,6 +17,7 @@ import { MandalaDecor, MandalaCorner } from "@/components/decorations/MandalaDec
 import { ToolLimitReachedDialog } from "@/components/ToolLimitReachedDialog";
 import { AddCreditsDialog } from "@/components/AddCreditsDialog";
 import { GuestLoginDialog } from "@/components/GuestLoginDialog";
+import { ToolVisualShowcase } from "@/components/ToolVisualShowcase";
 import type { CurrentUser } from "@/lib/auth-user";
 
 function getStepMeta(step: string, i: number, total: number) {
@@ -470,18 +471,8 @@ function ToolPage() {
             </div>
 
             <div className="relative z-10">
-              {/* Intro */}
-              <div className="mb-16">
-                <p className="font-display text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-3">
-                  About This Tool
-                </p>
-                <h2 className="font-display text-2xl font-semibold md:text-4xl mb-5">
-                  What is the {tool.name} Tool?
-                </h2>
-                <p className="text-muted-foreground leading-relaxed text-base md:text-xl max-w-4xl">
-                  {seo.article.intro}
-                </p>
-              </div>
+              {/* Visual Showcase & About This Tool (Inspired by remove.bg/g/individuals) */}
+              <ToolVisualShowcase tool={tool} />
 
               {/* How To */}
               <div className="mb-18">
