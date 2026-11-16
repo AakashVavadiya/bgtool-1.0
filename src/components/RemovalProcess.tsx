@@ -13,6 +13,7 @@ import {
   FolderUp,
   Pencil,
   Zap,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CutoutBrushEditorModal } from "@/components/CutoutBrushEditorModal";
@@ -687,8 +688,9 @@ export function RemovalProcess() {
             Select Image File <span aria-hidden>→</span>
           </div>
 
-          <p className="mt-4 text-xs font-bold text-muted-foreground">
-            🔒 Secure server-side AI processing · Up to 4K resolution
+          <p className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            <span>Enterprise-grade security &amp; privacy · Up to 4K resolution</span>
           </p>
         </div>
       ) : (

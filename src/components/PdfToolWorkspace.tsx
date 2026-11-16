@@ -2452,8 +2452,9 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
             </button>
           </div>
 
-          <p className="mt-4 text-xs font-bold text-muted-foreground">
-            🔒 100% Private Client-Side Processing · No file size limits
+          <p className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            <span>Enterprise-grade security &amp; privacy · No file size limits</span>
           </p>
         </div>
       )}

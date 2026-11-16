@@ -10067,8 +10067,11 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-                    <span>
-                      🖥️ <strong>Live PowerPoint Builder</strong>: Edits will be packaged directly into your downloaded <strong className="text-foreground">.pptx</strong> file.
+                    <span className="inline-flex items-center gap-1.5">
+                      <MonitorPlay className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span>
+                        <strong>Live PowerPoint Builder</strong>: Edits will be packaged directly into your downloaded <strong className="text-foreground">.pptx</strong> file.
+                      </span>
                     </span>
                     <span className="font-mono font-bold">
                       {rawOcrDocumentLines.length} bullet points
@@ -10477,7 +10480,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    🎨 OG Card
+                    OG Card
                   </button>
                   <button
                     type="button"
@@ -10489,7 +10492,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    🏷️ Product Badge
+                    Product Badge
                   </button>
                   <button
                     type="button"
@@ -10501,7 +10504,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    🧾 Invoice
+                    Invoice
                   </button>
                   <button
                     type="button"
@@ -10513,7 +10516,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    💻 Code Box
+                    Code Box
                   </button>
                 </div>
               </div>
@@ -10654,7 +10657,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    👾 8-Bit Pixel Invader
+                    8-Bit Pixel Invader
                   </button>
                   <button
                     type="button"
@@ -10663,7 +10666,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    ❤️ Retro Heart
+                    Retro Heart
                   </button>
                   <button
                     type="button"
@@ -10672,7 +10675,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    🖼️ Sample Binary Header
+                    Sample Binary Header
                   </button>
                 </div>
               </div>
@@ -11002,7 +11005,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    🌟 Sample Star Icon
+                    Sample Star Icon
                   </button>
                   <button
                     type="button"
@@ -11012,7 +11015,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     }}
                     className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                   >
-                    🔷 Sample Badge Icon
+                    Sample Badge Icon
                   </button>
                 </div>
               </div>
@@ -11197,8 +11200,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               )}
             </div>
 
-            <p className="mt-4 text-xs font-bold text-muted-foreground">
-              🔒 Private client-side processing · No file size limits
+            <p className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>Enterprise-grade security &amp; privacy · No file size limits</span>
             </p>
           </div>
         )
@@ -13381,10 +13385,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     {/* Mode Selection Tabs (Compact Single-Row Segmented Control) */}
                     <div className="grid grid-cols-4 gap-1 rounded-xl bg-secondary/60 p-1 border border-border/60">
                       {[
-                        { id: "transparent", label: "Transparent", icon: "🔳" },
-                        { id: "color", label: "Color", icon: "🎨" },
-                        { id: "blur", label: "Blur", icon: "💧" },
-                        { id: "gradient", label: "Gradient", icon: "🌈" },
+                        { id: "transparent", label: "Transparent" },
+                        { id: "color", label: "Color" },
+                        { id: "blur", label: "Blur" },
+                        { id: "gradient", label: "Gradient" },
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -13396,7 +13400,6 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          <span className="text-[11px]">{item.icon}</span>
                           <span className="truncate">{item.label}</span>
                         </button>
                       ))}
@@ -14052,10 +14055,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: "full_auto", name: "⚡ Full Auto AI Scan", desc: "Auto-detects all watermarks, logos & AI sparkles", badge: "Recommended" },
-                        { id: "gemini_ai", name: "✨ Gemini AI (Lossless)", desc: "Reverse Alpha Blending: zero blur, exact restoration", badge: "Lossless" },
-                        { id: "corners", name: "↘️ Corner Logos & Stamps", desc: "Auto-cleans corner watermarks & timestamps", badge: "Corners" },
-                        { id: "stock_grid", name: "🌐 Stock Photo Grid", desc: "Auto-cleans diagonal tiled crosshatches", badge: "Full Grid" },
+                        { id: "full_auto", name: "Full Auto AI Scan", desc: "Auto-detects all watermarks, logos & AI sparkles", badge: "Recommended" },
+                        { id: "gemini_ai", name: "Gemini AI (Lossless)", desc: "Reverse Alpha Blending: zero blur, exact restoration", badge: "Lossless" },
+                        { id: "corners", name: "Corner Logos & Stamps", desc: "Auto-cleans corner watermarks & timestamps", badge: "Corners" },
+                        { id: "stock_grid", name: "Stock Photo Grid", desc: "Auto-cleans diagonal tiled crosshatches", badge: "Full Grid" },
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -14123,9 +14126,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       </label>
                       <div className="grid grid-cols-3 gap-2">
                         {[
-                          { id: "smart_neural", name: "🧠 Smart Neural", sub: "Directional Gradient" },
-                          { id: "patch_match", name: "🧩 PatchMatch", sub: "Texture Synthesis" },
-                          { id: "smooth_diffusion", name: "🌊 Smooth Blend", sub: "Clean Diffusion" },
+                          { id: "smart_neural", name: "Smart Neural", sub: "Directional Gradient" },
+                          { id: "patch_match", name: "PatchMatch", sub: "Texture Synthesis" },
+                          { id: "smooth_diffusion", name: "Smooth Blend", sub: "Clean Diffusion" },
                         ].map((item) => (
                           <button
                             key={item.id}
@@ -14198,8 +14201,11 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   )}
 
                   {/* Info Callout */}
-                  <div className="rounded-2xl border border-border/80 bg-background/60 p-3 text-[11px] text-muted-foreground leading-relaxed">
-                    ✨ <strong className="text-foreground">Mathematical Reverse Alpha Blending:</strong> Automatically scans and isolates Gemini AI badges, logos, timestamps, and watermarks. 100% of nearby photo elements, clothes, feet, and textures are preserved intact.
+                  <div className="rounded-2xl border border-border/80 bg-background/60 p-3 text-[11px] text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <Sparkles className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="text-foreground">Mathematical Reverse Alpha Blending:</strong> Automatically scans and isolates Gemini AI badges, logos, timestamps, and watermarks. 100% of nearby photo elements, clothes, feet, and textures are preserved intact.
+                    </span>
                   </div>
                 </div>
               )}
@@ -14250,10 +14256,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { mode: "universal", name: "🌟 Balanced Super-HD", desc: "General photos & graphics" },
-                        { mode: "photo", name: "📸 Photo & Portrait", desc: "Natural skin, eyes & depth" },
-                        { mode: "anime", name: "🎨 Anime & Digital Art", desc: "Razor-sharp line art & flats" },
-                        { mode: "text", name: "📄 Text & Documents", desc: "High contrast typography" },
+                        { mode: "universal", name: "Balanced Super-HD", desc: "General photos & graphics" },
+                        { mode: "photo", name: "Photo & Portrait", desc: "Natural skin, eyes & depth" },
+                        { mode: "anime", name: "Anime & Digital Art", desc: "Razor-sharp line art & flats" },
+                        { mode: "text", name: "Text & Documents", desc: "High contrast typography" },
                       ].map((item) => (
                         <button
                           key={item.mode}
@@ -14671,7 +14677,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
                     {/* 5. Minimal Help Tip */}
                     <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 px-1">
-                      <span>💡</span>
+                      <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
                       <span>Drag blur on photo to move, or drag handles to resize.</span>
                     </div>
                   </div>
@@ -15820,7 +15826,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             }}
                             className="rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                           >
-                            👾 8-Bit Pixel Invader
+                            8-Bit Pixel Invader
                           </button>
                           <button
                             type="button"
@@ -15841,7 +15847,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             }}
                             className="rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                           >
-                            ❤️ 8-Bit Heart
+                            8-Bit Heart
                           </button>
                           <button
                             type="button"
@@ -15856,7 +15862,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                             }}
                             className="rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-bold hover:border-accent hover:text-accent transition-all cursor-pointer"
                           >
-                            🖼️ Sample Binary Header
+                            Sample Binary Header
                           </button>
                         </div>
                       </div>
@@ -16735,7 +16741,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                         </h4>
                         <p className="text-[10px] text-muted-foreground">
                           {pdfIsPasswordProtected && !pdfIsUnlocked
-                            ? "🔒 Password Protected"
+                            ? "Password Protected"
                             : file
                             ? `${formatBytes(file.size)} · ${pdfTotalPages} ${pdfTotalPages === 1 ? "page" : "pages"}`
                             : "Ready to convert"}
@@ -16848,8 +16854,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                   : "border-border bg-card/60 hover:border-foreground/50"
                               }`}
                             >
-                              <span className={`text-xs font-extrabold ${pdfPageMode === "all" ? "text-accent" : "text-foreground"}`}>
-                                📦 All Pages (ZIP)
+                              <span className={`text-xs font-extrabold inline-flex items-center gap-1.5 ${pdfPageMode === "all" ? "text-accent" : "text-foreground"}`}>
+                                <Layers className="h-3.5 w-3.5" />
+                                <span>All Pages (ZIP)</span>
                               </span>
                               <span className="text-[10px] text-muted-foreground mt-0.5">
                                 All {pdfTotalPages} pages in 1 ZIP
@@ -16865,8 +16872,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                                   : "border-border bg-card/60 hover:border-foreground/50"
                               }`}
                             >
-                              <span className={`text-xs font-extrabold ${pdfPageMode === "single" ? "text-accent" : "text-foreground"}`}>
-                                📄 Specific Page
+                              <span className={`text-xs font-extrabold inline-flex items-center gap-1.5 ${pdfPageMode === "single" ? "text-accent" : "text-foreground"}`}>
+                                <FileText className="h-3.5 w-3.5" />
+                                <span>Specific Page</span>
                               </span>
                               <span className="text-[10px] text-muted-foreground mt-0.5">
                                 Direct image file download
