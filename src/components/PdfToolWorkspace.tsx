@@ -2133,13 +2133,21 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
       setResultPageCount(pageCount);
       setHasProcessed(true);
       setEditIsFullscreen(false);
+      setShowDynamicIsland(false);
+      setHasScrolledOnce(false);
 
-      // Trigger celebratory confetti burst!
-      try {
-        fireConfetti({ particleCount: 100, spread: 85 });
-      } catch (confettiErr) {
-        console.warn("Confetti error:", confettiErr);
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
+
+      // Trigger celebratory confetti burst once the completion screen settles
+      setTimeout(() => {
+        try {
+          fireConfetti({ particleCount: 110 });
+        } catch (confettiErr) {
+          console.warn("Confetti error:", confettiErr);
+        }
+      }, 120);
 
       // Track usage and deduct credit
       try {
