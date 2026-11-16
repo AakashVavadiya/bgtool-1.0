@@ -4201,7 +4201,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [compressFormat, setCompressFormat] = useState<"auto" | "image/webp" | "image/jpeg" | "image/png">("auto");
   const [isEditingSettings, setIsEditingSettings] = useState<boolean>(false);
   const [showOriginalComparison, setShowOriginalComparison] = useState<boolean>(false);
-  const [previewBackdrop, setPreviewBackdrop] = useState<"checker" | "white" | "black">("checker");
+  const [previewBackdrop, setPreviewBackdrop] = useState<"checker" | "white" | "black">("white");
   const [copiedText, setCopiedText] = useState<boolean>(false);
 
   const handleCopyExtractedText = () => {
@@ -9508,33 +9508,22 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           </div>
 
           {/* Processed Output Preview Stage */}
-          <div className="relative rounded-3xl border-2 border-border/80 bg-card/70 backdrop-blur-sm overflow-hidden shadow-xl flex flex-col p-4 md:p-6 min-h-[480px]">
-            {/* Top Preview Controls Bar (Only for Single-Item Previews, excluding OCR which has its own Split Studio) */}
+          <div className="relative rounded-3xl border-2 border-border/80 bg-card/85 backdrop-blur-sm overflow-hidden shadow-xl flex flex-col p-4 md:p-6 min-h-[480px]">
+            {/* Top Preview Controls Bar (Dedicated Header Row - Never Overlaps Canvas Border) */}
             {!isOcrTool && !(tool.slug === "rotate-image" && rotateBatch.length > 1) && (
-              <div className="absolute top-4 inset-x-4 flex items-center justify-between z-10 pointer-events-none">
-                <span className="pointer-events-auto rounded-full bg-background/90 border border-border px-3.5 py-1 text-xs font-bold text-foreground shadow-sm backdrop-blur truncate max-w-[200px] sm:max-w-md">
-                  {file?.name || `${tool.slug}_output`}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3.5 mb-3 border-b border-border/60 z-10">
+                <span className="inline-flex items-center gap-2 rounded-full bg-secondary/70 border border-border px-3.5 py-1 text-xs font-bold text-foreground truncate max-w-[220px] sm:max-w-md">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="truncate">{file?.name || `${tool.slug}_output`}</span>
                 </span>
-                <div className="flex items-center gap-2 pointer-events-auto">
+                <div className="flex flex-wrap items-center gap-2">
                   {/* Studio Backdrop Switcher (for non-document image tools) */}
                   {!isDocumentTool && !isBinaryTool && (
-                    <div className="hidden sm:flex items-center gap-1 rounded-full border border-border bg-background/90 p-0.5 shadow-sm backdrop-blur">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewBackdrop("checker")}
-                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
-                          previewBackdrop === "checker"
-                            ? "bg-foreground text-background shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                        title="Checkerboard transparent backdrop"
-                      >
-                        Checker
-                      </button>
+                    <div className="flex items-center gap-0.5 rounded-full border border-border bg-secondary/60 p-0.5 shadow-2xs">
                       <button
                         type="button"
                         onClick={() => setPreviewBackdrop("white")}
-                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${
                           previewBackdrop === "white"
                             ? "bg-foreground text-background shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
@@ -9545,8 +9534,20 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       </button>
                       <button
                         type="button"
+                        onClick={() => setPreviewBackdrop("checker")}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${
+                          previewBackdrop === "checker"
+                            ? "bg-foreground text-background shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Subtle transparency grid backdrop"
+                      >
+                        Grid
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setPreviewBackdrop("black")}
-                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${
                           previewBackdrop === "black"
                             ? "bg-foreground text-background shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
@@ -9565,7 +9566,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       onMouseUp={() => setShowOriginalComparison(false)}
                       onTouchStart={() => setShowOriginalComparison(true)}
                       onTouchEnd={() => setShowOriginalComparison(false)}
-                      className="rounded-full border border-border bg-background/90 px-3.5 py-1 text-xs font-bold hover:bg-foreground hover:text-background transition-all shadow-sm flex items-center gap-1.5 backdrop-blur cursor-pointer"
+                      className="rounded-full border border-border bg-background hover:bg-foreground hover:text-background px-3.5 py-1 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
                       title="Press and hold to compare with original image"
                     >
                       <Eye className="h-3.5 w-3.5 text-accent" />
@@ -9576,7 +9577,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <button
                       type="button"
                       onClick={() => setIsCodeEditorOpen(true)}
-                      className="rounded-full border border-border bg-background/90 px-3.5 py-1 text-xs font-bold hover:bg-foreground hover:text-background transition-all shadow-sm flex items-center gap-1.5 backdrop-blur cursor-pointer"
+                      className="rounded-full border border-border bg-background hover:bg-foreground hover:text-background px-3.5 py-1 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
                       title="Open in Code Editor"
                     >
                       <Code2 className="h-3.5 w-3.5 text-accent" />
@@ -9586,7 +9587,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     <button
                       type="button"
                       onClick={() => setIsFullscreenPreview(true)}
-                      className="rounded-full border border-border bg-background/90 px-3 py-1 text-xs font-bold hover:bg-foreground hover:text-background transition-all shadow-sm flex items-center gap-1.5 backdrop-blur cursor-pointer"
+                      className="rounded-full border border-border bg-background hover:bg-foreground hover:text-background px-3 py-1 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
                       title="Enlarge preview"
                     >
                       <Maximize2 className="h-3.5 w-3.5 text-accent" />
@@ -10221,12 +10222,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             ) : (
               /* Image Preview Studio Canvas */
               <div
-                className={`relative flex-1 w-full min-h-[420px] max-h-[560px] flex items-center justify-center p-4 sm:p-6 rounded-2xl transition-all duration-300 overflow-hidden ${
+                className={`relative flex-1 w-full min-h-[420px] max-h-[560px] flex items-center justify-center p-6 sm:p-8 rounded-2xl border transition-all duration-300 overflow-hidden ${
                   previewBackdrop === "checker"
-                    ? "bg-[linear-gradient(45deg,#1f2937_25%,transparent_25%),linear-gradient(-45deg,#1f2937_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#1f2937_75%),linear-gradient(-45deg,transparent_75%,#1f2937_75%)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] bg-muted/40"
+                    ? "border-border/60 bg-[#f8f9fb] dark:bg-[#141418] [background-image:linear-gradient(45deg,rgba(120,120,130,0.08)_25%,transparent_25%),linear-gradient(-45deg,rgba(120,120,130,0.08)_25%,transparent_25%),linear-gradient(45deg,transparent_75%,rgba(120,120,130,0.08)_75%),linear-gradient(-45deg,transparent_75%,rgba(120,120,130,0.08)_75%)] [background-size:20px_20px] [background-position:0_0,0_10px,10px_-10px,-10px_0px]"
                     : previewBackdrop === "white"
-                    ? "bg-white shadow-inner"
-                    : "bg-slate-950 shadow-inner"
+                    ? "border-border/60 bg-white shadow-inner"
+                    : "border-white/10 bg-[#0d0d10] shadow-inner"
                 }`}
               >
                 <img
@@ -10235,7 +10236,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
                   onContextMenu={(e) => e.preventDefault()}
-                  className="max-h-[480px] max-w-full object-contain rounded-xl shadow-2xl border border-border/40 transition-all duration-200 select-none workspace-protected-image"
+                  className="max-h-[460px] max-w-full object-contain rounded-xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] transition-all duration-200 select-none workspace-protected-image"
                 />
               </div>
             )}
