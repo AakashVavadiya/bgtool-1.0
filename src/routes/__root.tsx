@@ -35,6 +35,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Free online AI background removal, image upscaling, compression, and photo editing tools with zero data storage." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "google-site-verification", content: "jC5UUl7aRRsi_dD89rywdzNZXQaKTZcVqDJQAUQffIE" },
     ],
     links: [
       {
