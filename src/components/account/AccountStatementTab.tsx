@@ -238,7 +238,7 @@ export function AccountStatementTab({ currentUser }: AccountStatementTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* ─── Statement Header & Metric Cards ──────────────────────────────── */}
+      {/* Statement Header & Metric Cards */}
       <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-100 dark:border-zinc-800">
           <div className="flex items-center gap-3">
@@ -317,7 +317,7 @@ export function AccountStatementTab({ currentUser }: AccountStatementTabProps) {
         </div>
       </div>
 
-      {/* ─── Statement Ledger & Controls ──────────────────────────────────── */}
+      {/* Statement Ledger & Controls */}
       <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
         {/* Controls Toolbar */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-3">

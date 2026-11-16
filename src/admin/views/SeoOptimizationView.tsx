@@ -136,7 +136,7 @@ export function SeoOptimizationView() {
     );
   }, [auditReport.pages, selectedPageUrl]);
 
-  // ─── Actions: Run Live Site-Wide SEO Audit ─────────────────────────────────
+  // Actions: Run Live Site-Wide SEO Audit
   const handleRunLiveAudit = async () => {
     // 1. Archive older report into history if one exists
     if (auditReport && auditReport.pages && auditReport.pages.length > 0 && auditReport.id !== "INIT") {
@@ -203,7 +203,7 @@ export function SeoOptimizationView() {
     toast.warning("Live SEO audit stopped.");
   };
 
-  // ─── Actions: Live Probe Selected Page On Demand ───────────────────────────
+  // Actions: Live Probe Selected Page On Demand
   const handleLiveProbeSelectedPage = async () => {
     if (!selectedPage) return;
     setIsLiveProbingSingle(true);
@@ -313,7 +313,7 @@ export function SeoOptimizationView() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* ─── 1. TOP HEADER & AUDIT ACTIONS ─────────────────────────────────── */}
+      {/* 1. TOP HEADER & AUDIT ACTIONS */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
@@ -395,7 +395,7 @@ export function SeoOptimizationView() {
         </div>
       </div>
 
-      {/* ─── LIVE RUNNER PROGRESS BAR (WHEN AUDITING) ──────────────────────── */}
+      {/* LIVE RUNNER PROGRESS BAR (WHEN AUDITING) */}
       {isAuditing && (
         <div className="rounded-3xl border border-border bg-card p-6 shadow-xs animate-fade-in space-y-3">
           <div className="flex items-center justify-between text-xs font-bold">
@@ -430,7 +430,7 @@ export function SeoOptimizationView() {
         </div>
       )}
 
-      {/* ─── 2. TOP KPI SUMMARY CARDS ──────────────────────────────────────── */}
+      {/* 2. TOP KPI SUMMARY CARDS */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Overall SEO Score */}
         <div className="rounded-3xl border border-border bg-card p-5 shadow-xs">
@@ -513,7 +513,7 @@ export function SeoOptimizationView() {
         </div>
       </div>
 
-      {/* ─── 3. SUBTAB NAVIGATION ───────────────────────────────────────────── */}
+      {/* 3. SUBTAB NAVIGATION */}
       <div className="flex items-center gap-2 border-b border-border pb-2 text-xs">
         <button
           type="button"
@@ -568,7 +568,7 @@ export function SeoOptimizationView() {
         </button>
       </div>
 
-      {/* ─── SUBTAB 1: PAGE SCORECARDS TABLE ────────────────────────────────── */}
+      {/* SUBTAB 1: PAGE SCORECARDS TABLE */}
       {activeSubTab === "pages" && (
         <div className="space-y-4 animate-fade-in">
           {/* Filters Bar */}
@@ -738,7 +738,7 @@ export function SeoOptimizationView() {
         </div>
       )}
 
-      {/* ─── SUBTAB 2: KEYWORDS & RANKING TARGETS ──────────────────────────── */}
+      {/* SUBTAB 2: KEYWORDS & RANKING TARGETS */}
       {activeSubTab === "keywords" && (
         <div className="space-y-6 animate-fade-in">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-xs space-y-4">
@@ -782,7 +782,7 @@ export function SeoOptimizationView() {
         </div>
       )}
 
-      {/* ─── SUBTAB 3: LIVE PAGE INSPECTOR & ACTIONABLE SOLUTIONS ──────────── */}
+      {/* SUBTAB 3: LIVE PAGE INSPECTOR & ACTIONABLE SOLUTIONS */}
       {activeSubTab === "inspector" && selectedPage && (
         <div className="space-y-6 animate-fade-in">
           {/* Top Inspector Header with Live Probe Button */}
@@ -1045,7 +1045,7 @@ export function SeoOptimizationView() {
         </div>
       )}
 
-      {/* ─── SUBTAB 4: TECHNICAL SCHEMA & SITEMAPS ─────────────────────────── */}
+      {/* SUBTAB 4: TECHNICAL SCHEMA & SITEMAPS */}
       {activeSubTab === "technical" && (
         <div className="space-y-6 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

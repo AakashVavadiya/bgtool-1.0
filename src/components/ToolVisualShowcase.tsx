@@ -353,7 +353,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
 
   return (
     <div className="space-y-20 mb-20">
-      {/* ─── SECTION 1: 2-COLUMN SPLIT "ABOUT THIS TOOL" + UNIQUE TOOL-SPECIFIC INTERACTIVE VISUAL STAGE ─── */}
+      {/* SECTION 1: 2-COLUMN SPLIT "ABOUT THIS TOOL" + UNIQUE TOOL-SPECIFIC INTERACTIVE VISUAL STAGE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
         {/* Left 6 Columns: Tool-Specific Editorial & Technical Breakdown */}
         <div className="lg:col-span-6 space-y-6">
@@ -484,7 +484,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </span>
             </div>
 
-            {/* ── 1. CROP IMAGE INTERACTIVE VISUAL STAGE ── */}
+            {/* 1. CROP IMAGE INTERACTIVE VISUAL STAGE */}
             {mode === "crop-image" && (
               <div className="space-y-4">
                 <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0a0a0a] border border-border select-none">
@@ -572,7 +572,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 2. RESIZE IMAGE INTERACTIVE VISUAL STAGE ── */}
+            {/* 2. RESIZE IMAGE INTERACTIVE VISUAL STAGE */}
             {mode === "resize-image" && (
               <div className="space-y-4">
                 <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0a0a0a] border border-border p-6 flex flex-col items-center justify-center shadow-inner">
@@ -643,7 +643,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 3. COMPRESS IMAGE INTERACTIVE VISUAL STAGE ── */}
+            {/* 3. COMPRESS IMAGE INTERACTIVE VISUAL STAGE */}
             {mode === "compress-image" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 h-[300px] sm:h-[320px]">
@@ -719,7 +719,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 4. ROTATE & FLIP IMAGE INTERACTIVE STAGE ── */}
+            {/* 4. ROTATE & FLIP IMAGE INTERACTIVE STAGE */}
             {mode === "rotate-image" && (
               <div className="space-y-4">
                 <div className="relative h-[310px] sm:h-[340px] w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0a0a0a] border border-border flex items-center justify-center p-6 shadow-inner">
@@ -772,7 +772,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 5. SQUARE YOUR IMAGE (1:1 NO-CROP STUDIO) ── */}
+            {/* 5. SQUARE YOUR IMAGE (1:1 NO-CROP STUDIO) */}
             {mode === "square-image" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-center bg-white dark:bg-[#0a0a0a] rounded-2xl p-5 border border-border h-[320px] shadow-inner">
@@ -836,7 +836,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 6. AI UPSCALE IMAGE (SUPER-RESOLUTION) ── */}
+            {/* 6. AI UPSCALE IMAGE (SUPER-RESOLUTION) */}
             {mode === "upscale-image" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 h-[310px]">
@@ -882,7 +882,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 7. REMOVE BACKGROUND (SUB-PIXEL ALPHA MATTING) ── */}
+            {/* 7. REMOVE BACKGROUND (SUB-PIXEL ALPHA MATTING) */}
             {mode === "remove-background" && (
               <div className="space-y-4">
                 <div
@@ -959,7 +959,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 8. AI BLUR FACE (PRIVACY REDACTION) ── */}
+            {/* 8. AI BLUR FACE (PRIVACY REDACTION) */}
             {mode === "blur-face" && (
               <div className="space-y-4">
                 <div className="relative h-[320px] w-full rounded-2xl overflow-hidden border border-border bg-white dark:bg-[#0a0a0a]">
@@ -1007,7 +1007,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 9. WATERMARK / REMOVE WATERMARK / PHOTO EDITOR / COLOR PICKER / MEME ── */}
+            {/* 9. WATERMARK / REMOVE WATERMARK / PHOTO EDITOR / COLOR PICKER / MEME */}
             {(mode === "watermark-image" ||
               mode === "remove-watermark" ||
               mode === "photo-editor" ||
@@ -1119,7 +1119,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 10. FORMAT CONVERTERS / CODE ENCODING / ASCII ART ── */}
+            {/* 10. FORMAT CONVERTERS / CODE ENCODING / ASCII ART */}
             {(mode === "format-converter" || mode === "code-encoding" || mode === "ascii-art") && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch min-h-[300px]">
                 <div className="relative rounded-2xl overflow-hidden border border-border bg-white dark:bg-[#0a0a0a]">
@@ -1193,7 +1193,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 11. OCR & DOCUMENT CONVERTERS (WORD / EXCEL / PPT / OCR) ── */}
+            {/* 11. OCR & DOCUMENT CONVERTERS (WORD / EXCEL / PPT / OCR) */}
             {(mode === "ocr-text" || mode === "doc-excel" || mode === "doc-word" || mode === "doc-ppt") && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch min-h-[290px]">
                 <div className="rounded-2xl border border-border bg-white dark:bg-[#0a0a0a] p-4 flex flex-col justify-between text-foreground dark:text-white relative overflow-hidden shadow-inner">
@@ -1267,7 +1267,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
             )}
 
-            {/* ── 12. PDF TOOLS (MERGE / SPLIT / COMPRESS / EDIT / SIGN / SECURITY / QR / INVOICE) ── */}
+            {/* 12. PDF TOOLS (MERGE / SPLIT / COMPRESS / EDIT / SIGN / SECURITY / QR / INVOICE) */}
             {mode.startsWith("pdf-") && (
               <div className="rounded-2xl bg-white dark:bg-[#0a0a0a] border border-border dark:border-white/10 p-4 sm:p-5 text-foreground dark:text-white space-y-4 shadow-inner">
                 {mode === "pdf-merge" ? (
@@ -1399,7 +1399,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
         </div>
       </div>
 
-      {/* ─── SECTION 2: 4 TOOL-SPECIFIC VISUAL WORKFLOW CARDS (WHITE IN DAY MODE, BLACK IN NIGHT MODE) ─── */}
+      {/* SECTION 2: 4 TOOL-SPECIFIC VISUAL WORKFLOW CARDS (WHITE IN DAY MODE, BLACK IN NIGHT MODE) */}
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>

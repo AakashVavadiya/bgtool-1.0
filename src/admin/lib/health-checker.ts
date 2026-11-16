@@ -202,7 +202,7 @@ export async function testSingleRouteHealth(
   let hasRootElements = false;
   const isApi = route.category === "api";
 
-  // ─── STEP 1: Pre-flight HTTP fetch probe ────────────────────────────────────
+  // STEP 1: Pre-flight HTTP fetch probe
   try {
     const res = await fetch(route.url, {
       cache: "no-store",
@@ -226,7 +226,7 @@ export async function testSingleRouteHealth(
     result.latencyMs = Math.round(performance.now() - startTime);
   }
 
-  // ─── STEP 2: Headless DOM Sandbox & Error Traps (For Frontend Pages) ────────
+  // STEP 2: Headless DOM Sandbox & Error Traps (For Frontend Pages)
   if (!isApi && httpStatus === 200 && typeof document !== "undefined") {
     addLog("info", `Mounting isolated sandbox container to inspect runtime JavaScript execution...`);
 
@@ -375,7 +375,7 @@ export async function testSingleRouteHealth(
   result.hasRootElements = hasRootElements;
   result.testedAt = new Date().toISOString().replace("T", " ").slice(0, 19);
 
-  // ─── STEP 3: Formulate Verdict ─────────────────────────────────────────────
+  // STEP 3: Formulate Verdict
   if (result.errorsCaptured.length > 0 || (httpStatus >= 400 || httpStatus === 0)) {
     result.status = "error";
     result.summary =

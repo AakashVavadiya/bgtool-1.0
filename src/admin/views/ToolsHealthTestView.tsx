@@ -83,7 +83,7 @@ export function ToolsHealthTestView() {
     return () => window.removeEventListener("bg:telemetry:update", sync);
   }, []);
 
-  // ─── Actions: Run Full Suite Test ──────────────────────────────────────────
+  // Actions: Run Full Suite Test
   const handleStartAll = async () => {
     // 1. Archive older report into history if one exists
     if (activeReport && activeReport.results && activeReport.results.length > 0) {
@@ -159,7 +159,7 @@ export function ToolsHealthTestView() {
     toast.warning("Tools health test paused by user.");
   };
 
-  // ─── Single Tool Engine Test ──────────────────────────────────────────────
+  // Single Tool Engine Test
   const handleTestSingleTool = async (tool: Tool) => {
     setTestingToolSlug(tool.slug);
     toast.info(`Processing synthetic file through ${tool.name} engine...`);
@@ -180,7 +180,7 @@ export function ToolsHealthTestView() {
     }
   };
 
-  // ─── Export Audit Report ──────────────────────────────────────────────────
+  // Export Audit Report
   const handleExportJson = () => {
     const data = activeReport || {
       generatedAt: new Date().toISOString(),
@@ -198,7 +198,7 @@ export function ToolsHealthTestView() {
     toast.success("Downloaded Tool Engine Health Report JSON.");
   };
 
-  // ─── Filtered Tools ───────────────────────────────────────────────────────
+  // Filtered Tools
   const filteredTools = useMemo(() => {
     return tools.filter((t) => {
       // Category filter
@@ -253,7 +253,7 @@ export function ToolsHealthTestView() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* ─── 1. TOP HEADER & AUDIT ACTIONS ─────────────────────────────────── */}
+      {/* 1. TOP HEADER & AUDIT ACTIONS */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
@@ -318,7 +318,7 @@ export function ToolsHealthTestView() {
         </div>
       </div>
 
-      {/* ─── 2. LIVE RUNNER PROGRESS BAR (WHEN RUNNING) ────────────────────── */}
+      {/* 2. LIVE RUNNER PROGRESS BAR (WHEN RUNNING) */}
       {isRunningAll && (
         <div className="rounded-3xl border border-border bg-card p-6 shadow-xs animate-fade-in space-y-3">
           <div className="flex items-center justify-between text-xs font-bold">
@@ -345,7 +345,7 @@ export function ToolsHealthTestView() {
         </div>
       )}
 
-      {/* ─── 3. TOP KPI CARDS ──────────────────────────────────────────────── */}
+      {/* 3. TOP KPI CARDS */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {/* Card 1: Engine Health Score */}
         <div className="rounded-3xl border border-border bg-card p-5 shadow-xs">
@@ -457,7 +457,7 @@ export function ToolsHealthTestView() {
         </div>
       </div>
 
-      {/* ─── 4. SEARCH, CATEGORIES & STATUS FILTERS ─────────────────────────── */}
+      {/* 4. SEARCH, CATEGORIES & STATUS FILTERS */}
       <div className="space-y-3">
         {/* Category Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
@@ -550,7 +550,7 @@ export function ToolsHealthTestView() {
         </div>
       </div>
 
-      {/* ─── 5. TOOLS ENGINE TEST TABLE ────────────────────────────────────── */}
+      {/* 5. TOOLS ENGINE TEST TABLE */}
       <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
@@ -748,7 +748,7 @@ export function ToolsHealthTestView() {
         </div>
       </div>
 
-      {/* ─── 6. DETAILED PIPELINE LOGS & REPORT MODAL ───────────────────────── */}
+      {/* 6. DETAILED PIPELINE LOGS & REPORT MODAL */}
       {selectedResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">

@@ -126,9 +126,9 @@ export function SingleImageBgRemovalWidget({
 
   return (
     <div className="my-1 select-none">
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {/* 1. PROCESSING STATE (Animated Scanline & Pulse)             */}
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {task.status === "processing" && (
         <div className="relative inline-block overflow-hidden rounded-2xl border border-border/80 bg-card/60 shadow-lg max-w-sm sm:max-w-md">
           {displayImageSrc ? (
@@ -167,9 +167,9 @@ export function SingleImageBgRemovalWidget({
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {/* 2. DONE STATE (Final Proceeded File + Hover 3 Icon Buttons) */}
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {task.status === "done" && task.resultImageSrc && (
         <div className="relative group inline-block overflow-hidden rounded-2xl border-2 border-border/80 bg-card/90 shadow-lg max-w-sm sm:max-w-md transition-all hover:border-foreground/30">
           {/* Transparent Checkered Canvas Pattern */}
@@ -238,18 +238,18 @@ export function SingleImageBgRemovalWidget({
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {/* 3. ERROR STATE                                             */}
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {task.status === "error" && (
         <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-semibold text-rose-500 max-w-sm">
           Failed to remove background. Please try another image.
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {/* DETAILS MODAL                                              */}
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {showDetailsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-5 shadow-2xl space-y-4">
@@ -321,10 +321,10 @@ export function SingleImageBgRemovalWidget({
         </div>
       )}
 
-      {/* ────────────────────────────────────────────────────────── */}
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
+      {/*  */}
       {/* EDIT MODAL: BRUSH RESTORE, REMOVE BRUSH & MAGIC BRUSH     */}
-      {/* ────────────────────────────────────────────────────────── */}
+      {/*  */}
       {showEditModal && task.resultImageSrc && (
         <CutoutBrushEditorModal
           originalImageSrc={task.originalImageSrc || task.uploadedFile?.dataUrl || task.resultImageSrc}

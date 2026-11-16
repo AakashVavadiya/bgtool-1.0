@@ -269,7 +269,7 @@ export function ApiKeysManager() {
 
   return (
     <div className="space-y-6">
-      {/* ── Header Summary Card ── */}
+      {/* Header Summary Card */}
       <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-xs relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -307,7 +307,7 @@ export function ApiKeysManager() {
           </div>
         </div>
 
-        {/* ── Stats Strip ── */}
+        {/* Stats Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100 dark:border-zinc-800">
           <div className="rounded-xl bg-slate-50 dark:bg-zinc-800/50 p-3">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Keys</div>
@@ -339,7 +339,7 @@ export function ApiKeysManager() {
         </div>
       </div>
 
-      {/* ── Key List Table ── */}
+      {/* Key List Table */}
       <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-xs">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -461,7 +461,7 @@ export function ApiKeysManager() {
         )}
       </div>
 
-      {/* ── Interactive Test Console & Playground ── */}
+      {/* Interactive Test Console & Playground */}
       <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -535,7 +535,7 @@ export function ApiKeysManager() {
           </button>
         </div>
 
-        {/* ── Test Output Viewer ── */}
+        {/* Test Output Viewer */}
         {testResult && (
           <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-950 p-4 text-xs font-mono text-zinc-300 space-y-3">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
@@ -589,7 +589,7 @@ export function ApiKeysManager() {
         )}
       </div>
 
-      {/* ── Modal: Create API Key ── */}
+      {/* Modal: Create API Key */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-2xl space-y-4">
@@ -696,7 +696,7 @@ export function ApiKeysManager() {
         </div>
       )}
 
-      {/* ── Modal: Copy-Once Secret Key Reveal ── */}
+      {/* Modal: Copy-Once Secret Key Reveal */}
       {revealedKey && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-fade-in">
           <div className="w-full max-w-lg rounded-2xl border border-orange-500/40 bg-white dark:bg-zinc-900 p-6 shadow-2xl space-y-4">

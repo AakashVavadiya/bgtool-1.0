@@ -80,7 +80,7 @@ export function ApiDocsPage() {
 
       <main className="flex-1 w-full px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* ─── Sticky Sidebar Navigation ──────────────────────────────────────── */}
+          {/* Sticky Sidebar Navigation */}
           <aside className="lg:col-span-3 sticky top-20 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-xs space-y-4 text-xs font-semibold">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-zinc-800 font-display font-black text-sm text-slate-900 dark:text-white">
               <BookOpen className="h-4 w-4 text-orange-500" />
@@ -149,7 +149,7 @@ export function ApiDocsPage() {
             </div>
           </aside>
 
-          {/* ─── Main Documentation Content ────────────────────────────────────── */}
+          {/* Main Documentation Content */}
           <div className="lg:col-span-9 space-y-12">
             {/* Header intro */}
             <div className="space-y-3 pb-6 border-b border-slate-200 dark:border-zinc-800">

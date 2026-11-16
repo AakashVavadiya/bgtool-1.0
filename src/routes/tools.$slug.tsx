@@ -284,7 +284,7 @@ function ToolPage() {
         {/* Guest 5 Free Uses Reached Dialog Popup */}
         <GuestLoginDialog toolName={tool.name} />
 
-        {/* ─── UPLOAD ZONE & WORKSPACE ─────────────────────────────────────── */}
+        {/* UPLOAD ZONE & WORKSPACE */}
         <section className="grain border-b border-border px-4 py-4 md:px-8 md:py-6 relative">
           {isRestricted ? (
             <div className="relative rounded-3xl border border-destructive/40 bg-destructive/5 p-8 sm:p-14 text-center my-4 overflow-hidden shadow-sm">
@@ -391,7 +391,7 @@ function ToolPage() {
           )}
         </section>
 
-        {/* ─── HERO: ICON + HEADING (BELOW UPLOAD) ───────────────────────── */}
+        {/* HERO: ICON + HEADING (BELOW UPLOAD) */}
         <section className="relative overflow-hidden border-b border-border px-5 py-14 md:px-10 md:py-20">
           {/* Subtle light background mandala for decoration */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[580px] h-[580px] pointer-events-none opacity-[0.06] dark:opacity-[0.04] text-accent select-none" aria-hidden="true">
@@ -452,14 +452,14 @@ function ToolPage() {
           </div>
         </section>
 
-        {/* ─── MODELS SHOWCASE (bg remover only) ─────────────────────────── */}
+        {/* MODELS SHOWCASE (bg remover only) */}
         {isBgRemover ? (
           <section className="border-b border-border px-5 py-20 md:px-10 md:py-28">
             <BgModels compact />
           </section>
         ) : null}
 
-        {/* ─── SEO ARTICLE ────────────────────────────────────────────────── */}
+        {/* SEO ARTICLE */}
         {seo ? (
           <article className="relative overflow-hidden border-b border-border px-5 py-20 md:px-10 md:py-28">
             {/* Ambient light decorative Mandalas */}
@@ -641,7 +641,7 @@ function ToolPage() {
           </article>
         ) : null}
 
-        {/* ─── RELATED TOOLS ──────────────────────────────────────────────── */}
+        {/* RELATED TOOLS */}
         <section className="border-t border-border px-5 py-20 md:px-10 md:py-28">
           <p className="font-display text-sm uppercase tracking-[0.3em] text-muted-foreground">
             more tools

@@ -450,7 +450,7 @@ export function AccountPage() {
       <SiteHeader />
 
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        {/* ─── Top Breadcrumb Navigation & Search Header ───────────────────────── */}
+        {/* Top Breadcrumb Navigation & Search Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200/80 dark:border-zinc-800">
           {/* Breadcrumb Title */}
           <div className="flex items-center gap-3">
@@ -516,7 +516,7 @@ export function AccountPage() {
           </div>
         </div>
 
-        {/* ─── Main Tabs Switcher ──────────────────────────────────────────────── */}
+        {/* Main Tabs Switcher */}
         <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-zinc-800 pb-1 overflow-x-auto">
           {/* Tab 1: Overview & Activity */}
           <button
@@ -606,11 +606,9 @@ export function AccountPage() {
         ) : activeMainTab === "statement" ? (
           <AccountStatementTab currentUser={currentUser} />
         ) : (
-          /* ─── Two-Column Executive Workspace Layout ───────────────────────────── */
+          /* Two-Column Executive Workspace Layout */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ══════════════════════════════════════════════════════════════════════
-              LEFT COLUMN: Profile Card, Specializations, Specs & Details
-              ══════════════════════════════════════════════════════════════════════ */}
+          {/* LEFT COLUMN: Profile Card, Specializations, Specs & Details */}
           <div className="lg:col-span-4 xl:col-span-4 space-y-6">
             {/* 1. Master Identity Card */}
             <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm relative overflow-hidden">
@@ -705,7 +703,7 @@ export function AccountPage() {
                 </a>
               </div>
 
-              {/* ─── Certifications & Verifications ──────────────────────────── */}
+              {/* Certifications & Verifications */}
               <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                   <BadgeCheck className="h-3.5 w-3.5 text-orange-500" />
@@ -730,7 +728,7 @@ export function AccountPage() {
                 </div>
               </div>
 
-              {/* ─── General Account Details ─────────────────────────────────── */}
+              {/* General Account Details */}
               <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                   <FileText className="h-3.5 w-3.5 text-orange-500" />
@@ -755,7 +753,7 @@ export function AccountPage() {
                 </div>
               </div>
 
-              {/* ─── Token Quotas (Split Gauge like sample screenshot) ───────── */}
+              {/* Token Quotas (Split Gauge like sample screenshot) */}
               <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
                 <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                   <span className="flex items-center gap-2">
@@ -802,7 +800,7 @@ export function AccountPage() {
                 </div>
               </div>
 
-              {/* ─── Contacts Section ────────────────────────────────────────── */}
+              {/* Contacts Section */}
               <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                   <Mail className="h-3.5 w-3.5 text-orange-500" />
@@ -847,9 +845,7 @@ export function AccountPage() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════════════════════
-              RIGHT COLUMN: Interactive Calendar & Workspace Notes Stream
-              ══════════════════════════════════════════════════════════════════════ */}
+          {/* RIGHT COLUMN: Interactive Calendar & Workspace Notes Stream */}
           <div className="lg:col-span-8 xl:col-span-8 space-y-6">
             {/* 1. Interactive Month Calendar Card (Exact Match to Reference) */}
             <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7 shadow-sm">
@@ -1039,7 +1035,7 @@ export function AccountPage() {
                   })}
                 </div>
 
-                {/* ─── Selected Day Tool Execution Activity Details ──────────── */}
+                {/* Selected Day Tool Execution Activity Details */}
                 <div className="mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800/80 space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
@@ -1255,7 +1251,7 @@ export function AccountPage() {
         )}
       </main>
 
-      {/* ─── Profile & Password Edit Modal ─────────────────────────────────────── */}
+      {/* Profile & Password Edit Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-lg rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95">

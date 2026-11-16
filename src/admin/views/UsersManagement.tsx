@@ -381,7 +381,7 @@ export function UsersManagement() {
         )}
       </div>
 
-      {/* ─── User Profile Inspect Modal (White, Black & Orange Design) ────── */}
+      {/* User Profile Inspect Modal (White, Black & Orange Design) */}
       {inspectingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
@@ -545,7 +545,7 @@ export function UsersManagement() {
         </div>
       )}
 
-      {/* ─── Direct User Notification Modal ─────────────────────────────────── */}
+      {/* Direct User Notification Modal */}
       {notifUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-lg rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7 shadow-2xl space-y-5 animate-in zoom-in-95">

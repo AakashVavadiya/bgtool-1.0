@@ -78,9 +78,9 @@ export function buildPageMeta({
   return { meta, links, scripts };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // Google Rich Snippet Structured Data (Schema.org) Builders
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 
 /**
  * WebSite Schema with Google Sitelinks SearchBox Action

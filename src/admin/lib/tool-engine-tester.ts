@@ -220,7 +220,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
   let transformationSummary = "Pipeline executed successfully.";
 
   try {
-    // ─── Step 1: Input Ingestion & Payload Generation ─────────────────────────
+    // Step 1: Input Ingestion & Payload Generation
     const step1Start = performance.now();
     steps.push({ step: "Input Payload Ingestion", status: "running" });
 
@@ -255,7 +255,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
       details: `Generated valid synthetic payload (${inputFormat}, ${formatBytes(inputSizeBytes)})`,
     };
 
-    // ─── Step 2: Engine Initialization ────────────────────────────────────────
+    // Step 2: Engine Initialization
     const step2Start = performance.now();
     steps.push({ step: "Engine Pipeline Initialization", status: "running" });
 
@@ -270,7 +270,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
       details: "Canvas 2D context, offscreen buffer, and transcoding engine allocated",
     };
 
-    // ─── Step 3: Transformation Pipeline Execution ────────────────────────────
+    // Step 3: Transformation Pipeline Execution
     const step3Start = performance.now();
     steps.push({ step: "Execution Pipeline & Transformation", status: "running" });
 
@@ -363,7 +363,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
       if (!ctx) throw new Error("Failed to allocate Canvas context for image transformation.");
 
       if (slug === "remove-background" || slug.includes("background")) {
-        // ─── REAL BACKGROUND REMOVAL TEST ──────────────────────────────────────
+        // REAL BACKGROUND REMOVAL TEST
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imgData.data;
@@ -406,12 +406,12 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
         const transPercent = Math.round((transparentCount / totalPixels) * 100);
         transformationSummary = `Alpha matting verified: ${transPercent}% background removed to transparent, ${100 - transPercent}% foreground preserved.`;
       } else if (slug === "compress-image" || slug.includes("compress")) {
-        // ─── REAL COMPRESSION TEST ─────────────────────────────────────────────
+        // REAL COMPRESSION TEST
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         outputFormat = "image/jpeg";
         outputDimensions = { width: canvas.width, height: canvas.height };
       } else if (slug === "resize-image" || slug.includes("resize")) {
-        // ─── REAL RESIZE TEST ──────────────────────────────────────────────────
+        // REAL RESIZE TEST
         canvas.width = 120;
         canvas.height = 120;
         ctx.drawImage(img, 0, 0, 120, 120);
@@ -419,7 +419,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
         outputDimensions = { width: 120, height: 120 };
         transformationSummary = `Resized from ${testImage!.width}x${testImage!.height} → 120x120 pixels.`;
       } else if (slug === "crop-image" || slug.includes("crop")) {
-        // ─── REAL CROP TEST ────────────────────────────────────────────────────
+        // REAL CROP TEST
         canvas.width = 120;
         canvas.height = 120;
         ctx.drawImage(img, 60, 60, 120, 120, 0, 0, 120, 120);
@@ -427,7 +427,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
         outputDimensions = { width: 120, height: 120 };
         transformationSummary = `Cropped 120x120 center bounding box.`;
       } else if (slug === "rotate-image" || slug.includes("rotate")) {
-        // ─── REAL ROTATE TEST ──────────────────────────────────────────────────
+        // REAL ROTATE TEST
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate((90 * Math.PI) / 180);
         ctx.drawImage(img, -canvas.width / 2, -canvas.height / 2);
@@ -435,7 +435,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
         outputDimensions = { width: canvas.width, height: canvas.height };
         transformationSummary = `Rotated canvas 90° clockwise.`;
       } else if (slug === "watermark-image" || slug.includes("watermark")) {
-        // ─── REAL WATERMARK TEST ───────────────────────────────────────────────
+        // REAL WATERMARK TEST
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
         ctx.fillRect(15, canvas.height - 45, canvas.width - 30, 30);
@@ -447,7 +447,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
         outputDimensions = { width: canvas.width, height: canvas.height };
         transformationSummary = `High-contrast watermark badge stamped.`;
       } else if (slug === "blur-face" || slug.includes("blur")) {
-        // ─── REAL BLUR TEST ────────────────────────────────────────────────────
+        // REAL BLUR TEST
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         ctx.filter = "blur(8px)";
         ctx.fillRect(70, 60, 100, 100);
@@ -492,7 +492,7 @@ export async function testSingleToolEngine(tool: Tool): Promise<ToolEngineTestRe
       details: transformationSummary,
     };
 
-    // ─── Step 4: Output Integrity & Quality Verification ──────────────────────
+    // Step 4: Output Integrity & Quality Verification
     const step4Start = performance.now();
     steps.push({ step: "Output Verification & Integrity Check", status: "running" });
 

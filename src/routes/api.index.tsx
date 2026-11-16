@@ -181,7 +181,7 @@ export function ApiMarketingPage() {
       <SiteHeader />
 
       <main className="flex-1 w-full px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-8 sm:py-12 space-y-16">
-        {/* ─── Hero Section ────────────────────────────────────────────────────── */}
+        {/* Hero Section */}
         <section className="text-center space-y-6 w-full max-w-5xl mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 dark:border-orange-900/60 bg-orange-50 dark:bg-orange-950/40 px-4 py-1.5 text-xs font-black text-orange-600 dark:text-orange-400 shadow-xs">
             <Terminal className="h-4 w-4" />
@@ -226,7 +226,7 @@ export function ApiMarketingPage() {
           </div>
         </section>
 
-        {/* ─── Interactive Code Playground Preview ─────────────────────────────── */}
+        {/* Interactive Code Playground Preview */}
         <section className="w-full rounded-3xl border border-slate-200 dark:border-zinc-800 bg-slate-950 p-4 sm:p-7 shadow-xl relative overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
             <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export function ApiMarketingPage() {
           </div>
         </section>
 
-        {/* ─── Feature Pillars ─────────────────────────────────────────────────── */}
+        {/* Feature Pillars */}
         <section className="space-y-8">
           <div className="text-center space-y-2">
             <h2 className="font-display text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -314,7 +314,7 @@ export function ApiMarketingPage() {
           </div>
         </section>
 
-        {/* ─── Pricing Per Call Table ─────────────────────────────────────────── */}
+        {/* Pricing Per Call Table */}
         <section className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-xs space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-6">
             <div className="space-y-1">
@@ -362,7 +362,7 @@ export function ApiMarketingPage() {
           </div>
         </section>
 
-        {/* ─── SLA and Limits Table ────────────────────────────────────────────── */}
+        {/* SLA and Limits Table */}
         <section className="space-y-4">
           <h2 className="font-display text-2xl font-black text-slate-900 dark:text-white">
             Default Limits & Service Level Agreement
@@ -407,7 +407,7 @@ export function ApiMarketingPage() {
           </div>
         </section>
 
-        {/* ─── Frequently Asked Questions ──────────────────────────────────────── */}
+        {/* Frequently Asked Questions */}
         <section className="space-y-6">
           <div className="text-center space-y-1">
             <h2 className="font-display text-2xl font-black text-slate-900 dark:text-white">
@@ -447,7 +447,7 @@ export function ApiMarketingPage() {
           </div>
         </section>
 
-        {/* ─── Final CTA ──────────────────────────────────────────────────────── */}
+        {/* Final CTA */}
         <section className="rounded-3xl bg-slate-950 text-white p-8 sm:p-12 text-center space-y-6 relative overflow-hidden">
           <div className="space-y-2 max-w-xl mx-auto">
             <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight">

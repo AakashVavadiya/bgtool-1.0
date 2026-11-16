@@ -267,7 +267,7 @@ export function OcrLanguageDialog({
         aria-modal="true"
         aria-labelledby="ocr-language-dialog-title"
       >
-        {/* ── 1. Dialog Header ────────────────────────────────────────── */}
+        {/* 1. Dialog Header */}
         <div className="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl bg-accent text-accent-foreground font-black shadow-md">
@@ -301,7 +301,7 @@ export function OcrLanguageDialog({
           </button>
         </div>
 
-        {/* ── 2. Search Bar & Active Summary ───────────────────────────── */}
+        {/* 2. Search Bar & Active Summary */}
         <div className="p-4 sm:px-6 sm:py-3.5 border-b border-border/80 bg-background/50 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
             {/* Live Search Input */}
@@ -370,7 +370,7 @@ export function OcrLanguageDialog({
           )}
         </div>
 
-        {/* ── 3. Main Content: Grid of Languages or Custom Builder ──────── */}
+        {/* 3. Main Content: Grid of Languages or Custom Builder */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-h-[50vh] sm:max-h-[55vh]">
           {/* Custom Language Code Builder View */}
           {activeTab === "custom" && !searchQuery ? (
@@ -536,7 +536,7 @@ export function OcrLanguageDialog({
           )}
         </div>
 
-        {/* ── 4. Dialog Footer ────────────────────────────────────────── */}
+        {/* 4. Dialog Footer */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-border bg-muted/20 px-5 py-3.5 sm:px-6">
           <div className="flex items-center gap-2">
             <button

@@ -92,7 +92,7 @@ export const Route = createFileRoute("/pricing")({
   component: Pricing,
 });
 
-// ─── CENTRALIZED PLAN CONFIGURATION ──────────────────────────────────────────
+// CENTRALIZED PLAN CONFIGURATION
 
 export interface PaygPack {
   credits: number;

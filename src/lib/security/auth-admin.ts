@@ -2,7 +2,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
-// ─── TYPES ──────────────────────────────────────────────────────────────────
+// TYPES
 export interface SafeUser {
   id: string;
   name: string;
@@ -47,7 +47,7 @@ export interface ToolConfigItem {
   totalUsageCount: number;
 }
 
-// ─── ATOMIC FILE WRITES ─────────────────────────────────────────────────────
+// ATOMIC FILE WRITES
 export function atomicWriteJson(filePath: string, data: unknown): void {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
@@ -66,7 +66,7 @@ export function atomicWriteJson(filePath: string, data: unknown): void {
   }
 }
 
-// ─── PASSWORD HASHING (scrypt + random salt) ────────────────────────────────
+// PASSWORD HASHING (scrypt + random salt)
 const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
@@ -118,7 +118,7 @@ export function verifyPassword(plainText: string, storedHash: string): boolean {
 
 import { adminLockout } from "./login-lockout";
 
-// ─── ADMIN ENVIRONMENT VALIDATION ───────────────────────────────────────────
+// ADMIN ENVIRONMENT VALIDATION
 export function validateAdminEnvironment(): void {
   const isProduction = process.env["NODE_ENV"] === "production";
   const adminPassword = process.env["ADMIN_PASSWORD"];
@@ -300,7 +300,7 @@ export function verifyAdminLogin(
   return { success: true };
 }
 
-// ─── ADMIN SESSION SIGNING & VERIFICATION ────────────────────────────────────
+// ADMIN SESSION SIGNING & VERIFICATION
 function getSessionSecret(): string {
   const envSecret = process.env["ADMIN_SESSION_SECRET"];
   if (envSecret && envSecret.length >= 32) {
@@ -413,7 +413,7 @@ export function isAuthorizedAdmin(request: Request): boolean {
   return verification.valid;
 }
 
-// ─── USER DATA SANITIZATION & MIGRATION ─────────────────────────────────────
+// USER DATA SANITIZATION & MIGRATION
 export function sanitizeUser(user: any): SafeUser {
   return {
     id: String(user.id || ""),
@@ -463,7 +463,7 @@ export function migrateUsersData(filePath: string): any[] {
   }
 }
 
-// ─── TOOLS CONFIG STRICT SCHEMA VALIDATION ─────────────────────────────────
+// TOOLS CONFIG STRICT SCHEMA VALIDATION
 export function validateToolsConfigPayload(body: unknown): {
   valid: boolean;
   sanitized?: ToolConfigItem[] | undefined;
@@ -528,7 +528,7 @@ export function validateToolsConfigPayload(body: unknown): {
   return { valid: true, sanitized };
 }
 
-// ─── CONTACT INQUIRY VALIDATION & HTML ESCAPING ────────────────────────────
+// CONTACT INQUIRY VALIDATION & HTML ESCAPING
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")

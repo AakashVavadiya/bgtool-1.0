@@ -109,7 +109,7 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
 
   return (
     <div className={`relative inline-block notranslate ${isOpen ? "z-50" : ""}`} ref={popoverRef}>
-      {/* ── Trigger Button ────────────────────────────────────────────── */}
+      {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -131,7 +131,7 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
         />
       </button>
 
-      {/* ── Mobile Backdrop Overlay ─────────────────────────────────────── */}
+      {/* Mobile Backdrop Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-xs sm:hidden animate-in fade-in duration-200"
@@ -140,7 +140,7 @@ export function CurrencySwitcher({ variant = "header" }: CurrencySwitcherProps) 
         />
       )}
 
-      {/* ── Dropdown Popover / Mobile Bottom Sheet ─────────────────────── */}
+      {/* Dropdown Popover / Mobile Bottom Sheet */}
       {isOpen && (
         <div
           role="dialog"

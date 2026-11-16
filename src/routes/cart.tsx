@@ -286,9 +286,7 @@ export function CartPage() {
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* ══════════════════════════════════════════════════════════════════════
-              LEFT COLUMN: Item Card, Details, and Billing Guarantee (7 cols)
-              ══════════════════════════════════════════════════════════════════════ */}
+          {/* LEFT COLUMN: Item Card, Details, and Billing Guarantee (7 cols) */}
           <div className="lg:col-span-7 space-y-6">
             {/* Selected Plan Details Card */}
             <div className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7 shadow-xs relative overflow-hidden">
@@ -475,16 +473,14 @@ export function CartPage() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════════════════════
-              RIGHT COLUMN: Promocode Box & Order Summary Checkout (5 cols)
-              ══════════════════════════════════════════════════════════════════════ */}
+          {/* RIGHT COLUMN: Promocode Box & Order Summary Checkout (5 cols) */}
           <div className="lg:col-span-5 space-y-6">
             <div className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7 shadow-lg space-y-6 sticky top-24">
               <h3 className="font-display text-lg font-black text-slate-950 dark:text-white">
                 Order Summary
               </h3>
 
-              {/* ─── Promocode / Coupon Box (Inside Cart) ───────────────────── */}
+              {/* Promocode / Coupon Box (Inside Cart) */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
                   <span>Have a Promo Code?</span>

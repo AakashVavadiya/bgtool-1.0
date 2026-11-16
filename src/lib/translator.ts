@@ -15,7 +15,7 @@ export interface TranslationLanguage {
 }
 
 export const SUPPORTED_WEBSITE_LANGUAGES: TranslationLanguage[] = [
-  // ── Popular / Top Global ──────────────────────────────────────────
+  // Popular / Top Global
   { code: "en", name: "English", nativeName: "English", flag: "🇺🇸", countryCode: "us", category: "popular", region: "Global / US / UK" },
   { code: "gu", name: "Gujarati", nativeName: "ગુજરાતી", flag: "🇮🇳", countryCode: "in", category: "indian", region: "India (Gujarat)" },
   { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳", countryCode: "in", category: "indian", region: "India (भारत)" },
@@ -28,7 +28,7 @@ export const SUPPORTED_WEBSITE_LANGUAGES: TranslationLanguage[] = [
   { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺", countryCode: "ru", category: "popular", region: "Russia / CIS" },
   { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇧🇷", countryCode: "br", category: "popular", region: "Brazil / Portugal" },
 
-  // ── Indian Regional Languages ─────────────────────────────────────
+  // Indian Regional Languages
   { code: "bn", name: "Bengali", nativeName: "বাংলা", flag: "🇮🇳", countryCode: "in", category: "indian", region: "India / Bangladesh" },
   { code: "ta", name: "Tamil", nativeName: "தமிழ்", flag: "🇮🇳", countryCode: "in", category: "indian", region: "India / Sri Lanka" },
   { code: "te", name: "Telugu", nativeName: "తెలుగు", flag: "🇮🇳", countryCode: "in", category: "indian", region: "India (AP / Telangana)" },
@@ -37,7 +37,7 @@ export const SUPPORTED_WEBSITE_LANGUAGES: TranslationLanguage[] = [
   { code: "ml", name: "Malayalam", nativeName: "മലയാളം", flag: "🇮🇳", countryCode: "in", category: "indian", region: "India (Kerala)" },
   { code: "pa", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", flag: "🇮🇳", countryCode: "in", category: "indian", region: "India (Punjab)" },
 
-  // ── European Languages ────────────────────────────────────────────
+  // European Languages
   { code: "it", name: "Italian", nativeName: "Italiano", flag: "🇮🇹", countryCode: "it", category: "european", region: "Italy" },
   { code: "nl", name: "Dutch", nativeName: "Nederlands", flag: "🇳🇱", countryCode: "nl", category: "european", region: "Netherlands / Belgium" },
   { code: "pl", name: "Polish", nativeName: "Polski", flag: "🇵🇱", countryCode: "pl", category: "european", region: "Poland" },
@@ -52,7 +52,7 @@ export const SUPPORTED_WEBSITE_LANGUAGES: TranslationLanguage[] = [
   { code: "no", name: "Norwegian", nativeName: "Norsk", flag: "🇳🇴", countryCode: "no", category: "european", region: "Norway" },
   { code: "hu", name: "Hungarian", nativeName: "Magyar", flag: "🇭🇺", countryCode: "hu", category: "european", region: "Hungary" },
 
-  // ── Asian & Middle Eastern Languages ──────────────────────────────
+  // Asian & Middle Eastern Languages
   { code: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷", countryCode: "kr", category: "asian", region: "South Korea (대한민국)" },
   { code: "zh-TW", name: "Chinese (Traditional)", nativeName: "繁體中文", flag: "🇹🇼", countryCode: "tw", category: "asian", region: "Taiwan / HK" },
   { code: "id", name: "Indonesian", nativeName: "Bahasa Indonesia", flag: "🇮🇩", countryCode: "id", category: "asian", region: "Indonesia" },
@@ -68,7 +68,7 @@ export const SUPPORTED_WEBSITE_LANGUAGES: TranslationLanguage[] = [
 
 const STORAGE_KEY = "bg_user_selected_language";
 
-// ── CUSTOM MULTI-LANGUAGE DICTIONARY (Instant Client-Side Cache) ─────────────
+// CUSTOM MULTI-LANGUAGE DICTIONARY (Instant Client-Side Cache)
 export const UI_TRANSLATIONS: Record<string, Record<string, string>> = {
   // 1. Gujarati (ગુજરાતી)
   gu: {

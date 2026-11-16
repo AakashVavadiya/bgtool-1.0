@@ -554,7 +554,7 @@ export function RemovalProcess() {
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll, Header-Aware) ─────── */}
+      {/* TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll, Header-Aware) */}
       {mounted && typeof document !== "undefined" && hasProcessed && !showCutoutEditor && createPortal(
         <div
           style={{ top: `${islandTopPx}px` }}

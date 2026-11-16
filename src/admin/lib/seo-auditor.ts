@@ -214,7 +214,7 @@ export async function auditSinglePageLive(
   else if (url.includes("terms") || url.includes("privacy") || url.includes("contact"))
     searchIntent = "Informational";
 
-  // ─── DYNAMIC SEO SCORING BASED ON LIVE PROBE ──────────────────────────────
+  // DYNAMIC SEO SCORING BASED ON LIVE PROBE
   let metaScore = 100;
   if (!titleOptimal) metaScore -= 18;
   if (!descriptionOptimal) metaScore -= 20;
@@ -254,7 +254,7 @@ export async function auditSinglePageLive(
   else if (score >= 58) grade = "D";
   else grade = "F";
 
-  // ─── ACTIONABLE SOLUTIONS FOR DETECTED PROBLEMS ────────────────────────────
+  // ACTIONABLE SOLUTIONS FOR DETECTED PROBLEMS
   const recommendations: SeoPageAudit["recommendations"] = [];
   const cleanTitle = (liveTitle.split("—")[0] ?? liveTitle).trim();
 

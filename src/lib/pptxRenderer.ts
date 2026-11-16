@@ -1,4 +1,4 @@
-// ── PowerPoint (PPTX) High-Fidelity Parser and Multi-Slide Canvas Renderer ────
+// PowerPoint (PPTX) High-Fidelity Parser and Multi-Slide Canvas Renderer
 
 export interface PptxMetadata {
   totalSlides: number;
@@ -28,7 +28,7 @@ export interface PptxRenderResult {
   slideTitle: string;
 }
 
-// ── 1. Custom In-Memory ZIP Archive Reader ──────────────────────────────────
+// 1. Custom In-Memory ZIP Archive Reader
 export class PptxZipReader {
   private buffer: ArrayBuffer;
   private entries: Map<string, { compSize: number; uncompSize: number; method: number; localOffset: number }> = new Map();
@@ -194,7 +194,7 @@ const getMimeFromPath = (path: string): string => {
   return "application/octet-stream";
 };
 
-// ── 2. PPTX Metadata and Relationship Resolver ──────────────────────────────
+// 2. PPTX Metadata and Relationship Resolver
 export const getPptxMetadata = async (buffer: ArrayBuffer): Promise<PptxMetadata> => {
   const zip = new PptxZipReader(buffer);
   await zip.init();
@@ -347,7 +347,7 @@ export const getPptxMetadata = async (buffer: ArrayBuffer): Promise<PptxMetadata
   };
 };
 
-// ── 3. Slide Visual Element Interfaces ──────────────────────────────────────
+// 3. Slide Visual Element Interfaces
 interface TextRun {
   text: string;
   sizePt: number;
@@ -380,7 +380,7 @@ interface ShapeItem {
   tableData?: { rows: { cells: { text: string; fill?: string | undefined; border?: string | undefined }[] }[] } | undefined;
 }
 
-// ── 4. Main Slide Canvas Renderer ───────────────────────────────────────────
+// 4. Main Slide Canvas Renderer
 export const renderPptSlideToImage = async (
   buffer: ArrayBuffer,
   fileName: string,
@@ -863,7 +863,7 @@ export const renderPptSlideToImage = async (
   };
 };
 
-// ── 5. Render All Slides to ZIP ─────────────────────────────────────────────
+// 5. Render All Slides to ZIP
 export const renderAllPptSlidesToZip = async (
   buffer: ArrayBuffer,
   fileName: string,

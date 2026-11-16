@@ -130,7 +130,7 @@ export function ApiManagementView() {
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
-      {/* ── Top Header & Emergency Kill-Switch ── */}
+      {/* Top Header & Emergency Kill-Switch */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
           <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ export function ApiManagementView() {
         </button>
       </div>
 
-      {/* ── System Status Banner ── */}
+      {/* System Status Banner */}
       {!data?.stats.globalEnabled && (
         <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-bold">
           <div className="flex items-center gap-2.5">
@@ -181,7 +181,7 @@ export function ApiManagementView() {
         </div>
       )}
 
-      {/* ── Metric Cards ── */}
+      {/* Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="rounded-2xl border border-border bg-card p-4 space-y-1">
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Total API Keys</div>
@@ -219,7 +219,7 @@ export function ApiManagementView() {
         </div>
       </div>
 
-      {/* ── API Keys Table ── */}
+      {/* API Keys Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs space-y-4 p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -345,7 +345,7 @@ export function ApiManagementView() {
         </div>
       </div>
 
-      {/* ── Audit Log ── */}
+      {/* Audit Log */}
       <div className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

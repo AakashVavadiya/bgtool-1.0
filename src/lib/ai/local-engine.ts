@@ -90,9 +90,9 @@ export async function executeLocalAgent(
 
   const tools = createAiSdkTools(executionContext);
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // 1. DOCUMENT & PDF QUESTION ANSWERING / SUMMARIZATION
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   if (docContext && docContext.fullText) {
     const isDocQuestion =
       /(what|summary|summarize|samjavo|samjhavo|explain|extract|find|invoice|gst|total|date|page|who|details|tell me)/i.test(
@@ -184,9 +184,9 @@ export async function executeLocalAgent(
     }
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // 2. MULTI-STEP OPERATIONS (e.g. remove background + square + convert to webp)
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   const isMultiStep =
     norm.includes("and") ||
     norm.includes("then") ||
@@ -217,9 +217,9 @@ export async function executeLocalAgent(
   // F. Rotate
   const isRotate = /(rotate|90\s*deg|180\s*deg|ghuma)/i.test(norm);
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // EXECUTE TOOLS DETERMINISTICALLY
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   let lastResult: any = null;
 
   if (isBgRemoval && tools.remove_background) {
@@ -344,9 +344,9 @@ export async function executeLocalAgent(
     steps[steps.length - 1]!.toolResult = res;
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // IF A TOOL WAS EXECUTED, RETURN SUCCESS RESULT
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   if (lastResult) {
     const executedTool = steps[steps.length - 1]?.toolName || "tool";
     const naturalReply = getNaturalCompletionMessage(executedTool, lastResult, norm);
@@ -361,9 +361,9 @@ export async function executeLocalAgent(
     };
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // 3. THINK MODE & CONDITIONAL WEB RESEARCH
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   const isWebQuery =
     isThinking ||
     /(what happened|current price|latest news|who is|who was|meaning of|today|weather|search)/i.test(
@@ -388,9 +388,9 @@ export async function executeLocalAgent(
     }
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // 4. NATURAL CONVERSATIONAL RESPONSE
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   if (/(hi|hello|hey|kem cho|kem cho tame|namaste|pranam|halo)/i.test(norm)) {
     if (/(kem cho|gujarati)/i.test(norm)) {
       return {

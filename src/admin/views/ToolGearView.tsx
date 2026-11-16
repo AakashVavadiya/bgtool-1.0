@@ -125,7 +125,7 @@ export function ToolGearView() {
 
   return (
     <div className="space-y-8 animate-fade-in pb-16">
-      {/* ─── Header & Timeframe Controls ────────────────────────────────────────── */}
+      {/* Header & Timeframe Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
@@ -202,7 +202,7 @@ export function ToolGearView() {
         </div>
       </div>
 
-      {/* ─── Top 4 KPI Metric Cards ────────────────────────────────────────────── */}
+      {/* Top 4 KPI Metric Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* 1. Total Executions */}
         <div className="rounded-3xl border border-border bg-card p-6 shadow-xs relative overflow-hidden">
@@ -317,7 +317,7 @@ export function ToolGearView() {
         </div>
       </div>
 
-      {/* ─── Memory Diagnostics & System Health Bar ────────────────────────────── */}
+      {/* Memory Diagnostics & System Health Bar */}
       <div className="rounded-3xl border border-border bg-gradient-to-br from-card via-card to-muted/20 p-6 sm:p-8 shadow-xs">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -413,7 +413,7 @@ export function ToolGearView() {
         </div>
       </div>
 
-      {/* ─── Visual Graphs Section ────────────────────────────────────────────── */}
+      {/* Visual Graphs Section */}
       <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-border">
           <div>
@@ -588,7 +588,7 @@ export function ToolGearView() {
         </div>
       </div>
 
-      {/* ─── Accurate Per-Tool Breakdown Table ─────────────────────────────────── */}
+      {/* Accurate Per-Tool Breakdown Table */}
       <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-border">
           <div>
@@ -750,7 +750,7 @@ export function ToolGearView() {
         </div>
       </div>
 
-      {/* ─── Recent Execution Logs ────────────────────────────────────────────── */}
+      {/* Recent Execution Logs */}
       <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div>

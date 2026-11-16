@@ -1792,9 +1792,9 @@ export function ChatWindow({ thread }: { thread: ChatThread }) {
     <div className="flex h-full min-h-0 flex-1 flex-col bg-background text-foreground relative">
 
 
-      {/* ---------------------------------------------------------------------- */}
+      {/*  */}
       {/* CONVERSATION STREAM (True message-by-message chronological flow)       */}
-      {/* ---------------------------------------------------------------------- */}
+      {/*  */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6 md:px-8">
         <div className="mx-auto w-full max-w-3xl space-y-7">
           {/* ChatGPT Style Empty State: "Where should we begin?" (As in user screenshot 2) */}
@@ -2312,9 +2312,9 @@ export function ChatWindow({ thread }: { thread: ChatThread }) {
                       <span>ℹ️</span> {task.progressMessage}
                     </p>
 
-                    {/* -------------------------------------------------------- */}
+                    {/*  */}
                     {/* B. WAITING FILE STATE (Interactive Options for Uploaded File) */}
-                    {/* -------------------------------------------------------- */}
+                    {/*  */}
                     {task.status === "waiting_file" && task.uploadedFile ? (
                       <div className="mt-4 space-y-4">
                         <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3.5 shadow-xs">
@@ -2576,9 +2576,9 @@ export function ChatWindow({ thread }: { thread: ChatThread }) {
         </div>
       </div>
 
-      {/* ---------------------------------------------------------------------- */}
+      {/*  */}
       {/* MODERN GEMINI / CHATGPT STYLE INPUT BAR (Redesigned per Image 2)       */}
-      {/* ---------------------------------------------------------------------- */}
+      {/*  */}
       <div className="w-full shrink-0 p-3 md:p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
         <div className="mx-auto w-full max-w-3xl">
           {/* Main Card Container */}

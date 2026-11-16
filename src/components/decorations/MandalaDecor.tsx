@@ -75,13 +75,13 @@ export const MandalaDecor: React.FC<MandalaProps> = ({
       </defs>
 
       <g transform="translate(0, 0)">
-        {/* ─── Center Core ─── */}
+        {/* Center Core */}
         <circle cx="300" cy="300" r="10" strokeWidth="1.5" />
         <circle cx="300" cy="300" r="18" strokeWidth="1" strokeDasharray="2 3" />
         <circle cx="300" cy="300" r="32" strokeWidth="1.2" />
         <circle cx="300" cy="300" r="55" strokeWidth="1.4" />
 
-        {/* ─── Layer 1: 12 Tiny Core Dots ─── */}
+        {/* Layer 1: 12 Tiny Core Dots */}
         {angles12.map((angle) => (
           <circle
             key={`dot-${angle}`}
@@ -95,7 +95,7 @@ export const MandalaDecor: React.FC<MandalaProps> = ({
           />
         ))}
 
-        {/* ─── Layer 2: 12 Inner Lotus Petals + Veins ─── */}
+        {/* Layer 2: 12 Inner Lotus Petals + Veins */}
         {angles12.map((angle) => (
           <g key={`inner-${angle}`} transform={`rotate(${angle} 300 300)`}>
             <use href="#mandala-petal-inner" />
@@ -103,7 +103,7 @@ export const MandalaDecor: React.FC<MandalaProps> = ({
           </g>
         ))}
 
-        {/* ─── Layer 3: Concentric Filigree Ring ─── */}
+        {/* Layer 3: Concentric Filigree Ring */}
         <circle cx="300" cy="300" r="130" strokeWidth="1" strokeDasharray="3 3" />
         <circle cx="300" cy="300" r="140" strokeWidth="1.5" />
         <circle cx="300" cy="300" r="150" strokeWidth="0.8" />
@@ -122,7 +122,7 @@ export const MandalaDecor: React.FC<MandalaProps> = ({
           />
         ))}
 
-        {/* ─── Layer 4: 12 Mid Ornamental Crowns & Teardrops ─── */}
+        {/* Layer 4: 12 Mid Ornamental Crowns & Teardrops */}
         {angles12.map((angle) => (
           <g key={`mid-${angle}`} transform={`rotate(${angle + 15} 300 300)`}>
             <use href="#mandala-petal-mid" />
@@ -131,12 +131,12 @@ export const MandalaDecor: React.FC<MandalaProps> = ({
           </g>
         ))}
 
-        {/* ─── Layer 5: Scalloped Ring ─── */}
+        {/* Layer 5: Scalloped Ring */}
         <circle cx="300" cy="300" r="230" strokeWidth="1.2" />
         <circle cx="300" cy="300" r="240" strokeWidth="0.8" strokeDasharray="4 4" />
         <circle cx="300" cy="300" r="248" strokeWidth="1.6" />
 
-        {/* ─── Layer 6: 24 Outer Lotus Leaves / Flame Crests ─── */}
+        {/* Layer 6: 24 Outer Lotus Leaves / Flame Crests */}
         {angles24.map((angle) => (
           <g key={`outer-${angle}`} transform={`rotate(${angle} 300 300)`}>
             <path
@@ -157,7 +157,7 @@ export const MandalaDecor: React.FC<MandalaProps> = ({
           </g>
         ))}
 
-        {/* ─── Layer 7: Outermost Fine Orbit Ring ─── */}
+        {/* Layer 7: Outermost Fine Orbit Ring */}
         <circle cx="300" cy="300" r="280" strokeWidth="0.8" strokeDasharray="1.5 3" />
         <circle cx="300" cy="300" r="288" strokeWidth="1" />
       </g>

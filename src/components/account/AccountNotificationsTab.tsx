@@ -250,7 +250,7 @@ export function AccountNotificationsTab({ currentUser, onSwitchTab }: AccountNot
 
   return (
     <div className="space-y-6">
-      {/* ─── Header Card ─────────────────────────────────────────────────── */}
+      {/* Header Card */}
       <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -288,7 +288,7 @@ export function AccountNotificationsTab({ currentUser, onSwitchTab }: AccountNot
           </div>
         </div>
 
-        {/* ─── Search & Category Filter Pills ────────────────────────────── */}
+        {/* Search & Category Filter Pills */}
         <div className="mt-6 pt-5 border-t border-slate-100 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
@@ -361,7 +361,7 @@ export function AccountNotificationsTab({ currentUser, onSwitchTab }: AccountNot
         </div>
       </div>
 
-      {/* ─── Notifications List ──────────────────────────────────────────── */}
+      {/* Notifications List */}
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center space-y-3">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-400">

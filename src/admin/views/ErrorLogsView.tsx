@@ -389,7 +389,7 @@ export function ErrorLogsView() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // ─── Automated Fix Verification Execution ─────────────────────────────────
+  // Automated Fix Verification Execution
   const startVerification = async (target: {
     key: string;
     url: string;

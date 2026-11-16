@@ -186,7 +186,7 @@ export const DEFAULT_HEALTH_SCHEDULE: HealthScheduleConfig = {
   notifyOnlyOnError: false,
 };
 
-// ─── Tools Engine Health & Processing Test Types ────────────────────────────
+// Tools Engine Health & Processing Test Types
 export interface ToolEngineTestStep {
   step: string;
   status: "pending" | "running" | "passed" | "failed";
@@ -231,7 +231,7 @@ export interface ToolEngineAuditReport {
   results: ToolEngineTestResult[];
 }
 
-// ─── SEO Optimisation & Google Ranking Engine Types ─────────────────────────
+// SEO Optimisation & Google Ranking Engine Types
 export interface SeoPageAudit {
   id: string;
   url: string;
@@ -775,7 +775,7 @@ function saveToStorage<T>(key: string, data: T): void {
   }
 }
 
-// ─── ADMIN STORE GETTERS & ACTIONS ──────────────────────────────────────────
+// ADMIN STORE GETTERS & ACTIONS
 
 export function getTodayDateString(): string {
   const now = new Date();
@@ -1874,7 +1874,7 @@ export const AdminStore = {
     return this.getTraffic(daysCount);
   },
 
-  // ─── Pro Settings, Live UI Customizer & Page Tree Toggles ─────────────────
+  // Pro Settings, Live UI Customizer & Page Tree Toggles
   getUiSettings(): UiEditSettings {
     const stored = loadFromStorage<Partial<UiEditSettings>>(STORAGE_KEYS.UI_SETTINGS, {});
     return {
@@ -2047,7 +2047,7 @@ export const AdminStore = {
     return null;
   },
 
-  // ─── PROMO CODES MANAGEMENT ───
+  // PROMO CODES MANAGEMENT
   async fetchPromoCodes(): Promise<AdminPromoCode[]> {
     try {
       const res = await fetch("/api/admin/promocodes", {

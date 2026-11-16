@@ -431,7 +431,7 @@ export function PdfPreviewViewer({
 
   return (
     <>
-      {/* ─── 1. IN-PAGE EMBEDDED VIEWER (Never causes page overlap) ─── */}
+      {/* 1. IN-PAGE EMBEDDED VIEWER (Never causes page overlap) */}
       <div ref={containerRef} className={inPageContainerClasses}>
         {/* In-Page Toolbar */}
         <div
@@ -559,7 +559,7 @@ export function PdfPreviewViewer({
         {renderFilmstrip(false)}
       </div>
 
-      {/* ─── 2. DEDICATED FULLSCREEN LARGE PDF MODAL (Rendered via Portal) ─── */}
+      {/* 2. DEDICATED FULLSCREEN LARGE PDF MODAL (Rendered via Portal) */}
       {typeof document !== "undefined" &&
         isFullscreen &&
         createPortal(

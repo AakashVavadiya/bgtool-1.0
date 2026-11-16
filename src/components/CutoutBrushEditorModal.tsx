@@ -756,7 +756,7 @@ export function CutoutBrushEditorModal({
   return createPortal(
     <div className="fixed inset-0 z-[99999] w-screen h-screen bg-neutral-950 flex flex-col select-none overflow-hidden">
       
-      {/* ─── MOBILE TOP BAR (visible on < md screens) ─────────────────── */}
+      {/* MOBILE TOP BAR (visible on < md screens) */}
       <div className="md:hidden flex items-center justify-between px-2.5 py-2 bg-neutral-900 border-b border-neutral-800 z-30 shrink-0 gap-1 text-white">
         {/* Left: Close button */}
         <button
@@ -847,7 +847,7 @@ export function CutoutBrushEditorModal({
         </div>
       </div>
 
-      {/* ─── MAIN WORKSPACE: CANVAS & DESKTOP FLOATING CONTROLS ────────── */}
+      {/* MAIN WORKSPACE: CANVAS & DESKTOP FLOATING CONTROLS */}
       <div className="flex flex-1 min-h-0 relative overflow-hidden bg-neutral-950">
         
         {/* DESKTOP LEFT FLOATING DOCK (hidden on mobile, visible on md+) */}
@@ -1056,7 +1056,7 @@ export function CutoutBrushEditorModal({
 
           <div className="h-px bg-neutral-800 my-1" />
 
-          {/* ── GHOST BACKDROP (OLDER BACKGROUND PREVIEW) ── */}
+          {/* GHOST BACKDROP (OLDER BACKGROUND PREVIEW) */}
           <div className="space-y-2 pt-0.5">
             <div className="flex items-center justify-between text-[11px]">
               <div className="flex items-center gap-1.5">
@@ -1125,7 +1125,7 @@ export function CutoutBrushEditorModal({
             </p>
           </div>
 
-          {/* ── BACKGROUND BOKEH BLUR (Controls blur on ALL image backgrounds: Magic, Photo & Custom Upload) ── */}
+          {/* BACKGROUND BOKEH BLUR (Controls blur on ALL image backgrounds: Magic, Photo & Custom Upload) */}
           <div className="rounded-xl border border-neutral-800 bg-neutral-800/50 p-2.5 space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold">
               <span className="flex items-center gap-1.5 text-neutral-200">
@@ -1189,7 +1189,7 @@ export function CutoutBrushEditorModal({
             </p>
           </div>
 
-          {/* ── 4. DIRECT ACTION BUTTONS (DOWNLOAD & DONE) IN DOCK ── */}
+          {/* 4. DIRECT ACTION BUTTONS (DOWNLOAD & DONE) IN DOCK */}
           <div className="pt-2 border-t border-neutral-800 flex flex-col gap-1.5">
             <button
               type="button"
@@ -1327,7 +1327,7 @@ export function CutoutBrushEditorModal({
           </button>
         </div>
 
-        {/* ─── DESKTOP RIGHT-SIDE BACKGROUND EDIT PANEL (matching user's request) ─── */}
+        {/* DESKTOP RIGHT-SIDE BACKGROUND EDIT PANEL (matching user's request) */}
         {showBgPanel ? (
           <div className="hidden lg:flex flex-col absolute top-16 right-4 z-20 w-80 max-h-[calc(100vh-5.5rem)] shadow-2xl animate-in fade-in duration-200">
             <BackgroundEditPanel
@@ -1355,7 +1355,7 @@ export function CutoutBrushEditorModal({
           </button>
         )}
 
-        {/* ─── CANVAS SCROLL CONTAINER ─────────────────────────────────── */}
+        {/* CANVAS SCROLL CONTAINER */}
         <div
           ref={containerRef}
           className="flex-1 w-full h-full overflow-auto flex items-center justify-center p-2 sm:p-6 md:p-12 relative cursor-crosshair touch-none"
@@ -1461,7 +1461,7 @@ export function CutoutBrushEditorModal({
         </div>
       </div>
 
-      {/* ─── MOBILE BOTTOM CONTROL SHELF (visible on < md screens) ─────── */}
+      {/* MOBILE BOTTOM CONTROL SHELF (visible on < md screens) */}
       <div className="md:hidden flex flex-col bg-neutral-900 border-t border-neutral-800 z-30 shrink-0 w-full px-3 py-2.5 gap-2 shadow-2xl text-white">
         {/* Collapsible Drawer for Edge Hardness, Opacity & Ghost Background */}
         {mobileTuneOpen && (
@@ -1746,7 +1746,7 @@ export function CutoutBrushEditorModal({
         )}
       </div>
 
-      {/* ─── DESKTOP BOTTOM FOOTER BAR (hidden on mobile, visible on md+) ── */}
+      {/* DESKTOP BOTTOM FOOTER BAR (hidden on mobile, visible on md+) */}
       <footer className="hidden md:flex border-t border-neutral-800 bg-neutral-900 px-4 sm:px-6 py-2.5 items-center justify-between text-xs text-neutral-400 shrink-0 z-30 shadow-md">
         <div className="flex items-center gap-2">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

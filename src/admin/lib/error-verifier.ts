@@ -56,7 +56,7 @@ export async function runErrorFixVerification(options: VerifyOptions): Promise<E
 
   let httpStatus = 200;
 
-  // ─── STEP 1: Pre-flight Route & Bundle Probe ───────────────────────────────
+  // STEP 1: Pre-flight Route & Bundle Probe
   addLog("info", `📡 Probing HTTP status and server response for ${url}...`);
   try {
     const probeRes = await fetch(url, {
@@ -74,7 +74,7 @@ export async function runErrorFixVerification(options: VerifyOptions): Promise<E
     addLog("warn", `⚠️ Pre-flight HTTP fetch warning: ${errMsg}`);
   }
 
-  // ─── STEP 2: Mount Headless Sandbox Container ─────────────────────────────
+  // STEP 2: Mount Headless Sandbox Container
   addLog("info", `🧪 Initializing headless DOM sandbox with isolated error interceptors...`);
 
   let iframe: HTMLIFrameElement | null = null;
@@ -160,7 +160,7 @@ export async function runErrorFixVerification(options: VerifyOptions): Promise<E
       addLog("info", `✓ Interceptors armed: window.onerror, unhandledrejection & console.error`);
     }
 
-    // ─── STEP 3: Navigate and evaluate component lifecycle ───────────────────
+    // STEP 3: Navigate and evaluate component lifecycle
     addLog("info", `⏳ Navigating sandbox to ${testUrl}...`);
     iframe.src = testUrl;
 
@@ -215,7 +215,7 @@ export async function runErrorFixVerification(options: VerifyOptions): Promise<E
     }
   }
 
-  // ─── STEP 4: Formulate Verdict & Summary ──────────────────────────────────
+  // STEP 4: Formulate Verdict & Summary
   const durationMs = Date.now() - startTime;
   let status: "passed" | "failed" = "passed";
   let summary = "";

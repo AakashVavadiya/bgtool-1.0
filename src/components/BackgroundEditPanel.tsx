@@ -29,11 +29,11 @@ export interface BackgroundChoice {
   label?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // 34 HIGH-FIDELITY MAGIC AI PRESETS (12 Original + 22 Brand New Additions)
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 export const MAGIC_PRESETS = [
-  // ── Original 12 ──
+  // Original 12
   {
     id: "magic-1",
     label: "Coral Velvet",
@@ -107,7 +107,7 @@ export const MAGIC_PRESETS = [
     full: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=85",
   },
 
-  // ── 22 Brand New Additions ──
+  // 22 Brand New Additions
   {
     id: "magic-13",
     label: "Ethereal Sunset Clouds",
@@ -242,11 +242,11 @@ export const MAGIC_PRESETS = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // 32+ HIGH-RESOLUTION CATEGORIZED STOCK PHOTOS (Original 9 + 23 New Additions)
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 export const STOCK_PHOTOS = [
-  // ── STUDIO ──
+  // STUDIO
   {
     category: "Studio",
     id: "photo-s1",
@@ -297,7 +297,7 @@ export const STOCK_PHOTOS = [
     full: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=85",
   },
 
-  // ── OFFICE ──
+  // OFFICE
   {
     category: "Office",
     id: "photo-o1",
@@ -334,7 +334,7 @@ export const STOCK_PHOTOS = [
     full: "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=1600&q=85",
   },
 
-  // ── NATURE ──
+  // NATURE
   {
     category: "Nature",
     id: "photo-n1",
@@ -385,7 +385,7 @@ export const STOCK_PHOTOS = [
     full: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1600&q=85",
   },
 
-  // ── INTERIOR ──
+  // INTERIOR
   {
     category: "Interior",
     id: "photo-i1",
@@ -429,7 +429,7 @@ export const STOCK_PHOTOS = [
     full: "https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1600&q=85",
   },
 
-  // ── URBAN ──
+  // URBAN
   {
     category: "Urban",
     id: "photo-u1",
@@ -474,9 +474,9 @@ export const STOCK_PHOTOS = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // 36 CURATED STUDIO SOLID COLORS
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 export const SOLID_COLORS = [
   // Studio Neutrals & E-commerce
   { label: "Pure White", value: "#ffffff" },
@@ -523,9 +523,9 @@ export const SOLID_COLORS = [
   { label: "Hot Magenta", value: "#ec4899" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // 27 CURATED STUDIO GRADIENTS
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 export const GRADIENTS = [
   { label: "Sunset Glow", value: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" },
   { label: "Nordic Frost", value: "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)" },
@@ -556,9 +556,9 @@ export const GRADIENTS = [
   { label: "Metallic Platinum", value: "linear-gradient(135deg, #e6e9f0 0%, #eef1f5 100%)" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // COLOR CONVERSION HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
   s = s / 100;
   v = v / 100;
@@ -635,9 +635,9 @@ function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
   return [Math.round(h * 360), Math.round(s * 100), Math.round(v * 100)];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // BG. COLOR PICKER COMPONENT (Figma/Photoshop-Grade Custom Color Picker)
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 interface BGColorPickerProps {
   color: string;
   onChange: (hex: string) => void;
@@ -718,7 +718,7 @@ export function BGColorPicker({ color, onChange }: BGColorPickerProps) {
 
   return (
     <div className="rounded-2xl border border-neutral-800 bg-[#0d0d10] p-3.5 space-y-3.5 shadow-xl text-white">
-      {/* ── Branded Header ── */}
+      {/* Branded Header */}
       <div className="flex items-center justify-between pb-2 border-b border-neutral-800/80">
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-lg bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 flex items-center justify-center shadow-md">
@@ -749,7 +749,7 @@ export function BGColorPicker({ color, onChange }: BGColorPickerProps) {
         </div>
       </div>
 
-      {/* ── 2D Saturation / Value Canvas Field ── */}
+      {/* 2D Saturation / Value Canvas Field */}
       <div
         ref={satValBoxRef}
         onPointerDown={(e) => {
@@ -801,7 +801,7 @@ export function BGColorPicker({ color, onChange }: BGColorPickerProps) {
         />
       </div>
 
-      {/* ── Rainbow Hue Slider ── */}
+      {/* Rainbow Hue Slider */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-[10px] font-bold text-neutral-400">
           <span>Spectrum Hue</span>
@@ -823,7 +823,7 @@ export function BGColorPicker({ color, onChange }: BGColorPickerProps) {
         </div>
       </div>
 
-      {/* ── HEX & RGB Numerical Display / Inputs ── */}
+      {/* HEX & RGB Numerical Display / Inputs */}
       <div className="grid grid-cols-2 gap-2 pt-1">
         {/* Hex Input */}
         <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-neutral-900 border border-neutral-800">
@@ -863,7 +863,7 @@ export function BGColorPicker({ color, onChange }: BGColorPickerProps) {
         </div>
       </div>
 
-      {/* ── Quick Favorite Studio Swatches ── */}
+      {/* Quick Favorite Studio Swatches */}
       <div className="pt-1">
         <p className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400 mb-1.5">
           Quick Swatches
@@ -901,9 +901,9 @@ export function BGColorPicker({ color, onChange }: BGColorPickerProps) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // COMPOSITE HELPER (Preserves blur on all image types)
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 export const compositeImageWithBackground = (
   cutoutDataUrl: string,
   bg: BackgroundChoice
@@ -985,9 +985,9 @@ export const compositeImageWithBackground = (
   });
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // SARASWATI AI BACKDROP STYLE POOLS
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 export interface AiGeneratedBackdrop {
   id: string;
   label: string;
@@ -1159,9 +1159,9 @@ export const AI_STYLE_POOLS: Record<string, Array<{ label: string; thumb: string
   ],
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // MAIN BACKGROUND EDIT PANEL
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 export interface BackgroundEditPanelProps {
   currentBg: BackgroundChoice;
   onChangeBg: (choice: BackgroundChoice) => void;
@@ -1313,7 +1313,7 @@ export function BackgroundEditPanel({
         className || "w-full lg:w-[340px] xl:w-[380px] h-full"
       }`}
     >
-      {/* ── 1. Top Segmented Tabs: Magic | Photo | Color ── */}
+      {/* 1. Top Segmented Tabs: Magic | Photo | Color */}
       <div className="p-3.5 pb-2.5 border-b border-neutral-800/80 flex items-center justify-between gap-2 bg-[#0e0e11]/90">
         <div className="flex-1 grid grid-cols-3 p-1 rounded-2xl bg-[#09090b] border border-neutral-800">
           <button
@@ -1377,14 +1377,14 @@ export function BackgroundEditPanel({
         onChange={handleCustomUpload}
       />
 
-      {/* ── 2. Scrollable Content Area with Custom Dark Scrollbar ── */}
+      {/* 2. Scrollable Content Area with Custom Dark Scrollbar */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[640px] [scrollbar-width:thin] [scrollbar-color:#3f3f46_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
         
-        {/* ── TAB 1: MAGIC AI BACKGROUNDS ── */}
+        {/* TAB 1: MAGIC AI BACKGROUNDS */}
         {activeTab === "magic" && (
           <div className="space-y-4">
             
-            {/* ── 1. MARKED CARD: SARASWATI AI BACKGROUND GENERATOR ── */}
+            {/* 1. MARKED CARD: SARASWATI AI BACKGROUND GENERATOR */}
             {showBanner && (
               <div
                 onClick={() => {
@@ -1495,7 +1495,7 @@ export function BackgroundEditPanel({
               </div>
             )}
 
-            {/* ── AI STYLE FILTER CHIPS ── */}
+            {/* AI STYLE FILTER CHIPS */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-0.5">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
@@ -1565,7 +1565,7 @@ export function BackgroundEditPanel({
               )}
             </div>
 
-            {/* ── AI GENERATED SHOWCASE (When generated backdrops are ready) ── */}
+            {/* AI GENERATED SHOWCASE (When generated backdrops are ready) */}
             {generatedBackdrops.length > 0 && (
               <div className="space-y-2 pt-1 border-t border-neutral-800/80">
                 <div className="flex items-center justify-between px-0.5">
@@ -1720,7 +1720,7 @@ export function BackgroundEditPanel({
           </div>
         )}
 
-        {/* ── TAB 2: PHOTO (Stock + Custom Photo Upload) ── */}
+        {/* TAB 2: PHOTO (Stock + Custom Photo Upload) */}
         {activeTab === "photo" && (
           <div className="space-y-4">
             {/* Custom Photo Upload Card */}
@@ -1885,7 +1885,7 @@ export function BackgroundEditPanel({
           </div>
         )}
 
-        {/* ── TAB 3: COLOR & GRADIENT (With "BG. Color Picker") ── */}
+        {/* TAB 3: COLOR & GRADIENT (With "BG. Color Picker") */}
         {activeTab === "color" && (
           <div className="space-y-4">
             {/* Quick Transparent / Checkerboard Option */}
@@ -2023,7 +2023,7 @@ export function BackgroundEditPanel({
         )}
       </div>
 
-      {/* ── 3. Footer Indicator (Cohesive Dark Studio Bar) ── */}
+      {/* 3. Footer Indicator (Cohesive Dark Studio Bar) */}
       <div className="p-3 border-t border-neutral-800 bg-[#09090c]/98 flex items-center justify-between text-[11px] text-neutral-400 font-semibold px-4">
         <span className="truncate max-w-[200px]">
           Active: <strong className="text-white font-bold">{currentBg.label || currentBg.type}</strong>

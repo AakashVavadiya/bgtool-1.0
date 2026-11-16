@@ -93,7 +93,7 @@ export function WebsiteHealthCheckupView() {
     return () => window.removeEventListener("bg:telemetry:update", sync);
   }, []);
 
-  // ─── Automated Schedule Background Runner ────────────────────────────────
+  // Automated Schedule Background Runner
   useEffect(() => {
     if (!scheduleConfig.enabled) return;
 
@@ -125,7 +125,7 @@ export function WebsiteHealthCheckupView() {
     return () => clearInterval(interval);
   }, [scheduleConfig.enabled, isAuditing]);
 
-  // ─── Actions: Run Full System Health Audit ─────────────────────────────────
+  // Actions: Run Full System Health Audit
   const handleStartFullAudit = async (isScheduledRun = false) => {
     // 1. Archive older report to history before cleaning
     if (activeReport && activeReport.routes && activeReport.routes.length > 0) {
@@ -362,7 +362,7 @@ export function WebsiteHealthCheckupView() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* ─── 1. TOP HEADER & AUDIT CONTROLS ─────────────────────────────────── */}
+      {/* 1. TOP HEADER & AUDIT CONTROLS */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-border/60 pb-5">
         <div>
           <div className="flex items-center gap-3">
@@ -476,7 +476,7 @@ export function WebsiteHealthCheckupView() {
         </div>
       </div>
 
-      {/* ─── 2. LIVE AUDIT PROGRESS BAR (WHEN AUDITING) ────────────────────── */}
+      {/* 2. LIVE AUDIT PROGRESS BAR (WHEN AUDITING) */}
       {isAuditing && (
         <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2 animate-fade-in shadow-xs">
           <div className="flex items-center justify-between text-xs font-bold">
@@ -500,7 +500,7 @@ export function WebsiteHealthCheckupView() {
         </div>
       )}
 
-      {/* ─── 3. TOP 5 EXECUTIVE HEALTH KPI CARDS (INCLUDING WARNINGS) ──────── */}
+      {/* 3. TOP 5 EXECUTIVE HEALTH KPI CARDS (INCLUDING WARNINGS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Card 1: Health Score */}
         <div className="rounded-3xl border border-border bg-card p-5 shadow-xs">
@@ -614,7 +614,7 @@ export function WebsiteHealthCheckupView() {
         </div>
       </div>
 
-      {/* ─── 4. SEARCH, CATEGORY TABS & STATUS FILTER (WITH WARNING TAB) ────── */}
+      {/* 4. SEARCH, CATEGORY TABS & STATUS FILTER (WITH WARNING TAB) */}
       <div className="space-y-3">
         {/* Category Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
@@ -705,7 +705,7 @@ export function WebsiteHealthCheckupView() {
         </div>
       </div>
 
-      {/* ─── 5. INTERACTIVE ROUTE HEALTH AUDIT TABLE ───────────────────────── */}
+      {/* 5. INTERACTIVE ROUTE HEALTH AUDIT TABLE */}
       <div className="rounded-3xl border border-border bg-card shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -914,7 +914,7 @@ export function WebsiteHealthCheckupView() {
         </div>
       </div>
 
-      {/* ─── 6. ROUTE DETAILS & TEST LOGS DRAWER / MODAL ────────────────────── */}
+      {/* 6. ROUTE DETAILS & TEST LOGS DRAWER / MODAL */}
       {selectedRoute && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
           <div className="relative w-full max-w-2xl rounded-3xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
@@ -1072,7 +1072,7 @@ export function WebsiteHealthCheckupView() {
         </div>
       )}
 
-      {/* ─── 7. SCHEDULE AUTO-TEST CONFIGURATION MODAL ───────────────────────── */}
+      {/* 7. SCHEDULE AUTO-TEST CONFIGURATION MODAL */}
       {isScheduleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
           <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">

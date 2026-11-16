@@ -158,7 +158,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
 
   return (
     <div className={`relative inline-block notranslate ${isOpen ? "z-50" : ""}`} ref={popoverRef}>
-      {/* ── Trigger Button ────────────────────────────────────────────── */}
+      {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -182,7 +182,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
         />
       </button>
 
-      {/* ── Mobile Backdrop Overlay ─────────────────────────────────────── */}
+      {/* Mobile Backdrop Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-xs sm:hidden animate-in fade-in duration-200"
@@ -191,7 +191,7 @@ export function LanguageTranslator({ variant = "header" }: LanguageTranslatorPro
         />
       )}
 
-      {/* ── Dropdown / Mobile Bottom Sheet ─────────────────────────────── */}
+      {/* Dropdown / Mobile Bottom Sheet */}
       {isOpen && (
         <div
           role="dialog"

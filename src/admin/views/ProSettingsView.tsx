@@ -320,7 +320,7 @@ export function ProSettingsView() {
         </div>
       </div>
 
-      {/* ─── MASTER AI KILL SWITCH / DEACTIVATION BANNER ─────────────────── */}
+      {/* MASTER AI KILL SWITCH / DEACTIVATION BANNER */}
       <div
         className={`rounded-3xl border p-6 sm:p-7 transition-all shadow-md relative overflow-hidden ${
           allAiActive
@@ -483,7 +483,7 @@ export function ProSettingsView() {
         </button>
       </div>
 
-      {/* ─── TAB 1: AI & FEATURE TOGGLES ─────────────────────────────────── */}
+      {/* TAB 1: AI & FEATURE TOGGLES */}
       {activeTab === "ai-control" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -718,7 +718,7 @@ export function ProSettingsView() {
         </div>
       )}
 
-      {/* ─── TAB 2: PAGE TREE ON / OFF ──────────────────────────────────── */}
+      {/* TAB 2: PAGE TREE ON / OFF */}
       {activeTab === "tree" && (
         <div className="space-y-6">
           {/* Search & Filter Bar */}
@@ -961,7 +961,7 @@ export function ProSettingsView() {
         </div>
       )}
 
-      {/* ─── TAB 3: UI EDIT OPTIONS ─────────────────────────────────────── */}
+      {/* TAB 3: UI EDIT OPTIONS */}
       {activeTab === "ui-edit" && (
         <div className="space-y-6">
           {/* Header Branding & Elements */}
@@ -1165,7 +1165,7 @@ export function ProSettingsView() {
         </div>
       )}
 
-      {/* ─── TAB 4: SITE DIALOGS & ANNOUNCEMENT MODAL ───────────────────────── */}
+      {/* TAB 4: SITE DIALOGS & ANNOUNCEMENT MODAL */}
       {activeTab === "dialog" && (
         <div className="space-y-6 animate-fade-in">
           {/* Top Banner & Quick Controls */}
@@ -1634,7 +1634,7 @@ export function ProSettingsView() {
         </div>
       )}
 
-      {/* ─── TAB 5: WEBSITE STRUCTURE & LAYOUT ──────────────────────────────── */}
+      {/* TAB 5: WEBSITE STRUCTURE & LAYOUT */}
       {activeTab === "structure" && (
         <div className="space-y-6 animate-fade-in">
           {/* Header Banner */}
@@ -1822,7 +1822,7 @@ export function ProSettingsView() {
         </div>
       )}
 
-      {/* ─── TAB 6: GUEST TOOL LIMITS & DIFFERENT TOOL BONUS ─────────────────── */}
+      {/* TAB 6: GUEST TOOL LIMITS & DIFFERENT TOOL BONUS */}
       {activeTab === "guest-limits" && (
         <div className="space-y-6 animate-fade-in">
           {/* Header Banner */}

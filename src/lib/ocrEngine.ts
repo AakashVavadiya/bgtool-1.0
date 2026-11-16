@@ -4,7 +4,7 @@
  * 100% Client-Side, Spec-Compliant OpenXML (ISO/IEC 29500), Worker-Cached, Fast & Accurate.
  */
 
-// ── 1. XML & Format Helpers ──────────────────────────────────────────────────
+// 1. XML & Format Helpers
 export const escapeXml = (str: string): string =>
   (str || "").replace(/[<>&"']/g, (m) => {
     switch (m) {
@@ -28,7 +28,7 @@ export const getExcelColumnLetter = (colIndex: number): string => {
   return letter || "A";
 };
 
-// ── 2. Spec-Valid ZIP Builder (Store Method) ─────────────────────────────────
+// 2. Spec-Valid ZIP Builder (Store Method)
 export const buildZip = (
   files: { name: string; data: Uint8Array<ArrayBufferLike> }[]
 ): Uint8Array => {
@@ -112,7 +112,7 @@ export const buildZip = (
   return concat(...parts, cdBytes, eocd);
 };
 
-// ── 3. High-Performance Shared Tesseract Worker Pool ─────────────────────────
+// 3. High-Performance Shared Tesseract Worker Pool
 interface CachedWorkerState {
   worker: any;
   lang: string;
@@ -180,7 +180,7 @@ export async function getSharedOcrWorker(
   return workerInitPromise;
 }
 
-// ── 4. Image Preprocessing for Optimal OCR Speed & Precision ─────────────────
+// 4. Image Preprocessing for Optimal OCR Speed & Precision
 export function preprocessCanvasForOcr(
   canvas: HTMLCanvasElement,
   contrastMode?: "auto" | "high" | "inverted"
@@ -239,7 +239,7 @@ export function preprocessCanvasForOcr(
   return outCanvas;
 }
 
-// ── 5. Intelligent TSV to 2D Table Matrix Parser ─────────────────────────────
+// 5. Intelligent TSV to 2D Table Matrix Parser
 export function parseOcrTsvToGrid(tsv: string): string[][] {
   if (!tsv || !tsv.trim()) return [];
 
@@ -334,7 +334,7 @@ export function parseOcrTsvToGrid(tsv: string): string[][] {
   return grid;
 }
 
-// ── 6. Intelligent Delimiter-Based Line to Grid Fallback ──────────────────────
+// 6. Intelligent Delimiter-Based Line to Grid Fallback
 export const parseOcrTextToGrid = (
   lines: string[],
   mode: "grid" | "csv" | "whitespace" | "lines" = "grid"
@@ -423,7 +423,7 @@ export const parseOcrTextToGrid = (
     .filter((r) => r.some((c) => c.length > 0));
 };
 
-// ── 7. Advanced OCR Result Interface ─────────────────────────────────────────
+// 7. Advanced OCR Result Interface
 export interface AdvancedOcrResult {
   textLines: string[];
   rawWords: string[];
@@ -495,7 +495,7 @@ export const performAdvancedOcr = async (
   const ocrLang = (options.language || "eng").trim();
   const workCanvas = preprocessCanvasForOcr(canvas, options.contrastMode);
 
-  // ── PASS 0: Fast First-Party Native OCR Engine API ─────────────
+  // PASS 0: Fast First-Party Native OCR Engine API
   try {
     if (options.onProgress) options.onProgress("Processing OCR with Neural Engine...", 35);
     const dataUrl = workCanvas.toDataURL("image/png");
@@ -738,7 +738,7 @@ export const performAdvancedOcr = async (
   };
 };
 
-// ── 9. Image → PPTX Builder (100% Spec-Valid OpenXML with Theme & Text) ─────
+// 9. Image → PPTX Builder (100% Spec-Valid OpenXML with Theme & Text)
 export function buildPptxFromOcrAndImage(
   arg1: string | string[],
   arg2?: number | {
@@ -1125,7 +1125,7 @@ export const buildPptxFromImage = (
   return buildPptxFromOcrAndImage(dataUrl, imgW, imgH, filename, { mode: "image_only" });
 };
 
-// ── 10. Image → XLSX Builder (Multi-Column SpreadsheetML with Table Matrix) ──
+// 10. Image → XLSX Builder (Multi-Column SpreadsheetML with Table Matrix)
 export const buildEditableXlsxFromOcr = (
   input: string[] | string[][],
   options: {
@@ -1309,7 +1309,7 @@ export const buildXlsxFromImage = (
   });
 };
 
-// ── 11. Image → DOCX Builder (With Real Tables, Headings & Formatting) ─────────
+// 11. Image → DOCX Builder (With Real Tables, Headings & Formatting)
 export const buildEditableDocxFromOcr = (
   textLines: string[],
   options: {
