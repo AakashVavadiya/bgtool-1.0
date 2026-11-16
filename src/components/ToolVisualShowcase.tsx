@@ -487,17 +487,17 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {/* ── 1. CROP IMAGE INTERACTIVE VISUAL STAGE ── */}
             {mode === "crop-image" && (
               <div className="space-y-4">
-                <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-[#0a0a0a] border border-border select-none">
-                  {/* Darkened Outer Uncropped Image */}
+                <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0a0a0a] border border-border select-none">
+                  {/* Outer Uncropped Image */}
                   <img
                     src={girlBefore}
                     alt="Original uncropped frame"
-                    className="h-full w-full object-cover object-top opacity-35 filter brightness-50 pointer-events-none"
+                    className="h-full w-full object-cover object-top opacity-35 pointer-events-none"
                   />
 
                   {/* Active Bright Crop Box with Rule-of-Thirds Grid & Handles */}
                   <div
-                    className="absolute border-2 border-[#ff5500] shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] transition-all duration-300 overflow-hidden"
+                    className="absolute border-2 border-[#ff5500] shadow-[0_0_0_9999px_rgba(255,255,255,0.65)] dark:shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] transition-all duration-300 overflow-hidden"
                     style={{
                       left: cropBoxMap.left,
                       top: cropBoxMap.top,
@@ -512,29 +512,29 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                     />
                     {/* Rule of Thirds Grid Lines */}
                     <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
-                      <div className="border-r border-b border-white/45" />
-                      <div className="border-r border-b border-white/45" />
-                      <div className="border-b border-white/45" />
-                      <div className="border-r border-b border-white/45" />
-                      <div className="border-r border-b border-white/45" />
-                      <div className="border-b border-white/45" />
-                      <div className="border-r border-white/45" />
-                      <div className="border-r border-white/45" />
+                      <div className="border-r border-b border-white/55" />
+                      <div className="border-r border-b border-white/55" />
+                      <div className="border-b border-white/55" />
+                      <div className="border-r border-b border-white/55" />
+                      <div className="border-r border-b border-white/55" />
+                      <div className="border-b border-white/55" />
+                      <div className="border-r border-white/55" />
+                      <div className="border-r border-white/55" />
                       <div />
                     </div>
                     {/* Corner L-Handles */}
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white" />
-                    <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white" />
-                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-white" />
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-white" />
+                    <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-[#ff5500]" />
+                    <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-[#ff5500]" />
+                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-[#ff5500]" />
+                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-[#ff5500]" />
 
                     {/* Live Dimension Readout Pill Inside Crop Box */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-[#0a0a0a]/90 text-white border border-white/20 px-3 py-0.5 text-[10px] font-mono font-bold whitespace-nowrap shadow-lg">
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white/95 dark:bg-[#0a0a0a]/90 text-foreground dark:text-white border border-border dark:border-white/20 px-3 py-0.5 text-[10px] font-mono font-bold whitespace-nowrap shadow-lg">
                       {cropBoxMap.dim}
                     </div>
                   </div>
 
-                  <span className="absolute top-3 left-3 rounded-full bg-black/80 text-white px-3 py-1 text-[11px] font-bold border border-white/15">
+                  <span className="absolute top-3 left-3 rounded-full bg-white/95 dark:bg-black/80 text-foreground dark:text-white px-3 py-1 text-[11px] font-bold border border-border dark:border-white/15 shadow-xs">
                     Rule-of-Thirds Composition Grid
                   </span>
                 </div>
@@ -575,16 +575,16 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {/* ── 2. RESIZE IMAGE INTERACTIVE VISUAL STAGE ── */}
             {mode === "resize-image" && (
               <div className="space-y-4">
-                <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-neutral-950 border border-border p-6 flex flex-col items-center justify-center">
+                <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0a0a0a] border border-border p-6 flex flex-col items-center justify-center shadow-inner">
                   {/* Top & Left Pixel Rulers */}
-                  <div className="absolute top-0 inset-x-0 h-6 bg-[#141414] border-b border-white/10 flex items-center justify-between px-4 text-[10px] font-mono text-neutral-400">
+                  <div className="absolute top-0 inset-x-0 h-6 bg-secondary/70 dark:bg-[#141414] border-b border-border dark:border-white/10 flex items-center justify-between px-4 text-[10px] font-mono text-muted-foreground">
                     <span>0 px</span>
                     <span className="text-[#ff5500] font-bold">↔ Width: {resizeMeta.w} px</span>
                     <span>{resizeMeta.w} px</span>
                   </div>
 
                   <div
-                    className={`relative mt-4 rounded-xl overflow-hidden border-2 border-[#ff5500] shadow-2xl transition-all duration-300 ${resizeMeta.scale}`}
+                    className={`relative mt-4 rounded-xl overflow-hidden border-2 border-[#ff5500] shadow-xl transition-all duration-300 ${resizeMeta.scale}`}
                     style={{ maxWidth: "78%", maxHeight: "230px" }}
                   >
                     <img
@@ -592,20 +592,20 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                       alt="Resized preview"
                       className="h-52 w-auto object-cover pointer-events-none"
                     />
-                    <div className="absolute bottom-2 right-2 rounded-lg bg-black/85 text-white border border-white/20 px-2.5 py-1 text-[11px] font-mono font-bold">
+                    <div className="absolute bottom-2 right-2 rounded-lg bg-white/95 dark:bg-black/85 text-foreground dark:text-white border border-border dark:border-white/20 px-2.5 py-1 text-[11px] font-mono font-bold shadow">
                       {resizeMeta.w} × {resizeMeta.h} px
                     </div>
                   </div>
 
                   {/* Output Specs Strip */}
                   <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
-                    <span className="rounded-full bg-white/10 text-white px-3 py-1 font-mono font-bold">
+                    <span className="rounded-full bg-secondary dark:bg-white/10 text-foreground dark:text-white border border-border dark:border-white/10 px-3 py-1 font-mono font-bold">
                       Resolution: {resizeMeta.w}×{resizeMeta.h}
                     </span>
-                    <span className="rounded-full bg-emerald-500/20 text-emerald-300 px-3 py-1 font-mono font-bold">
+                    <span className="rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-3 py-1 font-mono font-bold">
                       Density: {resizeMeta.dpi}
                     </span>
-                    <span className="rounded-full bg-[#ff5500]/20 text-[#ff5500] px-3 py-1 font-mono font-bold">
+                    <span className="rounded-full bg-[#ff5500]/15 text-[#ff5500] border border-[#ff5500]/25 px-3 py-1 font-mono font-bold">
                       Est. Size: {resizeMeta.size}
                     </span>
                   </div>
@@ -648,27 +648,27 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 h-[300px] sm:h-[320px]">
                   {/* Left: Uncompressed Original */}
-                  <div className="relative rounded-2xl overflow-hidden border border-border bg-neutral-900">
+                  <div className="relative rounded-2xl overflow-hidden border border-border bg-white dark:bg-[#0a0a0a]">
                     <img
                       src={girlBefore}
                       alt="Uncompressed original"
                       className="h-full w-full object-cover object-top"
                     />
-                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black/85 backdrop-blur-md p-2.5 text-white border border-white/15">
-                      <div className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold">
+                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-white/95 dark:bg-black/85 backdrop-blur-md p-2.5 text-foreground dark:text-white border border-border dark:border-white/15 shadow-md">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                         Original Uncompressed
                       </div>
                       <div className="flex items-baseline justify-between mt-0.5">
-                        <span className="font-mono text-sm sm:text-base font-black text-rose-400">
+                        <span className="font-mono text-sm sm:text-base font-black text-rose-600 dark:text-rose-400">
                           4.28 MB
                         </span>
-                        <span className="text-[10px] font-mono text-neutral-300">100% Raw</span>
+                        <span className="text-[10px] font-mono text-muted-foreground">100% Raw</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Right: Compressed Output */}
-                  <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500 bg-neutral-900">
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500 bg-white dark:bg-[#0a0a0a]">
                     <img
                       src={girlBefore}
                       alt="Compressed output"
@@ -677,15 +677,15 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                     <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-500 text-white px-2.5 py-0.5 text-[11px] font-black shadow-lg">
                       -{savedPercent}% Saved
                     </span>
-                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black/85 backdrop-blur-md p-2.5 text-white border border-emerald-500/40">
-                      <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
+                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-white/95 dark:bg-black/85 backdrop-blur-md p-2.5 text-foreground dark:text-white border border-emerald-500/40 shadow-md">
+                      <div className="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">
                         Smart Compressed Output
                       </div>
                       <div className="flex items-baseline justify-between mt-0.5">
-                        <span className="font-mono text-sm sm:text-base font-black text-emerald-400">
+                        <span className="font-mono text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
                           {compressedKb} KB
                         </span>
-                        <span className="text-[10px] font-mono text-white">
+                        <span className="text-[10px] font-mono text-foreground dark:text-white font-bold">
                           Quality: {compressQuality}%
                         </span>
                       </div>
@@ -722,16 +722,16 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {/* ── 4. ROTATE & FLIP IMAGE INTERACTIVE STAGE ── */}
             {mode === "rotate-image" && (
               <div className="space-y-4">
-                <div className="relative h-[310px] sm:h-[340px] w-full rounded-2xl overflow-hidden bg-neutral-950 border border-border flex items-center justify-center p-6">
+                <div className="relative h-[310px] sm:h-[340px] w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0a0a0a] border border-border flex items-center justify-center p-6 shadow-inner">
                   <img
                     src={girlBefore}
                     alt="Rotated preview"
-                    className="max-h-56 max-w-56 rounded-xl object-cover border-2 border-white/20 shadow-2xl transition-transform duration-300"
+                    className="max-h-56 max-w-56 rounded-xl object-cover border-2 border-border dark:border-white/20 shadow-xl transition-transform duration-300"
                     style={{
                       transform: `rotate(${rotateDeg}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
                     }}
                   />
-                  <div className="absolute top-3 left-3 rounded-full bg-black/80 text-white border border-white/15 px-3 py-1 text-[11px] font-mono font-bold">
+                  <div className="absolute top-3 left-3 rounded-full bg-white/95 dark:bg-black/80 text-foreground dark:text-white border border-border dark:border-white/15 px-3 py-1 text-[11px] font-mono font-bold shadow-xs">
                     Angle: {rotateDeg}° {flipH ? "· Flip H" : ""} {flipV ? "· Flip V" : ""}
                   </div>
                 </div>
@@ -775,9 +775,9 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {/* ── 5. SQUARE YOUR IMAGE (1:1 NO-CROP STUDIO) ── */}
             {mode === "square-image" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-center bg-neutral-950 rounded-2xl p-5 border border-border h-[320px]">
+                <div className="flex items-center justify-center bg-white dark:bg-[#0a0a0a] rounded-2xl p-5 border border-border h-[320px] shadow-inner">
                   <div
-                    className="relative h-64 w-64 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl flex items-center justify-center"
+                    className="relative h-64 w-64 rounded-2xl overflow-hidden border-2 border-border dark:border-white/20 shadow-xl flex items-center justify-center"
                     style={{
                       background:
                         squareStyle === "white"
@@ -801,7 +801,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                       alt="1:1 uncropped subject"
                       className="relative z-10 w-56 h-40 object-cover rounded-lg shadow-xl border border-white/30"
                     />
-                    <span className="absolute bottom-2 right-2 z-20 rounded-full bg-black/80 text-white px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                    <span className="absolute bottom-2 right-2 z-20 rounded-full bg-white/95 dark:bg-black/80 text-foreground dark:text-white px-2.5 py-0.5 text-[10px] font-mono font-bold shadow">
                       1080 × 1080 (1:1 No-Crop)
                     </span>
                   </div>
@@ -840,17 +840,17 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {mode === "upscale-image" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 h-[310px]">
-                  <div className="relative rounded-2xl overflow-hidden border border-border bg-neutral-900">
+                  <div className="relative rounded-2xl overflow-hidden border border-border bg-white dark:bg-[#0a0a0a]">
                     <img
                       src={girlBefore}
                       alt="Low-res input"
                       className="h-full w-full object-cover object-top filter blur-[2.5px] contrast-90 scale-105"
                     />
-                    <span className="absolute top-2.5 left-2.5 rounded-full bg-black/80 text-white px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                    <span className="absolute top-2.5 left-2.5 rounded-full bg-white/95 dark:bg-black/80 text-foreground dark:text-white border border-border dark:border-white/15 px-2.5 py-0.5 text-[10px] font-mono font-bold shadow">
                       Low-Res Input (480 × 600 px)
                     </span>
                   </div>
-                  <div className="relative rounded-2xl overflow-hidden border-2 border-[#ff5500] bg-neutral-900">
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-[#ff5500] bg-white dark:bg-[#0a0a0a]">
                     <img
                       src={girlBefore}
                       alt="4K Upscaled output"
@@ -886,14 +886,14 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {mode === "remove-background" && (
               <div className="space-y-4">
                 <div
-                  className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden border border-border select-none"
+                  className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden border border-border select-none bg-white dark:bg-[#0a0a0a]"
                   style={
                     bgColorMode === "transparent"
-                      ? { ...softCheckerStyle, backgroundColor: "#ffffff" }
+                      ? softCheckerStyle
                       : bgColorMode === "orange"
                         ? { background: "linear-gradient(135deg, #ff5500 0%, #ff8800 100%)" }
                         : bgColorMode === "dark"
-                          ? { background: "#0f172a" }
+                          ? { background: "#0a0a0a" }
                           : { background: "linear-gradient(135deg, #fce7f3 0%, #e0e7ff 100%)" }
                   }
                 >
@@ -920,10 +920,10 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                       ↔
                     </div>
                   </div>
-                  <span className="absolute top-3 left-3 rounded-full bg-black/75 text-white px-3 py-1 text-[11px] font-bold">
+                  <span className="absolute top-3 left-3 rounded-full bg-white/95 dark:bg-black/75 text-foreground dark:text-white border border-border dark:border-white/15 px-3 py-1 text-[11px] font-bold shadow">
                     Original Photo
                   </span>
-                  <span className="absolute top-3 right-3 rounded-full bg-[#ff5500] text-white px-3 py-1 text-[11px] font-extrabold">
+                  <span className="absolute top-3 right-3 rounded-full bg-[#ff5500] text-white px-3 py-1 text-[11px] font-extrabold shadow">
                     Transparent PNG Cutout
                   </span>
                 </div>
@@ -962,7 +962,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {/* ── 8. AI BLUR FACE (PRIVACY REDACTION) ── */}
             {mode === "blur-face" && (
               <div className="space-y-4">
-                <div className="relative h-[320px] w-full rounded-2xl overflow-hidden border border-border bg-neutral-950">
+                <div className="relative h-[320px] w-full rounded-2xl overflow-hidden border border-border bg-white dark:bg-[#0a0a0a]">
                   <img
                     src={girlBefore}
                     alt="Face blur privacy demo"
@@ -984,7 +984,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                       Face Shield Active
                     </span>
                   </div>
-                  <span className="absolute bottom-3 left-3 rounded-full bg-black/80 text-white px-3 py-1 text-[11px] font-bold">
+                  <span className="absolute bottom-3 left-3 rounded-full bg-white/95 dark:bg-black/80 text-foreground dark:text-white border border-border dark:border-white/15 px-3 py-1 text-[11px] font-bold shadow">
                     AI Face Detection · Privacy Anonymizer
                   </span>
                 </div>
@@ -1014,7 +1014,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               mode === "color-picker" ||
               mode === "meme-generator") && (
               <div className="space-y-4">
-                <div className="relative h-[320px] w-full rounded-2xl overflow-hidden border border-border bg-neutral-950">
+                <div className="relative h-[320px] w-full rounded-2xl overflow-hidden border border-border bg-white dark:bg-[#0a0a0a]">
                   <img
                     src={girlBefore}
                     alt={tool.name}
@@ -1042,7 +1042,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                   )}
 
                   {mode === "remove-watermark" && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-400 bg-emerald-500/20 backdrop-blur-xs px-4 py-2 text-white text-xs font-black shadow-xl">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-500 bg-white/95 dark:bg-emerald-950/90 backdrop-blur-xs px-4 py-2 text-emerald-700 dark:text-emerald-300 text-xs font-black shadow-xl">
                       ✓ Watermark &amp; Stamp Inpainted Cleanly
                     </div>
                   )}
@@ -1078,15 +1078,15 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                           title={`${c.name}: ${c.hex}`}
                         />
                       ))}
-                      <div className="absolute bottom-3 inset-x-3 rounded-xl bg-black/85 backdrop-blur-md border border-white/15 p-3 text-white flex items-center justify-between">
+                      <div className="absolute bottom-3 inset-x-3 rounded-xl bg-white/95 dark:bg-black/85 backdrop-blur-md border border-border dark:border-white/15 p-3 text-foreground dark:text-white flex items-center justify-between shadow-lg">
                         <div className="flex items-center gap-2.5">
                           <span
-                            className="h-7 w-7 rounded-lg border border-white/30 shrink-0"
+                            className="h-7 w-7 rounded-lg border border-border dark:border-white/30 shrink-0"
                             style={{ backgroundColor: paletteColors[pickedColorIdx]?.hex }}
                           />
                           <div>
                             <div className="text-xs font-extrabold">{paletteColors[pickedColorIdx]?.name}</div>
-                            <div className="text-[11px] font-mono text-neutral-300">
+                            <div className="text-[11px] font-mono text-muted-foreground">
                               {paletteColors[pickedColorIdx]?.hex} · {paletteColors[pickedColorIdx]?.rgb}
                             </div>
                           </div>
@@ -1122,32 +1122,32 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {/* ── 10. FORMAT CONVERTERS / CODE ENCODING / ASCII ART ── */}
             {(mode === "format-converter" || mode === "code-encoding" || mode === "ascii-art") && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch min-h-[300px]">
-                <div className="relative rounded-2xl overflow-hidden border border-border bg-neutral-950">
+                <div className="relative rounded-2xl overflow-hidden border border-border bg-white dark:bg-[#0a0a0a]">
                   <img
                     src={girlBefore}
                     alt="Source input"
                     className="h-full w-full object-cover object-top"
                   />
-                  <div className="absolute bottom-2.5 inset-x-2.5 rounded-xl bg-black/85 backdrop-blur-md p-2.5 text-white border border-white/15">
-                    <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold block">
+                  <div className="absolute bottom-2.5 inset-x-2.5 rounded-xl bg-white/95 dark:bg-black/85 backdrop-blur-md p-2.5 text-foreground dark:text-white border border-border dark:border-white/15 shadow-md">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                       Source Input Format
                     </span>
-                    <span className="font-mono text-xs sm:text-sm font-black text-white">
+                    <span className="font-mono text-xs sm:text-sm font-black text-foreground dark:text-white">
                       {tool.accepts} · Full Color Profile
                     </span>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border-2 border-[#ff5500]/50 bg-[#0d0d10] text-white p-4 flex flex-col justify-between">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                <div className="rounded-2xl border-2 border-[#ff5500]/50 bg-white dark:bg-[#0a0a0a] text-foreground dark:text-white p-4 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between border-b border-border dark:border-white/10 pb-2.5">
                     <span className="text-xs font-extrabold text-[#ff5500]">
                       Converted {tool.outputs} Output
                     </span>
-                    <Code2 className="h-4 w-4 text-emerald-400" />
+                    <Code2 className="h-4 w-4 text-emerald-500" />
                   </div>
 
                   {mode === "code-encoding" ? (
-                    <pre className="my-auto font-mono text-[10px] leading-relaxed text-emerald-400 bg-black/60 p-3 rounded-xl border border-white/10 overflow-hidden select-all">
+                    <pre className="my-auto font-mono text-[10px] leading-relaxed text-emerald-700 dark:text-emerald-400 bg-secondary/70 dark:bg-black/60 p-3 rounded-xl border border-border dark:border-white/10 overflow-hidden select-all">
                       {tool.slug.includes("base64")
                         ? "data:image/png;base64,\niVBORw0KGgoAAAANSUhEUgAA\nBAAAAAQACAYAAAB/HSuDAAA..."
                         : tool.slug.includes("hex")
@@ -1157,7 +1157,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                             : "10001001 01010000 01001110\n01000111 00001101 00001010..."}
                     </pre>
                   ) : mode === "ascii-art" ? (
-                    <pre className="my-auto font-mono text-[8px] leading-[9px] text-amber-400 bg-black/70 p-3 rounded-xl border border-white/10 overflow-hidden text-center">
+                    <pre className="my-auto font-mono text-[8px] leading-[9px] text-amber-700 dark:text-amber-400 bg-secondary/70 dark:bg-black/70 p-3 rounded-xl border border-border dark:border-white/10 overflow-hidden text-center">
                       {[
                         "  ..::;;++**##@@##**++;;::..  ",
                         " .:;+*#@@%%%%%%%%%%@@#*+;:. ",
@@ -1170,22 +1170,22 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                     </pre>
                   ) : (
                     <div className="my-auto space-y-2.5">
-                      <div className="rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
-                        <span className="text-xs text-neutral-300">Target Container</span>
-                        <span className="font-mono text-xs font-black text-emerald-400">{tool.outputs}</span>
+                      <div className="rounded-xl bg-secondary/60 dark:bg-white/5 border border-border dark:border-white/10 p-3 flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Target Container</span>
+                        <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">{tool.outputs}</span>
                       </div>
-                      <div className="rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
-                        <span className="text-xs text-neutral-300">Color &amp; Metadata</span>
-                        <span className="font-mono text-xs font-bold text-white">sRGB · Lossless</span>
+                      <div className="rounded-xl bg-secondary/60 dark:bg-white/5 border border-border dark:border-white/10 p-3 flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Color &amp; Metadata</span>
+                        <span className="font-mono text-xs font-bold text-foreground dark:text-white">sRGB · Lossless</span>
                       </div>
-                      <div className="rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
-                        <span className="text-xs text-neutral-300">Browser Speed</span>
+                      <div className="rounded-xl bg-secondary/60 dark:bg-white/5 border border-border dark:border-white/10 p-3 flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Browser Speed</span>
                         <span className="font-mono text-xs font-bold text-[#ff5500]">&lt; 0.4 Seconds</span>
                       </div>
                     </div>
                   )}
 
-                  <div className="text-[11px] text-emerald-400 font-bold flex items-center justify-between pt-2 border-t border-white/10">
+                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-between pt-2 border-t border-border dark:border-white/10">
                     <span>✓ Ready for Instant Download</span>
                     <span>100% Spec-Compliant</span>
                   </div>
@@ -1196,21 +1196,21 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {/* ── 11. OCR & DOCUMENT CONVERTERS (WORD / EXCEL / PPT / OCR) ── */}
             {(mode === "ocr-text" || mode === "doc-excel" || mode === "doc-word" || mode === "doc-ppt") && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch min-h-[290px]">
-                <div className="rounded-2xl border border-border bg-neutral-950 p-4 flex flex-col justify-between text-white relative overflow-hidden">
-                  <span className="self-start rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold">
+                <div className="rounded-2xl border border-border bg-white dark:bg-[#0a0a0a] p-4 flex flex-col justify-between text-foreground dark:text-white relative overflow-hidden shadow-inner">
+                  <span className="self-start rounded-full bg-secondary dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold">
                     1. Source ({tool.accepts})
                   </span>
-                  <div className="my-auto rounded-xl bg-white/5 border border-white/15 p-3.5 space-y-2 font-mono text-xs relative">
-                    <div className="flex justify-between text-amber-400 font-bold">
+                  <div className="my-auto rounded-xl bg-secondary/60 dark:bg-white/5 border border-border dark:border-white/15 p-3.5 space-y-2 font-mono text-xs relative">
+                    <div className="flex justify-between text-[#ff5500] font-bold">
                       <span>STATEMENT #2026</span>
                       <span>$4,850.00</span>
                     </div>
-                    <div className="h-2 w-5/6 rounded bg-white/20" />
-                    <div className="h-2 w-4/6 rounded bg-white/20" />
-                    <div className="h-2 w-11/12 rounded bg-white/20" />
+                    <div className="h-2 w-5/6 rounded bg-foreground/20 dark:bg-white/20" />
+                    <div className="h-2 w-4/6 rounded bg-foreground/20 dark:bg-white/20" />
+                    <div className="h-2 w-11/12 rounded bg-foreground/20 dark:bg-white/20" />
                     <div className="inset-x-0 top-1/2 h-0.5 bg-[#ff5500] shadow-[0_0_12px_#ff5500] absolute" />
                   </div>
-                  <span className="text-[11px] text-neutral-400">
+                  <span className="text-[11px] text-muted-foreground">
                     Optical Layout &amp; Table Structure Recognition
                   </span>
                 </div>
@@ -1269,13 +1269,13 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
 
             {/* ── 12. PDF TOOLS (MERGE / SPLIT / COMPRESS / EDIT / SIGN / SECURITY / QR / INVOICE) ── */}
             {mode.startsWith("pdf-") && (
-              <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-4 sm:p-5 text-white space-y-4">
+              <div className="rounded-2xl bg-white dark:bg-[#0a0a0a] border border-border dark:border-white/10 p-4 sm:p-5 text-foreground dark:text-white space-y-4 shadow-inner">
                 {mode === "pdf-merge" ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-2.5">
                       {["Contract_P1.pdf", "Financials_P2.pdf", "Appendix_P3.pdf"].map((name, i) => (
-                        <div key={name} className="rounded-xl bg-[#161616] border border-white/15 p-3 text-center space-y-1.5">
-                          <div className="mx-auto h-10 w-8 rounded bg-white text-[#0a0a0a] font-mono text-[10px] font-black flex items-center justify-center shadow">
+                        <div key={name} className="rounded-xl bg-secondary/60 dark:bg-[#161616] border border-border dark:border-white/15 p-3 text-center space-y-1.5">
+                          <div className="mx-auto h-10 w-8 rounded bg-white text-[#0a0a0a] border border-neutral-200 font-mono text-[10px] font-black flex items-center justify-center shadow">
                             PDF {i + 1}
                           </div>
                           <div className="text-[10px] font-bold truncate">{name}</div>
@@ -1287,8 +1287,8 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                       <span>Combined in Custom Drag-and-Drop Order ↓</span>
                     </div>
                     <div className="rounded-xl bg-emerald-500/15 border border-emerald-500/40 p-3 flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-white">Merged_Master_Document.pdf</span>
-                      <span className="text-[11px] font-mono font-bold text-emerald-400">All Pages Unified</span>
+                      <span className="text-xs font-extrabold text-foreground dark:text-white">Merged_Master_Document.pdf</span>
+                      <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">All Pages Unified</span>
                     </div>
                   </div>
                 ) : mode === "pdf-split" ? (
@@ -1302,10 +1302,10 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                             className={`rounded-xl p-2.5 text-center border transition-all ${
                               selected
                                 ? "border-[#ff5500] bg-[#ff5500]/15 ring-2 ring-[#ff5500]/40"
-                                : "border-white/10 bg-[#161616] opacity-55"
+                                : "border-border dark:border-white/10 bg-secondary/50 dark:bg-[#161616] opacity-60"
                             }`}
                           >
-                            <div className="mx-auto h-12 w-9 rounded bg-white text-[#0a0a0a] font-mono text-[10px] font-black flex items-center justify-center">
+                            <div className="mx-auto h-12 w-9 rounded bg-white text-[#0a0a0a] border border-neutral-200 font-mono text-[10px] font-black flex items-center justify-center">
                               P.{p}
                             </div>
                             <span className="mt-1.5 block text-[10px] font-bold">
@@ -1315,35 +1315,35 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                         );
                       })}
                     </div>
-                    <div className="rounded-xl bg-[#161616] border border-white/15 p-3 flex items-center justify-between text-xs">
-                      <span className="font-bold text-neutral-300">Selected Range: Pages 1, 3</span>
+                    <div className="rounded-xl bg-secondary/60 dark:bg-[#161616] border border-border dark:border-white/15 p-3 flex items-center justify-between text-xs">
+                      <span className="font-bold text-muted-foreground">Selected Range: Pages 1, 3</span>
                       <span className="font-mono font-extrabold text-[#ff5500]">Instant Split PDF</span>
                     </div>
                   </div>
                 ) : mode === "pdf-compress" ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-xl bg-[#161616] border border-white/15 p-4 space-y-1">
-                        <span className="text-[10px] uppercase text-neutral-400 font-bold">Original PDF Size</span>
-                        <div className="font-mono text-xl font-black text-rose-400">18.4 MB</div>
-                        <span className="text-[11px] text-neutral-400">Heavy embedded bitmaps</span>
+                      <div className="rounded-xl bg-secondary/60 dark:bg-[#161616] border border-border dark:border-white/15 p-4 space-y-1">
+                        <span className="text-[10px] uppercase text-muted-foreground font-bold">Original PDF Size</span>
+                        <div className="font-mono text-xl font-black text-rose-600 dark:text-rose-400">18.4 MB</div>
+                        <span className="text-[11px] text-muted-foreground">Heavy embedded bitmaps</span>
                       </div>
                       <div className="rounded-xl bg-emerald-500/10 border-2 border-emerald-500 p-4 space-y-1">
-                        <span className="text-[10px] uppercase text-emerald-400 font-bold">Compressed PDF (-84%)</span>
-                        <div className="font-mono text-xl font-black text-emerald-400">2.9 MB</div>
-                        <span className="text-[11px] text-neutral-200">Crisp 300 DPI Vector Text Kept</span>
+                        <span className="text-[10px] uppercase text-emerald-600 dark:text-emerald-400 font-bold">Compressed PDF (-84%)</span>
+                        <div className="font-mono text-xl font-black text-emerald-600 dark:text-emerald-400">2.9 MB</div>
+                        <span className="text-[11px] text-foreground dark:text-neutral-200">Crisp 300 DPI Vector Text Kept</span>
                       </div>
                     </div>
                   </div>
                 ) : mode === "pdf-sign" ? (
-                  <div className="bg-white text-[#0a0a0a] rounded-xl p-4 space-y-3">
-                    <div className="text-xs font-bold text-neutral-500 border-b border-neutral-200 pb-2">
+                  <div className="bg-white dark:bg-[#141414] text-foreground dark:text-white rounded-xl border border-border dark:border-white/10 p-4 space-y-3">
+                    <div className="text-xs font-bold text-muted-foreground border-b border-border pb-2">
                       EXECUTIVE APPROVAL &amp; SIGNATURE
                     </div>
                     <div className="rounded-xl border-2 border-dashed border-[#ff5500] bg-[#ff5500]/5 p-3 flex items-center justify-between">
                       <div>
-                        <div className="font-serif italic text-xl font-bold text-[#0a0a0a]">Aakash Vavadiya</div>
-                        <div className="text-[10px] font-mono text-emerald-700 font-bold">
+                        <div className="font-serif italic text-xl font-bold text-foreground dark:text-white">Aakash Vavadiya</div>
+                        <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                           ✓ Digitally Signed &amp; Timestamped
                         </div>
                       </div>
@@ -1351,45 +1351,45 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                     </div>
                   </div>
                 ) : mode === "pdf-security" ? (
-                  <div className="rounded-xl bg-[#161616] border border-white/15 p-4 space-y-3">
+                  <div className="rounded-xl bg-secondary/60 dark:bg-[#161616] border border-border dark:border-white/15 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         {tool.slug.includes("unlock") || tool.slug.includes("remove") ? (
-                          <Unlock className="h-5 w-5 text-emerald-400" />
+                          <Unlock className="h-5 w-5 text-emerald-500" />
                         ) : (
                           <Lock className="h-5 w-5 text-[#ff5500]" />
                         )}
                         <span className="text-sm font-extrabold">{tool.name} Security Shield</span>
                       </div>
-                      <span className="rounded-full bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                      <span className="rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-mono font-bold">
                         AES-256 Standard
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-300 leading-relaxed">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Control document access, printing permissions, copying restrictions, and password encryption directly in your browser.
                     </p>
                   </div>
                 ) : (
                   /* Full-Screen PDF Editor / Invoice / QR / General PDF Scene */
-                  <div className="bg-white text-[#0a0a0a] rounded-xl p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3 border-b border-neutral-200 pb-3">
+                  <div className="bg-white dark:bg-[#141414] text-foreground dark:text-white rounded-xl border border-border dark:border-white/10 p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
                       <div className="space-y-1">
                         <span className="inline-flex items-center gap-1.5 rounded bg-[#ff5500]/15 border border-[#ff5500] px-2 py-0.5 text-[11px] font-extrabold">
                           {tool.name} Studio Preview
                         </span>
-                        <p className="text-xs font-bold text-neutral-800">
+                        <p className="text-xs font-bold text-foreground dark:text-white">
                           In-Place Font-Matched Text &amp; Vector Shape Editing
                         </p>
-                        <p className="text-[11px] text-neutral-500">
+                        <p className="text-[11px] text-muted-foreground">
                           Click any line of text or photo on the PDF to edit without shifting layout
                         </p>
                       </div>
-                      <QrCode className="h-10 w-10 text-[#0a0a0a] shrink-0" />
+                      <QrCode className="h-10 w-10 text-foreground dark:text-white shrink-0" />
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-[11px]">
-                      <div className="rounded-lg bg-neutral-100 p-2 font-bold text-emerald-700">✓ Same Font &amp; Size</div>
-                      <div className="rounded-lg bg-neutral-100 p-2 font-bold text-[#0a0a0a]">✓ Vector Shapes</div>
-                      <div className="rounded-lg bg-neutral-100 p-2 font-bold text-[#ff5500]">✓ Instant PDF Export</div>
+                      <div className="rounded-lg bg-secondary/70 dark:bg-white/5 p-2 font-bold text-emerald-600 dark:text-emerald-400">✓ Same Font &amp; Size</div>
+                      <div className="rounded-lg bg-secondary/70 dark:bg-white/5 p-2 font-bold text-foreground dark:text-white">✓ Vector Shapes</div>
+                      <div className="rounded-lg bg-secondary/70 dark:bg-white/5 p-2 font-bold text-[#ff5500]">✓ Instant PDF Export</div>
                     </div>
                   </div>
                 )}
@@ -1399,7 +1399,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
         </div>
       </div>
 
-      {/* ─── SECTION 2: 4 TOOL-SPECIFIC VISUAL WORKFLOW CARDS (NO CARTOON AVATARS!) ─── */}
+      {/* ─── SECTION 2: 4 TOOL-SPECIFIC VISUAL WORKFLOW CARDS (WHITE IN DAY MODE, BLACK IN NIGHT MODE) ─── */}
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -1422,44 +1422,44 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               className="group rounded-3xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-xl hover:border-accent/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
             >
               <div>
-                {/* Bespoke Visual Header Diagram Specific to the Tool & Card */}
-                <div className="relative h-44 w-full overflow-hidden bg-neutral-950 flex items-center justify-center p-4">
+                {/* Bespoke Visual Header Diagram Specific to the Tool & Card (White in Day Mode, Black in Night Mode) */}
+                <div className="relative h-44 w-full overflow-hidden bg-white dark:bg-[#0a0a0a] border-b border-border flex items-center justify-center p-4">
                   {mode.startsWith("pdf-") ? (
-                    <div className="w-40 rounded-xl bg-white text-[#0a0a0a] p-3 shadow-xl border-2 border-[#ff5500]/60 space-y-1.5">
-                      <div className="flex items-center justify-between border-b border-neutral-200 pb-1">
+                    <div className="w-40 rounded-xl bg-secondary/40 dark:bg-[#141418] text-foreground dark:text-white p-3 shadow-md border-2 border-[#ff5500]/60 space-y-1.5">
+                      <div className="flex items-center justify-between border-b border-border pb-1">
                         <span className="font-mono text-[9px] font-black text-[#ff5500] uppercase">
                           {tool.name}
                         </span>
-                        <FileText className="h-3.5 w-3.5 text-[#0a0a0a]" />
+                        <FileText className="h-3.5 w-3.5 text-foreground dark:text-white" />
                       </div>
-                      <div className="h-2 w-4/5 rounded bg-neutral-800" />
-                      <div className="h-1.5 w-3/5 rounded bg-neutral-300" />
-                      <div className="h-1.5 w-11/12 rounded bg-neutral-300" />
-                      <div className="pt-1 flex items-center justify-between text-[9px] font-mono font-bold text-emerald-600">
+                      <div className="h-2 w-4/5 rounded bg-foreground/70 dark:bg-white/70" />
+                      <div className="h-1.5 w-3/5 rounded bg-foreground/25 dark:bg-white/25" />
+                      <div className="h-1.5 w-11/12 rounded bg-foreground/25 dark:bg-white/25" />
+                      <div className="pt-1 flex items-center justify-between text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         <span>✓ 300 DPI Vector</span>
                         <span>PDF #{idx + 1}</span>
                       </div>
                     </div>
                   ) : mode === "ocr-text" || mode === "doc-excel" || mode === "doc-word" || mode === "doc-ppt" ? (
-                    <div className="w-44 rounded-xl bg-[#141418] border border-emerald-500/40 p-3 text-white space-y-2 shadow-xl">
-                      <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400 font-bold">
+                    <div className="w-44 rounded-xl bg-secondary/50 dark:bg-[#141418] border border-emerald-500/40 p-3 text-foreground dark:text-white space-y-2 shadow-md">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                         <span>{tool.accepts}</span>
                         <span>→</span>
                         <span>{tool.outputs}</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-1 text-[9px] font-mono bg-black/50 p-1.5 rounded border border-white/10">
-                        <span className="text-neutral-400">Col A</span>
-                        <span className="text-neutral-400">Col B</span>
-                        <span className="text-emerald-400 font-bold">99.4%</span>
+                      <div className="grid grid-cols-3 gap-1 text-[9px] font-mono bg-white dark:bg-black/50 p-1.5 rounded border border-border dark:border-white/10">
+                        <span className="text-muted-foreground">Col A</span>
+                        <span className="text-muted-foreground">Col B</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">99.4%</span>
                       </div>
-                      <div className="h-1.5 w-4/5 rounded bg-white/25" />
+                      <div className="h-1.5 w-4/5 rounded bg-foreground/20 dark:bg-white/25" />
                     </div>
                   ) : mode === "code-encoding" || mode === "ascii-art" ? (
-                    <div className="w-44 rounded-xl bg-black border border-emerald-500/40 p-3 font-mono text-[9px] text-emerald-400 leading-tight shadow-xl">
+                    <div className="w-44 rounded-xl bg-secondary/60 dark:bg-black border border-emerald-500/40 p-3 font-mono text-[9px] text-emerald-700 dark:text-emerald-400 leading-tight shadow-md">
                       <div className="text-[#ff5500] font-bold mb-1">// {tool.outputs} Stream</div>
                       <div>01001001 01001101</div>
                       <div>89 50 4E 47 0D 0A</div>
-                      <div className="text-white/70 truncate">data:image/png;base64...</div>
+                      <div className="text-muted-foreground truncate">data:image/png;base64...</div>
                     </div>
                   ) : mode === "compress-image" ? (
                     <div className="relative flex items-center gap-2">
@@ -1467,12 +1467,12 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                         src={girlBefore}
                         alt={card.title}
                         loading="lazy"
-                        className="h-28 w-24 rounded-xl object-cover object-top border border-white/20"
+                        className="h-28 w-24 rounded-xl object-cover object-top border border-border shadow-sm"
                       />
-                      <div className="rounded-xl bg-[#141418] border border-emerald-500/40 p-2.5 text-left font-mono">
-                        <div className="text-[9px] text-neutral-400 line-through">4.28 MB</div>
-                        <div className="text-xs font-black text-emerald-400">380 KB</div>
-                        <div className="mt-1 rounded bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 text-[9px] font-bold">
+                      <div className="rounded-xl bg-secondary/60 dark:bg-[#141418] border border-emerald-500/40 p-2.5 text-left font-mono shadow-xs">
+                        <div className="text-[9px] text-muted-foreground line-through">4.28 MB</div>
+                        <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">380 KB</div>
+                        <div className="mt-1 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 text-[9px] font-bold">
                           -91% Size
                         </div>
                       </div>
@@ -1483,7 +1483,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                         src={girlBefore}
                         alt={card.title}
                         loading="lazy"
-                        className="h-16 w-14 rounded-lg object-cover object-top border border-white/30 opacity-65"
+                        className="h-16 w-14 rounded-lg object-cover object-top border border-border opacity-70 shadow-xs"
                       />
                       <span className="text-xs font-black text-[#ff5500] mb-5">→</span>
                       <div className="relative">
@@ -1491,9 +1491,9 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                           src={girlBefore}
                           alt={card.title}
                           loading="lazy"
-                          className="h-28 w-24 rounded-xl object-cover object-top border-2 border-[#ff5500] shadow-lg"
+                          className="h-28 w-24 rounded-xl object-cover object-top border-2 border-[#ff5500] shadow-md"
                         />
-                        <span className="absolute -bottom-1.5 inset-x-1 rounded bg-black/90 text-white text-[8px] font-mono font-bold text-center py-0.5">
+                        <span className="absolute -bottom-1.5 inset-x-1 rounded bg-white/95 dark:bg-black/90 text-foreground dark:text-white border border-border dark:border-white/15 text-[8px] font-mono font-bold text-center py-0.5 shadow-2xs">
                           {idx === 0 ? "1920×1080" : idx === 1 ? "2000×2000" : idx === 2 ? "300 DPI" : "Scale %"}
                         </span>
                       </div>
@@ -1503,7 +1503,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                       src={girlBefore}
                       alt={card.title}
                       loading="lazy"
-                      className="h-24 w-24 rounded-xl object-cover object-top border-2 border-[#ff5500] shadow-lg transition-transform duration-300"
+                      className="h-24 w-24 rounded-xl object-cover object-top border-2 border-[#ff5500] shadow-md transition-transform duration-300"
                       style={{
                         transform:
                           idx === 0
@@ -1522,16 +1522,16 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                       loading="lazy"
                       className={`object-cover object-top transition-transform duration-300 group-hover:scale-105 ${
                         card.visualType === "crop-1-1"
-                          ? "h-28 w-28 rounded-xl border-2 border-[#ff5500] shadow-lg"
+                          ? "h-28 w-28 rounded-xl border-2 border-[#ff5500] shadow-md"
                           : card.visualType === "crop-16-9"
-                            ? "h-20 w-40 rounded-xl border-2 border-[#ff5500] shadow-lg"
+                            ? "h-20 w-40 rounded-xl border-2 border-[#ff5500] shadow-md"
                             : card.visualType === "crop-4-5"
-                              ? "h-32 w-24 rounded-xl border-2 border-[#ff5500] shadow-lg"
-                              : "h-28 w-36 rounded-xl border-2 border-[#ff5500]/70 shadow-lg"
+                              ? "h-32 w-24 rounded-xl border-2 border-[#ff5500] shadow-md"
+                              : "h-28 w-36 rounded-xl border-2 border-[#ff5500]/70 shadow-md"
                       }`}
                     />
                   )}
-                  <span className="absolute top-2.5 left-2.5 rounded-full bg-black/85 backdrop-blur-md border border-white/15 px-2.5 py-0.5 text-[10px] font-mono font-bold text-white">
+                  <span className="absolute top-2.5 left-2.5 rounded-full bg-white/95 dark:bg-black/85 backdrop-blur-md border border-border dark:border-white/15 px-2.5 py-0.5 text-[10px] font-mono font-bold text-foreground dark:text-white shadow-2xs">
                     {card.badge}
                   </span>
                   <span className="absolute bottom-2.5 right-2.5 rounded-full bg-[#ff5500] text-white px-2.5 py-0.5 text-[10px] font-extrabold shadow">
