@@ -9,18 +9,32 @@ import {
   ArrowUpRight,
   CheckCircle2,
   FileText,
-  Image as ImageIcon,
   Sliders,
   Download,
   Upload,
-  Eye,
-  Layers,
-  Lock,
-  ScanText,
-  Minimize2,
-  Maximize2,
   Check,
-  Wand2,
+  Crop,
+  Scaling,
+  Minimize2,
+  RotateCw,
+  FlipHorizontal,
+  FlipVertical,
+  Lock,
+  Unlock,
+  Merge,
+  SplitSquareVertical,
+  FileSignature,
+  QrCode,
+  Receipt,
+  Pipette,
+  ScanText,
+  Table2,
+  Presentation,
+  Code2,
+  EyeOff,
+  Stamp,
+  Square,
+  Maximize2,
 } from "lucide-react";
 
 const softCheckerStyle: React.CSSProperties = {
@@ -30,31 +44,113 @@ const softCheckerStyle: React.CSSProperties = {
   backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0",
 };
 
+type ToolVisualMode =
+  | "crop-image"
+  | "resize-image"
+  | "compress-image"
+  | "rotate-image"
+  | "square-image"
+  | "upscale-image"
+  | "remove-background"
+  | "blur-face"
+  | "watermark-image"
+  | "remove-watermark"
+  | "photo-editor"
+  | "color-picker"
+  | "meme-generator"
+  | "format-converter"
+  | "code-encoding"
+  | "ascii-art"
+  | "ocr-text"
+  | "doc-excel"
+  | "doc-word"
+  | "doc-ppt"
+  | "pdf-merge"
+  | "pdf-split"
+  | "pdf-compress"
+  | "pdf-edit"
+  | "pdf-sign"
+  | "pdf-security"
+  | "pdf-qr"
+  | "pdf-invoice"
+  | "pdf-general";
+
+function detectToolVisualMode(tool: Tool): ToolVisualMode {
+  const s = tool.slug;
+  if (s === "crop-image" || s === "crop-pdf") return "crop-image";
+  if (s === "resize-image" || s === "change-pdf-page-size") return "resize-image";
+  if (s === "compress-image") return "compress-image";
+  if (s === "rotate-image" || s === "rotate-pdf") return "rotate-image";
+  if (s === "square-your-image") return "square-image";
+  if (s === "upscale-image") return "upscale-image";
+  if (s === "remove-background") return "remove-background";
+  if (s === "blur-face") return "blur-face";
+  if (s === "watermark-image" || s === "add-watermark-pdf") return "watermark-image";
+  if (s === "remove-watermark") return "remove-watermark";
+  if (s === "photo-editor") return "photo-editor";
+  if (s === "color-picker-from-image") return "color-picker";
+  if (s === "meme-generator") return "meme-generator";
+  if (s.includes("ascii")) return "ascii-art";
+  if (
+    s.includes("base64") ||
+    s.includes("binary") ||
+    s.includes("hex") ||
+    s.includes("octal") ||
+    s.includes("decimal")
+  ) {
+    return "code-encoding";
+  }
+  if (s.includes("excel")) return "doc-excel";
+  if (s.includes("word")) return "doc-word";
+  if (s.includes("powerpoint")) return "doc-ppt";
+  if (s.includes("ocr") || s.includes("text")) return "ocr-text";
+  if (s === "merge-pdf" || s === "combine-pdf" || s.includes("merge")) return "pdf-merge";
+  if (
+    s === "split-pdf" ||
+    s === "extract-pdf-pages" ||
+    s === "remove-pdf-pages" ||
+    s === "rearrange-pdf-pages" ||
+    s === "halve-pdf-pages"
+  ) {
+    return "pdf-split";
+  }
+  if (s === "compress-pdf" || s === "web-optimize-pdf") return "pdf-compress";
+  if (s === "edit-pdf" || s === "annotate-pdf" || s === "fill-pdf" || s === "create-fillable-pdf") {
+    return "pdf-edit";
+  }
+  if (s === "sign-pdf" || s === "validate-signature-pdf") return "pdf-sign";
+  if (
+    s === "protect-pdf" ||
+    s === "unlock-pdf" ||
+    s === "sanitize-pdf" ||
+    s === "remove-restrictions-pdf"
+  ) {
+    return "pdf-security";
+  }
+  if (s === "generate-qr-code") return "pdf-qr";
+  if (s.includes("invoice") || s.includes("receipt")) return "pdf-invoice";
+  if (tool.category === "PDF Tools" || s.includes("pdf")) return "pdf-general";
+  return "format-converter";
+}
+
 export function ToolVisualShowcase({ tool }: { tool: Tool }) {
-  const [activeBackdrop, setActiveBackdrop] = useState<"transparent" | "orange" | "studio" | "gradient">("transparent");
-  const [compareSlider, setCompareSlider] = useState<number>(52);
-
+  const mode = detectToolVisualMode(tool);
   const Icon = tool.icon;
-  const slug = tool.slug;
-  const category = tool.category;
 
-  const isPdf = category === "PDF Tools" || slug.includes("pdf");
-  const isOcrOrDoc =
-    category === "Document Converters" ||
-    slug.includes("ocr") ||
-    slug.includes("word") ||
-    slug.includes("excel") ||
-    slug.includes("powerpoint");
-  const isCompress = slug.includes("compress");
-  const isResizeOrCrop =
-    slug.includes("resize") || slug.includes("crop") || slug.includes("square") || slug.includes("rotate");
-  const isCodeEncoding =
-    slug.includes("base64") ||
-    slug.includes("binary") ||
-    slug.includes("hex") ||
-    slug.includes("octal") ||
-    slug.includes("decimal") ||
-    slug.includes("ascii");
+  // Interactive states for different tool showcases
+  const [cropPreset, setCropPreset] = useState<"1:1" | "16:9" | "4:5" | "free">("1:1");
+  const [resizePreset, setResizePreset] = useState<"4k" | "1080p" | "social" | "thumb">("1080p");
+  const [compressQuality, setCompressQuality] = useState<number>(82);
+  const [rotateDeg, setRotateDeg] = useState<number>(90);
+  const [flipH, setFlipH] = useState<boolean>(false);
+  const [flipV, setFlipV] = useState<boolean>(false);
+  const [squareStyle, setSquareStyle] = useState<"blur" | "white" | "gradient" | "dark">("blur");
+  const [upscaleFactor, setUpscaleFactor] = useState<2 | 4>(4);
+  const [bgCompare, setBgCompare] = useState<number>(52);
+  const [bgColorMode, setBgColorMode] = useState<"transparent" | "orange" | "dark" | "soft">("transparent");
+  const [blurIntensity, setBlurIntensity] = useState<number>(14);
+  const [editorFilter, setEditorFilter] = useState<"vibrant" | "warm" | "bw" | "cinema">("vibrant");
+  const [pickedColorIdx, setPickedColorIdx] = useState<number>(0);
 
   const scrollToWorkspace = () => {
     if (typeof window !== "undefined") {
@@ -62,93 +158,208 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
     }
   };
 
-  const backdropStyles: Record<typeof activeBackdrop, React.CSSProperties> = {
-    transparent: { ...softCheckerStyle, backgroundColor: "#ffffff" },
-    orange: { background: "linear-gradient(135deg, #ff5500 0%, #ff8800 100%)" },
-    studio: { background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" },
-    gradient: { background: "linear-gradient(135deg, #fce7f3 0%, #e0e7ff 50%, #fae8ff 100%)" },
+  // Crop box geometry by preset
+  const cropBoxMap = {
+    "1:1": { left: "24%", top: "10%", width: "52%", height: "80%", dim: "1080 × 1080 px (1:1 Square)" },
+    "16:9": { left: "10%", top: "20%", width: "80%", height: "60%", dim: "1920 × 1080 px (16:9 Widescreen)" },
+    "4:5": { left: "28%", top: "6%", width: "44%", height: "88%", dim: "1080 × 1350 px (4:5 Portrait)" },
+    free: { left: "18%", top: "14%", width: "64%", height: "72%", dim: "1440 × 960 px (Custom Rule-of-Thirds)" },
+  }[cropPreset];
+
+  // Resize preset metadata
+  const resizeMeta = {
+    "4k": { w: 3840, h: 2160, label: "4K UHD Print & Display", dpi: "300 DPI", size: "2.4 MB", scale: "scale-100" },
+    "1080p": { w: 1920, h: 1080, label: "Full HD Web & Video", dpi: "144 DPI", size: "620 KB", scale: "scale-95" },
+    social: { w: 1080, h: 1080, label: "Social Media Post", dpi: "96 DPI", size: "310 KB", scale: "scale-90" },
+    thumb: { w: 600, h: 400, label: "Fast Web Thumbnail", dpi: "72 DPI", size: "78 KB", scale: "scale-75" },
+  }[resizePreset];
+
+  // Compress calculation
+  const origKb = 4280;
+  const compressedKb = Math.max(140, Math.round(origKb * Math.pow(compressQuality / 100, 2.4) * 0.22));
+  const savedPercent = Math.min(96, Math.max(45, Math.round(((origKb - compressedKb) / origKb) * 100)));
+
+  // Extracted palette for Color Picker
+  const paletteColors = [
+    { hex: "#D97706", rgb: "rgb(217, 119, 6)", name: "Amber Ochre (Jacket)", x: "32%", y: "76%" },
+    { hex: "#2A4736", rgb: "rgb(42, 71, 54)", name: "Tropical Foliage", x: "22%", y: "34%" },
+    { hex: "#E5B89B", rgb: "rgb(229, 184, 155)", name: "Warm Portrait Skin", x: "55%", y: "44%" },
+    { hex: "#1E1916", rgb: "rgb(30, 25, 22)", name: "Deep Espresso Hair", x: "66%", y: "28%" },
+    { hex: "#991B1B", rgb: "rgb(153, 27, 27)", name: "Crimson Street Accent", x: "12%", y: "58%" },
+  ];
+
+  // Build 4 unique, tool-specific workflow cards (NO cartoon avatars!)
+  const getToolSpecificUseCases = () => {
+    switch (mode) {
+      case "crop-image":
+        return [
+          {
+            badge: "1:1 Square · 1080×1080",
+            title: "Profile & Marketplace Crops",
+            desc: "Frame headshots and product listings to exact 1:1 square ratios with centered rule-of-thirds composition.",
+            metric: "Exact Aspect Lock",
+            visualType: "crop-1-1",
+          },
+          {
+            badge: "16:9 Cinema · 1920×1080",
+            title: "YouTube & Blog Thumbnails",
+            desc: "Trim vertical clutter into widescreen 16:9 banners that fit video players and hero headers without letterboxing.",
+            metric: "Zero Distortion",
+            visualType: "crop-16-9",
+          },
+          {
+            badge: "4:5 Vertical · 1080×1350",
+            title: "Instagram & Social Feeds",
+            desc: "Maximize mobile screen real estate with 4:5 and 9:16 vertical crops tailored for social feeds and stories.",
+            metric: "Social Presets",
+            visualType: "crop-4-5",
+          },
+          {
+            badge: "Custom Pixel Box",
+            title: "Remove Distracting Edges",
+            desc: "Drag any custom boundary box to slice out photobombers, timestamps, or unwanted borders at original resolution.",
+            metric: "Pixel-Accurate",
+            visualType: "crop-free",
+          },
+        ];
+      case "resize-image":
+        return [
+          {
+            badge: "1920 × 1080 px",
+            title: "Web & Hero Banner Scaling",
+            desc: "Downscale oversized 24MP camera photos to crisp Full-HD web dimensions for instant page loads.",
+            metric: "Lanczos-3 Resampling",
+            visualType: "resize-hd",
+          },
+          {
+            badge: "Amazon / Shopify 2000×2000",
+            title: "E-Commerce Storefront Specs",
+            desc: "Standardize entire product catalogs to exact marketplace pixel dimensions with locked aspect ratios.",
+            metric: "Aspect-Ratio Lock",
+            visualType: "resize-ecom",
+          },
+          {
+            badge: "300 DPI Print Ready",
+            title: "Print & Publication Sizing",
+            desc: "Calculate exact physical dimensions and pixel densities for flyers, passports, and high-DPI brochures.",
+            metric: "300 DPI Precision",
+            visualType: "resize-print",
+          },
+          {
+            badge: "Percentage Scaling (25%–200%)",
+            title: "Proportional Batch Resizing",
+            desc: "Scale dimensions by percentage (50%, 75%, 150%) while preserving edge sharpness and EXIF orientation.",
+            metric: "Zero Blur Scaling",
+            visualType: "resize-pct",
+          },
+        ];
+      case "compress-image":
+        return [
+          {
+            badge: "4.2 MB → 380 KB (-91%)",
+            title: "Core Web Vitals & SEO Speed",
+            desc: "Cut image payload weight by up to 90% so landing pages and blogs pass Google PageSpeed Insights.",
+            metric: "85%–92% Smaller",
+            visualType: "compress-web",
+          },
+          {
+            badge: "Under 50 KB / 100 KB Target",
+            title: "Government & Exam Portals",
+            desc: "Hit strict portal upload limits (20 KB, 50 KB, 100 KB) for signatures, ID cards, and application forms.",
+            metric: "Exact KB Target",
+            visualType: "compress-portal",
+          },
+          {
+            badge: "25 MB Attachment Limit",
+            title: "Instant Email & WhatsApp Sharing",
+            desc: "Shrink high-resolution photography into lightweight files that send immediately over email and chat.",
+            metric: "Perceptual Lossless",
+            visualType: "compress-email",
+          },
+          {
+            badge: "Chroma Subsampling + Quantization",
+            title: "Cloud Storage Optimization",
+            desc: "Archive thousands of client photos in a fraction of the disk space without visible compression artifacts.",
+            metric: "4K Texture Kept",
+            visualType: "compress-storage",
+          },
+        ];
+      case "rotate-image":
+        return [
+          {
+            badge: "90° CW / 90° CCW",
+            title: "Fix Sideways Camera Photos",
+            desc: "Correct portrait photos shot sideways on phones or DSLRs with lossless 90-degree quadrant rotation.",
+            metric: "1-Click Quadrant",
+            visualType: "rotate-90",
+          },
+          {
+            badge: "Horizontal & Vertical Mirror",
+            title: "Mirror Selfie & Layout Flip",
+            desc: "Flip portraits and product angles horizontally or vertically so subjects face toward your page copy.",
+            metric: "Instant Mirror",
+            visualType: "rotate-flip",
+          },
+          {
+            badge: "±0.1° Fine Horizon Straighten",
+            title: "Level Tilted Horizons & Scans",
+            desc: "Correct crooked architectural shots, skewed document scans, and tilted horizons with degree precision.",
+            metric: "Fine Degree Slider",
+            visualType: "rotate-horizon",
+          },
+          {
+            badge: "Batch Multi-Image Rotate",
+            title: "Rotate Entire Photo Shoots",
+            desc: "Upload dozens of images at once, rotate each or all together, and export a single organized ZIP archive.",
+            metric: "Batch ZIP Export",
+            visualType: "rotate-batch",
+          },
+        ];
+      default:
+        return [
+          {
+            badge: `Input: ${tool.accepts}`,
+            title: `High-Precision ${tool.name}`,
+            desc: `Process ${tool.accepts} files with studio-calibrated accuracy and zero quality degradation across every pixel.`,
+            metric: "Sub-Second Engine",
+            visualType: "default-1",
+          },
+          {
+            badge: `Output: ${tool.outputs}`,
+            title: "Live Interactive Preview Stage",
+            desc: `Inspect every detail of your ${tool.outputs} result in real time before downloading to your device.`,
+            metric: "Real-Time Preview",
+            visualType: "default-2",
+          },
+          {
+            badge: "Cross-Platform Compatibility",
+            title: "Ready for Web, Print & Mobile",
+            desc: `Outputs from ${tool.name} follow strict industry specifications so your files open cleanly everywhere.`,
+            metric: "100% Spec-Compliant",
+            visualType: "default-3",
+          },
+          {
+            badge: "Zero Data Retention",
+            title: "Enterprise-Grade Security",
+            desc: "Your files are handled with security-focused safeguards and protected throughout the entire workflow.",
+            metric: "Private & Secure",
+            visualType: "default-4",
+          },
+        ];
+    }
   };
 
-  // Determine the 4 real-world use cases based on tool type (inspired by remove.bg/g/individuals)
-  const useCaseCards = isPdf
-    ? [
-        {
-          tag: "Contracts & Agreements",
-          title: "Edit & Sign Business PDFs",
-          desc: "Update clauses, dates, and company details with matching fonts or place legally binding signatures in seconds.",
-          img: "/profile-avatars/Boy1.jpg",
-          badge: "Font-Matched Text",
-          accent: "from-[#ff5500]/20 to-amber-500/10",
-        },
-        {
-          tag: "Invoices & Receipts",
-          title: "Tax & Billing Workflows",
-          desc: "Merge monthly statements, update billing addresses in-place, or compress multi-page PDFs for instant email delivery.",
-          img: "/profile-avatars/Girl1.jpg",
-          badge: "Zero Layout Shift",
-          accent: "from-emerald-500/20 to-teal-500/10",
-        },
-        {
-          tag: "Academic & Forms",
-          title: "Interactive Form Filling",
-          desc: "Fill out application forms, insert checkmarks, shape ID photos into circles or hexagons, and export print-ready sheets.",
-          img: "/profile-avatars/Boy3.jpg",
-          badge: "In-Place Form Editor",
-          accent: "from-blue-500/20 to-indigo-500/10",
-        },
-        {
-          tag: "Confidential Archives",
-          title: "Secure & Protected Sharing",
-          desc: "Redact sensitive lines with whiteout blocks, add custom watermarks, or encrypt files before sharing externally.",
-          img: "/profile-avatars/Girl2.jpg",
-          badge: "Enterprise Privacy",
-          accent: "from-purple-500/20 to-pink-500/10",
-        },
-      ]
-    : [
-        {
-          tag: "Personal & Social Media",
-          title: "Standout Profile & Creator Shots",
-          desc: "Create studio-grade portraits, clean cutouts, and perfectly sized visuals for LinkedIn, Instagram, YouTube, and X.",
-          img: girlAfter,
-          badge: "4K Studio Quality",
-          accent: "from-[#ff5500]/20 to-amber-500/10",
-        },
-        {
-          tag: "E-Commerce & Catalogs",
-          title: "Marketplace-Ready Visuals",
-          desc: "Prepare crisp, fast-loading product photos with pure white or custom backdrops for Amazon, Shopify, and Flipkart.",
-          img: "/profile-avatars/Girl1.jpg",
-          badge: "Pure White & Alpha",
-          accent: "from-emerald-500/20 to-teal-500/10",
-        },
-        {
-          tag: "Web & App Performance",
-          title: "Ultra-Fast Page Load Speeds",
-          desc: "Optimize dimensions, convert formats, and shrink byte size by up to 85% without losing perceptual sharpness.",
-          img: "/profile-avatars/Boy1.jpg",
-          badge: "Core Web Vitals Ready",
-          accent: "from-blue-500/20 to-indigo-500/10",
-        },
-        {
-          tag: "Documents & ID Photos",
-          title: "Passports, Resumes & Applications",
-          desc: "Format portraits, signatures, and scanned documents to exact pixel and KB requirements for official portals.",
-          img: "/profile-avatars/Boy3.jpg",
-          badge: "Exact Spec Control",
-          accent: "from-purple-500/20 to-pink-500/10",
-        },
-      ];
+  const useCases = getToolSpecificUseCases();
 
   return (
     <div className="space-y-20 mb-20">
-      {/* ─── SECTION 1: 2-COLUMN SPLIT "ABOUT THIS TOOL" HERO + INTERACTIVE VISUAL SHOWCASE ─── */}
+      {/* ─── SECTION 1: 2-COLUMN SPLIT "ABOUT THIS TOOL" + UNIQUE TOOL-SPECIFIC INTERACTIVE VISUAL STAGE ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-        {/* Left 6 Columns: Rich Editorial Details */}
+        {/* Left 6 Columns: Tool-Specific Editorial & Technical Breakdown */}
         <div className="lg:col-span-6 space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wider text-accent">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>About This Tool · Visual Showcase</span>
+            <Icon className="h-3.5 w-3.5" />
+            <span>{tool.category} · Live Technical Showcase</span>
           </div>
 
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground leading-[1.12]">
@@ -159,78 +370,113 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             {tool.seo.article.intro}
           </p>
 
-          <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
-            Designed for individuals, creators, and teams who want studio-grade output without complex desktop software,{" "}
-            <strong className="text-foreground font-semibold">{tool.name}</strong> accepts{" "}
-            <span className="font-mono text-xs bg-secondary px-2 py-0.5 rounded border border-border text-foreground">
-              {tool.accepts}
-            </span>{" "}
-            and delivers{" "}
-            <span className="font-mono text-xs bg-secondary px-2 py-0.5 rounded border border-border text-foreground">
-              {tool.outputs}
-            </span>{" "}
-            directly in your browser with real-time visual feedback.
-          </p>
+          {/* Tool-Specific Technical Specification Table */}
+          <div className="rounded-2xl border border-border bg-card/80 p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-left shadow-2xs">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Supported Input
+              </span>
+              <span className="font-mono text-xs sm:text-sm font-extrabold text-foreground">
+                {tool.accepts}
+              </span>
+            </div>
+            <div className="space-y-0.5 border-l border-border pl-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Export Output
+              </span>
+              <span className="font-mono text-xs sm:text-sm font-extrabold text-accent">
+                {tool.outputs}
+              </span>
+            </div>
+            <div className="col-span-2 sm:col-span-1 space-y-0.5 border-t sm:border-t-0 sm:border-l border-border pt-2 sm:pt-0 sm:pl-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Quality &amp; Reliability
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
+                100% Lossless Pipeline
+              </span>
+            </div>
+          </div>
 
-          {/* 3 Highlight Badges */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div className="rounded-2xl border border-border bg-card/70 p-3.5 flex items-start gap-3 shadow-2xs">
+          {/* 3 Tool-Specific Reliability & Suitability Pillars */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-border bg-card/70 p-3.5 flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
                 <Zap className="h-4 w-4" />
               </div>
               <div>
-                <div className="text-xs font-extrabold text-foreground">Instant Engine</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Real-time browser &amp; AI pipeline</div>
+                <div className="text-xs font-extrabold text-foreground">
+                  {mode === "crop-image"
+                    ? "Exact Aspect Ratios"
+                    : mode === "resize-image"
+                      ? "Pixel & DPI Control"
+                      : mode === "compress-image"
+                        ? "Up to 90% Smaller"
+                        : "Sub-Second Speed"}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {mode === "crop-image"
+                    ? "1:1, 16:9, 4:5 & freeform grid"
+                    : mode === "resize-image"
+                      ? "Lanczos-3 anti-aliased scaling"
+                      : mode === "compress-image"
+                        ? "Smart perceptual quantization"
+                        : "Real-time browser execution"}
+                </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card/70 p-3.5 flex items-start gap-3 shadow-2xs">
+            <div className="rounded-2xl border border-border bg-card/70 p-3.5 flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <div>
-                <div className="text-xs font-extrabold text-foreground">Lossless Detail</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Preserves crisp edges &amp; DPI</div>
+                <div className="text-xs font-extrabold text-foreground">Full Resolution</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  Zero watermarks or forced downscaling
+                </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card/70 p-3.5 flex items-start gap-3 shadow-2xs">
+            <div className="rounded-2xl border border-border bg-card/70 p-3.5 flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
                 <ShieldCheck className="h-4 w-4" />
               </div>
               <div>
-                <div className="text-xs font-extrabold text-foreground">100% Private</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">Security-focused safeguards</div>
+                <div className="text-xs font-extrabold text-foreground">Enterprise Privacy</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  Protected throughout workflow
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-2 flex flex-wrap items-center gap-3">
+          <div className="pt-1 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={scrollToWorkspace}
               className="inline-flex items-center gap-2 rounded-2xl bg-foreground text-background hover:bg-foreground/90 px-6 py-3.5 text-xs sm:text-sm font-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
             >
-              <span>Try {tool.name} Now</span>
+              <span>Use {tool.name} Above</span>
               <ArrowUpRight className="h-4 w-4 text-accent" />
             </button>
             <span className="text-xs text-muted-foreground font-medium">
-              No installation required · Works on Desktop, Tablet &amp; Mobile
+              Free online studio · Works on Windows, Mac, iOS &amp; Android
             </span>
           </div>
         </div>
 
-        {/* Right 6 Columns: Interactive / Tailored Visual Showcase Stage */}
+        {/* Right 6 Columns: BESPOKE INTERACTIVE VISUAL STAGE SPECIFIC TO THIS EXACT TOOL */}
         <div className="lg:col-span-6">
           <div className="relative rounded-3xl border-2 border-border bg-card p-4 sm:p-6 shadow-2xl overflow-hidden">
-            {/* Top Window Bar */}
+            {/* Window Title Bar */}
             <div className="flex items-center justify-between gap-2 pb-3.5 mb-4 border-b border-border/70">
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-rose-500/80" />
                 <span className="h-3 w-3 rounded-full bg-amber-500/80" />
                 <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
                 <span className="ml-2 text-xs font-extrabold text-foreground truncate">
-                  {tool.name} — Live Result Showcase
+                  {tool.name} — Interactive Studio Demo
                 </span>
               </div>
               <span className="rounded-full bg-accent/15 border border-accent/30 px-2.5 py-0.5 text-[10px] font-mono font-bold text-accent">
@@ -238,279 +484,1061 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </span>
             </div>
 
-            {/* Tailored Visual Scene by Tool Category / Slug */}
-            {isPdf ? (
-              /* PDF STUDIO INTERACTIVE VISUAL SCENE */
-              <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-4 sm:p-5 text-white space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-[#141414] border border-white/10 rounded-xl px-3 py-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-lg bg-[#ff5500] text-white font-extrabold text-[11px]">
-                      Edit / Select
-                    </span>
-                    <span className="text-neutral-300 font-mono text-[11px]">Helvetica-Bold · 12pt</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-lg bg-white/10 text-neutral-200 text-[10px] font-bold">
-                      Shape: Hexagon
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-lg bg-[#ff5500] text-white text-[10px] font-black">
-                      Save &amp; Export PDF
-                    </span>
-                  </div>
-                </div>
-
-                {/* Simulated Document Sheet */}
-                <div className="bg-white text-[#0a0a0a] rounded-xl p-4 sm:p-5 shadow-xl space-y-3 relative">
-                  <div className="flex items-start justify-between gap-4 border-b border-neutral-200 pb-3">
-                    <div className="space-y-1">
-                      <div className="inline-flex items-center gap-1.5 rounded bg-[#ff5500]/10 border border-[#ff5500] px-2 py-0.5 text-[11px] font-extrabold text-[#0a0a0a]">
-                        <span>TAX INVOICE #INV-2026</span>
-                        <span className="text-[9px] bg-[#ff5500] text-white px-1.5 rounded font-bold">
-                          In-Place Edited
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-600 font-medium">
-                        Seller: <strong className="text-[#0a0a0a]">BG.TOOLS CREATIVE STUDIO</strong>
-                      </p>
-                      <p className="text-[11px] text-neutral-500">
-                        Font, size &amp; alignment automatically matched to original PDF
-                      </p>
-                    </div>
-
-                    {/* Shaped Photo Preview */}
-                    <div className="flex flex-col items-center gap-1 shrink-0">
-                      <div className="relative h-14 w-14">
-                        <svg viewBox="0 0 100 100" className="w-full h-full">
-                          <defs>
-                            <clipPath id="showcase-hex-clip">
-                              <polygon points="25,4 75,4 98,50 75,96 25,96 2,50" />
-                            </clipPath>
-                          </defs>
-                          <image
-                            href="/profile-avatars/Boy1.jpg"
-                            width="100"
-                            height="100"
-                            preserveAspectRatio="xMidYMid slice"
-                            clipPath="url(#showcase-hex-clip)"
-                          />
-                          <polygon
-                            points="25,4 75,4 98,50 75,96 25,96 2,50"
-                            fill="none"
-                            stroke="#ff5500"
-                            strokeWidth="4"
-                          />
-                        </svg>
-                      </div>
-                      <span className="text-[9px] font-bold text-[#ff5500] uppercase">Hexagon Photo</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-[11px]">
-                    <div className="rounded-lg bg-neutral-100 p-2">
-                      <span className="text-neutral-500 block text-[10px]">Document Status</span>
-                      <span className="font-bold text-emerald-600">✓ Verified &amp; Signed</span>
-                    </div>
-                    <div className="rounded-lg bg-neutral-100 p-2">
-                      <span className="text-neutral-500 block text-[10px]">Vector Resolution</span>
-                      <span className="font-bold text-[#0a0a0a]">300 DPI Lossless</span>
-                    </div>
-                    <div className="rounded-lg bg-neutral-100 p-2">
-                      <span className="text-neutral-500 block text-[10px]">Output Size</span>
-                      <span className="font-bold text-[#ff5500]">Optimized PDF</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : isOcrOrDoc ? (
-              /* OCR & DOCUMENT EXTRACTION VISUAL SCENE */
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
-                <div className="relative rounded-2xl border border-border overflow-hidden bg-neutral-950 p-3 flex flex-col justify-between min-h-[260px]">
-                  <span className="self-start rounded-full bg-white/10 text-white px-2.5 py-0.5 text-[10px] font-bold">
-                    1. Scanned Image Input
-                  </span>
-                  <div className="my-auto space-y-2 p-3 rounded-xl bg-white/5 border border-white/10 font-mono text-xs text-white/80 relative overflow-hidden">
-                    <div className="flex justify-between text-[11px] text-amber-400 font-bold">
-                      <span>INVOICE #4092</span>
-                      <span>$1,240.00</span>
-                    </div>
-                    <div className="h-2 w-4/5 rounded bg-white/20" />
-                    <div className="h-2 w-3/5 rounded bg-white/20" />
-                    <div className="h-2 w-11/12 rounded bg-white/20" />
-                    <div className="inset-x-0 top-1/2 h-0.5 bg-[#ff5500] shadow-[0_0_12px_#ff5500] absolute animate-pulse" />
-                  </div>
-                  <span className="text-[11px] text-neutral-400 font-medium">
-                    AI Optical Character &amp; Layout Detection
-                  </span>
-                </div>
-
-                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex flex-col justify-between min-h-[260px]">
-                  <div className="flex items-center justify-between">
-                    <span className="rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold">
-                      2. Editable {tool.outputs}
-                    </span>
-                    <ScanText className="h-4 w-4 text-emerald-500" />
-                  </div>
-                  <div className="my-auto rounded-xl bg-card border border-border p-3 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between text-xs font-bold border-b border-border pb-1.5">
-                      <span>Extracted Line Item</span>
-                      <span className="text-emerald-600 font-mono">$1,240.00</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed font-mono">
-                      100% selectable text, preserved columns, and structured paragraphs ready for {tool.outputs}.
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                    <span>✓ 99.4% Character Accuracy</span>
-                    <span>Instant Export</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* INTERACTIVE BEFORE / AFTER & STUDIO BACKDROP SHOWCASE (like remove.bg/g/individuals) */
+            {/* ── 1. CROP IMAGE INTERACTIVE VISUAL STAGE ── */}
+            {mode === "crop-image" && (
               <div className="space-y-4">
-                <div
-                  className="relative h-[320px] sm:h-[360px] w-full rounded-2xl overflow-hidden border border-border select-none"
-                  style={backdropStyles[activeBackdrop]}
-                >
-                  {/* Processed After Layer */}
+                <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-[#0a0a0a] border border-border select-none">
+                  {/* Darkened Outer Uncropped Image */}
                   <img
-                    src={girlAfter}
-                    alt={`${tool.name} processed result`}
-                    className="h-full w-full object-cover object-top pointer-events-none"
-                    loading="lazy"
+                    src={girlBefore}
+                    alt="Original uncropped frame"
+                    className="h-full w-full object-cover object-top opacity-35 filter brightness-50 pointer-events-none"
                   />
 
-                  {/* Original Before Layer (Clipped by Slider) */}
+                  {/* Active Bright Crop Box with Rule-of-Thirds Grid & Handles */}
                   <div
-                    className="absolute inset-0 overflow-hidden pointer-events-none"
+                    className="absolute border-2 border-[#ff5500] shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] transition-all duration-300 overflow-hidden"
                     style={{
-                      clipPath: `polygon(0 0, ${compareSlider}% 0, ${compareSlider}% 100%, 0 100%)`,
+                      left: cropBoxMap.left,
+                      top: cropBoxMap.top,
+                      width: cropBoxMap.width,
+                      height: cropBoxMap.height,
                     }}
                   >
                     <img
                       src={girlBefore}
-                      alt={`Original before ${tool.name}`}
-                      className="h-full w-full object-cover object-top pointer-events-none"
-                      loading="lazy"
+                      alt="Active crop region"
+                      className="w-full h-full object-cover object-top pointer-events-none"
                     />
-                  </div>
+                    {/* Rule of Thirds Grid Lines */}
+                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
+                      <div className="border-r border-b border-white/45" />
+                      <div className="border-r border-b border-white/45" />
+                      <div className="border-b border-white/45" />
+                      <div className="border-r border-b border-white/45" />
+                      <div className="border-r border-b border-white/45" />
+                      <div className="border-b border-white/45" />
+                      <div className="border-r border-white/45" />
+                      <div className="border-r border-white/45" />
+                      <div />
+                    </div>
+                    {/* Corner L-Handles */}
+                    <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white" />
+                    <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white" />
+                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-white" />
+                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-white" />
 
-                  {/* Vertical Divider Line */}
-                  <div
-                    className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_12px_rgba(0,0,0,0.6)] pointer-events-none"
-                    style={{ left: `${compareSlider}%` }}
-                  >
-                    <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-[#0a0a0a] text-white border-2 border-white shadow-xl flex items-center justify-center text-[10px] font-black">
-                      ↔
+                    {/* Live Dimension Readout Pill Inside Crop Box */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-[#0a0a0a]/90 text-white border border-white/20 px-3 py-0.5 text-[10px] font-mono font-bold whitespace-nowrap shadow-lg">
+                      {cropBoxMap.dim}
                     </div>
                   </div>
 
-                  {/* Labels */}
-                  <span className="absolute top-3 left-3 rounded-full bg-black/75 text-white backdrop-blur-md px-3 py-1 text-[11px] font-bold">
-                    {isCompress ? "Original (4.2 MB)" : isResizeOrCrop ? "Original Frame" : "Original Input"}
-                  </span>
-                  <span className="absolute top-3 right-3 rounded-full bg-[#ff5500] text-white shadow-md px-3 py-1 text-[11px] font-extrabold">
-                    {isCompress
-                      ? "Compressed (490 KB · -88%)"
-                      : isResizeOrCrop
-                        ? "Precision Framed Output"
-                        : isCodeEncoding
-                          ? `Encoded ${tool.outputs}`
-                          : `Processed (${tool.outputs})`}
+                  <span className="absolute top-3 left-3 rounded-full bg-black/80 text-white px-3 py-1 text-[11px] font-bold border border-white/15">
+                    Rule-of-Thirds Composition Grid
                   </span>
                 </div>
 
-                {/* Interactive Controls Under Preview */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                  <div className="flex items-center gap-2 flex-1 min-w-[180px]">
-                    <span className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">
-                      Compare Split:
-                    </span>
-                    <input
-                      type="range"
-                      min={5}
-                      max={95}
-                      value={compareSlider}
-                      onChange={(e) => setCompareSlider(Number(e.target.value))}
-                      aria-label="Compare before and after"
-                      className="w-full accent-[#ff5500] cursor-pointer h-1.5 rounded-lg"
-                    />
-                  </div>
-
+                {/* Aspect Ratio Preset Selector */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <Crop className="h-3.5 w-3.5 text-accent" />
+                    <span>Click Aspect Ratio Preset:</span>
+                  </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-muted-foreground mr-1">Backdrop:</span>
                     {(
                       [
-                        { id: "transparent", label: "Grid" },
-                        { id: "orange", label: "Brand" },
-                        { id: "studio", label: "Dark" },
-                        { id: "gradient", label: "Soft" },
+                        { id: "1:1", label: "1:1 Square" },
+                        { id: "16:9", label: "16:9 Wide" },
+                        { id: "4:5", label: "4:5 Portrait" },
+                        { id: "free", label: "Custom Grid" },
                       ] as const
-                    ).map((b) => (
+                    ).map((p) => (
                       <button
-                        key={b.id}
+                        key={p.id}
                         type="button"
-                        onClick={() => setActiveBackdrop(b.id)}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                          activeBackdrop === b.id
-                            ? "bg-foreground text-background shadow-xs"
+                        onClick={() => setCropPreset(p.id)}
+                        className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                          cropPreset === p.id
+                            ? "bg-[#ff5500] text-white shadow-sm"
                             : "bg-secondary text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {b.label}
+                        {p.label}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
             )}
+
+            {/* ── 2. RESIZE IMAGE INTERACTIVE VISUAL STAGE ── */}
+            {mode === "resize-image" && (
+              <div className="space-y-4">
+                <div className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden bg-neutral-950 border border-border p-6 flex flex-col items-center justify-center">
+                  {/* Top & Left Pixel Rulers */}
+                  <div className="absolute top-0 inset-x-0 h-6 bg-[#141414] border-b border-white/10 flex items-center justify-between px-4 text-[10px] font-mono text-neutral-400">
+                    <span>0 px</span>
+                    <span className="text-[#ff5500] font-bold">↔ Width: {resizeMeta.w} px</span>
+                    <span>{resizeMeta.w} px</span>
+                  </div>
+
+                  <div
+                    className={`relative mt-4 rounded-xl overflow-hidden border-2 border-[#ff5500] shadow-2xl transition-all duration-300 ${resizeMeta.scale}`}
+                    style={{ maxWidth: "78%", maxHeight: "230px" }}
+                  >
+                    <img
+                      src={girlBefore}
+                      alt="Resized preview"
+                      className="h-52 w-auto object-cover pointer-events-none"
+                    />
+                    <div className="absolute bottom-2 right-2 rounded-lg bg-black/85 text-white border border-white/20 px-2.5 py-1 text-[11px] font-mono font-bold">
+                      {resizeMeta.w} × {resizeMeta.h} px
+                    </div>
+                  </div>
+
+                  {/* Output Specs Strip */}
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
+                    <span className="rounded-full bg-white/10 text-white px-3 py-1 font-mono font-bold">
+                      Resolution: {resizeMeta.w}×{resizeMeta.h}
+                    </span>
+                    <span className="rounded-full bg-emerald-500/20 text-emerald-300 px-3 py-1 font-mono font-bold">
+                      Density: {resizeMeta.dpi}
+                    </span>
+                    <span className="rounded-full bg-[#ff5500]/20 text-[#ff5500] px-3 py-1 font-mono font-bold">
+                      Est. Size: {resizeMeta.size}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <Scaling className="h-3.5 w-3.5 text-accent" />
+                    <span>Target Dimension Preset:</span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {(
+                      [
+                        { id: "4k", label: "4K (3840px)" },
+                        { id: "1080p", label: "Full HD (1920px)" },
+                        { id: "social", label: "Social (1080px)" },
+                        { id: "thumb", label: "Web (600px)" },
+                      ] as const
+                    ).map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setResizePreset(p.id)}
+                        className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                          resizePreset === p.id
+                            ? "bg-[#ff5500] text-white shadow-sm"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 3. COMPRESS IMAGE INTERACTIVE VISUAL STAGE ── */}
+            {mode === "compress-image" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 h-[300px] sm:h-[320px]">
+                  {/* Left: Uncompressed Original */}
+                  <div className="relative rounded-2xl overflow-hidden border border-border bg-neutral-900">
+                    <img
+                      src={girlBefore}
+                      alt="Uncompressed original"
+                      className="h-full w-full object-cover object-top"
+                    />
+                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black/85 backdrop-blur-md p-2.5 text-white border border-white/15">
+                      <div className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold">
+                        Original Uncompressed
+                      </div>
+                      <div className="flex items-baseline justify-between mt-0.5">
+                        <span className="font-mono text-sm sm:text-base font-black text-rose-400">
+                          4.28 MB
+                        </span>
+                        <span className="text-[10px] font-mono text-neutral-300">100% Raw</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Compressed Output */}
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500 bg-neutral-900">
+                    <img
+                      src={girlBefore}
+                      alt="Compressed output"
+                      className="h-full w-full object-cover object-top"
+                    />
+                    <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-500 text-white px-2.5 py-0.5 text-[11px] font-black shadow-lg">
+                      -{savedPercent}% Saved
+                    </span>
+                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black/85 backdrop-blur-md p-2.5 text-white border border-emerald-500/40">
+                      <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
+                        Smart Compressed Output
+                      </div>
+                      <div className="flex items-baseline justify-between mt-0.5">
+                        <span className="font-mono text-sm sm:text-base font-black text-emerald-400">
+                          {compressedKb} KB
+                        </span>
+                        <span className="text-[10px] font-mono text-white">
+                          Quality: {compressQuality}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interactive Compression Quality Slider */}
+                <div className="rounded-2xl bg-secondary/60 border border-border p-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Minimize2 className="h-4 w-4 text-accent" />
+                    <span className="text-xs font-extrabold text-foreground">
+                      Test Compression Level ({compressQuality}% Quality):
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-1 min-w-[180px]">
+                    <input
+                      type="range"
+                      min={40}
+                      max={98}
+                      value={compressQuality}
+                      onChange={(e) => setCompressQuality(Number(e.target.value))}
+                      aria-label="Compression quality preview"
+                      className="w-full accent-[#ff5500] cursor-pointer h-1.5"
+                    />
+                    <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                      {compressedKb} KB (-{savedPercent}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 4. ROTATE & FLIP IMAGE INTERACTIVE STAGE ── */}
+            {mode === "rotate-image" && (
+              <div className="space-y-4">
+                <div className="relative h-[310px] sm:h-[340px] w-full rounded-2xl overflow-hidden bg-neutral-950 border border-border flex items-center justify-center p-6">
+                  <img
+                    src={girlBefore}
+                    alt="Rotated preview"
+                    className="max-h-56 max-w-56 rounded-xl object-cover border-2 border-white/20 shadow-2xl transition-transform duration-300"
+                    style={{
+                      transform: `rotate(${rotateDeg}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
+                    }}
+                  />
+                  <div className="absolute top-3 left-3 rounded-full bg-black/80 text-white border border-white/15 px-3 py-1 text-[11px] font-mono font-bold">
+                    Angle: {rotateDeg}° {flipH ? "· Flip H" : ""} {flipV ? "· Flip V" : ""}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-muted-foreground">Try Rotation &amp; Mirroring:</span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setRotateDeg((d) => (d + 90) % 360)}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#ff5500] text-white px-3 py-1 text-xs font-extrabold cursor-pointer"
+                    >
+                      <RotateCw className="h-3.5 w-3.5" />
+                      <span>Rotate +90°</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFlipH((v) => !v)}
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold cursor-pointer ${
+                        flipH ? "bg-foreground text-background" : "bg-secondary text-foreground"
+                      }`}
+                    >
+                      <FlipHorizontal className="h-3.5 w-3.5" />
+                      <span>Flip H</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFlipV((v) => !v)}
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold cursor-pointer ${
+                        flipV ? "bg-foreground text-background" : "bg-secondary text-foreground"
+                      }`}
+                    >
+                      <FlipVertical className="h-3.5 w-3.5" />
+                      <span>Flip V</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 5. SQUARE YOUR IMAGE (1:1 NO-CROP STUDIO) ── */}
+            {mode === "square-image" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-center bg-neutral-950 rounded-2xl p-5 border border-border h-[320px]">
+                  <div
+                    className="relative h-64 w-64 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl flex items-center justify-center"
+                    style={{
+                      background:
+                        squareStyle === "white"
+                          ? "#ffffff"
+                          : squareStyle === "dark"
+                            ? "#0a0a0a"
+                            : squareStyle === "gradient"
+                              ? "linear-gradient(135deg, #ff5500 0%, #ec4899 50%, #6366f1 100%)"
+                              : undefined,
+                    }}
+                  >
+                    {squareStyle === "blur" && (
+                      <img
+                        src={girlBefore}
+                        alt="Blurred square backdrop"
+                        className="absolute inset-0 w-full h-full object-cover scale-125 filter blur-md brightness-75"
+                      />
+                    )}
+                    <img
+                      src={girlBefore}
+                      alt="1:1 uncropped subject"
+                      className="relative z-10 w-56 h-40 object-cover rounded-lg shadow-xl border border-white/30"
+                    />
+                    <span className="absolute bottom-2 right-2 z-20 rounded-full bg-black/80 text-white px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                      1080 × 1080 (1:1 No-Crop)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-muted-foreground">1:1 Square Fill Mode:</span>
+                  <div className="flex items-center gap-1.5">
+                    {(
+                      [
+                        { id: "blur", label: "Blurred Backdrop" },
+                        { id: "gradient", label: "Studio Gradient" },
+                        { id: "white", label: "Pure White" },
+                        { id: "dark", label: "Carbon Dark" },
+                      ] as const
+                    ).map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSquareStyle(m.id)}
+                        className={`px-3 py-1 rounded-full text-xs font-extrabold cursor-pointer ${
+                          squareStyle === m.id
+                            ? "bg-[#ff5500] text-white"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 6. AI UPSCALE IMAGE (SUPER-RESOLUTION) ── */}
+            {mode === "upscale-image" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 h-[310px]">
+                  <div className="relative rounded-2xl overflow-hidden border border-border bg-neutral-900">
+                    <img
+                      src={girlBefore}
+                      alt="Low-res input"
+                      className="h-full w-full object-cover object-top filter blur-[2.5px] contrast-90 scale-105"
+                    />
+                    <span className="absolute top-2.5 left-2.5 rounded-full bg-black/80 text-white px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                      Low-Res Input (480 × 600 px)
+                    </span>
+                  </div>
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-[#ff5500] bg-neutral-900">
+                    <img
+                      src={girlBefore}
+                      alt="4K Upscaled output"
+                      className="h-full w-full object-cover object-top filter contrast-105 saturate-105"
+                    />
+                    <span className="absolute top-2.5 right-2.5 rounded-full bg-[#ff5500] text-white px-2.5 py-0.5 text-[10px] font-mono font-black shadow-md">
+                      {upscaleFactor}x AI Upscaled ({480 * upscaleFactor} × {600 * upscaleFactor} px)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-muted-foreground">AI Super-Resolution Scale:</span>
+                  <div className="flex items-center gap-2">
+                    {([2, 4] as const).map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setUpscaleFactor(f)}
+                        className={`px-4 py-1 rounded-full text-xs font-extrabold cursor-pointer ${
+                          upscaleFactor === f ? "bg-[#ff5500] text-white" : "bg-secondary text-foreground"
+                        }`}
+                      >
+                        {f}x Ultra HD ({f === 4 ? "4K UHD" : "2K QHD"})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 7. REMOVE BACKGROUND (SUB-PIXEL ALPHA MATTING) ── */}
+            {mode === "remove-background" && (
+              <div className="space-y-4">
+                <div
+                  className="relative h-[320px] sm:h-[350px] w-full rounded-2xl overflow-hidden border border-border select-none"
+                  style={
+                    bgColorMode === "transparent"
+                      ? { ...softCheckerStyle, backgroundColor: "#ffffff" }
+                      : bgColorMode === "orange"
+                        ? { background: "linear-gradient(135deg, #ff5500 0%, #ff8800 100%)" }
+                        : bgColorMode === "dark"
+                          ? { background: "#0f172a" }
+                          : { background: "linear-gradient(135deg, #fce7f3 0%, #e0e7ff 100%)" }
+                  }
+                >
+                  <img
+                    src={girlAfter}
+                    alt="Background removed cutout"
+                    className="h-full w-full object-cover object-top pointer-events-none"
+                  />
+                  <div
+                    className="absolute inset-0 overflow-hidden pointer-events-none"
+                    style={{ clipPath: `polygon(0 0, ${bgCompare}% 0, ${bgCompare}% 100%, 0 100%)` }}
+                  >
+                    <img
+                      src={girlBefore}
+                      alt="Original before background removal"
+                      className="h-full w-full object-cover object-top pointer-events-none"
+                    />
+                  </div>
+                  <div
+                    className="absolute inset-y-0 w-0.5 bg-white shadow-lg pointer-events-none"
+                    style={{ left: `${bgCompare}%` }}
+                  >
+                    <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-[#0a0a0a] text-white border-2 border-white flex items-center justify-center text-[10px] font-black">
+                      ↔
+                    </div>
+                  </div>
+                  <span className="absolute top-3 left-3 rounded-full bg-black/75 text-white px-3 py-1 text-[11px] font-bold">
+                    Original Photo
+                  </span>
+                  <span className="absolute top-3 right-3 rounded-full bg-[#ff5500] text-white px-3 py-1 text-[11px] font-extrabold">
+                    Transparent PNG Cutout
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-[160px]">
+                    <span className="text-[11px] font-bold text-muted-foreground">Slide Cutout:</span>
+                    <input
+                      type="range"
+                      min={5}
+                      max={95}
+                      value={bgCompare}
+                      onChange={(e) => setBgCompare(Number(e.target.value))}
+                      aria-label="Slide background removal comparison"
+                      className="w-full accent-[#ff5500] cursor-pointer h-1.5"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {(["transparent", "orange", "dark", "soft"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setBgColorMode(m)}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize cursor-pointer ${
+                          bgColorMode === m ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 8. AI BLUR FACE (PRIVACY REDACTION) ── */}
+            {mode === "blur-face" && (
+              <div className="space-y-4">
+                <div className="relative h-[320px] w-full rounded-2xl overflow-hidden border border-border bg-neutral-950">
+                  <img
+                    src={girlBefore}
+                    alt="Face blur privacy demo"
+                    className="h-full w-full object-cover object-top"
+                  />
+                  {/* Detected Face Blur Shield */}
+                  <div
+                    className="absolute rounded-2xl border-2 border-[#ff5500] shadow-xl overflow-hidden"
+                    style={{
+                      left: "43%",
+                      top: "20%",
+                      width: "28%",
+                      height: "42%",
+                      backdropFilter: `blur(${blurIntensity}px)`,
+                      WebkitBackdropFilter: `blur(${blurIntensity}px)`,
+                    }}
+                  >
+                    <span className="absolute top-1.5 left-1.5 rounded bg-[#ff5500] text-white px-1.5 py-0.5 text-[9px] font-black uppercase">
+                      Face Shield Active
+                    </span>
+                  </div>
+                  <span className="absolute bottom-3 left-3 rounded-full bg-black/80 text-white px-3 py-1 text-[11px] font-bold">
+                    AI Face Detection · Privacy Anonymizer
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <EyeOff className="h-3.5 w-3.5 text-accent" />
+                    <span>Blur Strength ({blurIntensity}px):</span>
+                  </span>
+                  <input
+                    type="range"
+                    min={4}
+                    max={28}
+                    value={blurIntensity}
+                    onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                    aria-label="Face blur intensity"
+                    className="w-48 accent-[#ff5500] cursor-pointer h-1.5"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ── 9. WATERMARK / REMOVE WATERMARK / PHOTO EDITOR / COLOR PICKER / MEME ── */}
+            {(mode === "watermark-image" ||
+              mode === "remove-watermark" ||
+              mode === "photo-editor" ||
+              mode === "color-picker" ||
+              mode === "meme-generator") && (
+              <div className="space-y-4">
+                <div className="relative h-[320px] w-full rounded-2xl overflow-hidden border border-border bg-neutral-950">
+                  <img
+                    src={girlBefore}
+                    alt={tool.name}
+                    className="h-full w-full object-cover object-top transition-all duration-300"
+                    style={{
+                      filter:
+                        mode === "photo-editor"
+                          ? editorFilter === "vibrant"
+                            ? "contrast(1.12) saturate(1.3)"
+                            : editorFilter === "warm"
+                              ? "sepia(0.28) saturate(1.25) brightness(1.04)"
+                              : editorFilter === "bw"
+                                ? "grayscale(1) contrast(1.2)"
+                                : "contrast(1.18) brightness(0.95) saturate(0.85)"
+                          : undefined,
+                    }}
+                  />
+
+                  {mode === "watermark-image" && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="rotate-[-24deg] border-2 border-white/60 bg-black/35 backdrop-blur-xs px-6 py-2 rounded-xl text-white/85 font-display text-xl sm:text-2xl font-black tracking-widest uppercase shadow-lg">
+                        © BG.TOOLS STUDIO
+                      </div>
+                    </div>
+                  )}
+
+                  {mode === "remove-watermark" && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-400 bg-emerald-500/20 backdrop-blur-xs px-4 py-2 text-white text-xs font-black shadow-xl">
+                      ✓ Watermark &amp; Stamp Inpainted Cleanly
+                    </div>
+                  )}
+
+                  {mode === "meme-generator" && (
+                    <div className="absolute inset-x-0 inset-y-3 flex flex-col justify-between items-center pointer-events-none px-4 text-center">
+                      <span
+                        className="font-display text-xl sm:text-2xl font-black uppercase text-white tracking-wide"
+                        style={{ WebkitTextStroke: "1.5px #000", textShadow: "0 2px 6px rgba(0,0,0,0.9)" }}
+                      >
+                        WHEN THE CLIENT SAYS &ldquo;QUICK EDIT&rdquo;
+                      </span>
+                      <span
+                        className="font-display text-xl sm:text-2xl font-black uppercase text-white tracking-wide"
+                        style={{ WebkitTextStroke: "1.5px #000", textShadow: "0 2px 6px rgba(0,0,0,0.9)" }}
+                      >
+                        AND IT TAKES 1 SECOND ON BG.TOOLS
+                      </span>
+                    </div>
+                  )}
+
+                  {mode === "color-picker" && (
+                    <>
+                      {paletteColors.map((c, idx) => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onClick={() => setPickedColorIdx(idx)}
+                          style={{ left: c.x, top: c.y, backgroundColor: c.hex }}
+                          className={`absolute -translate-x-1/2 -translate-y-1/2 h-7 w-7 rounded-full border-2 border-white shadow-xl cursor-pointer transition-transform ${
+                            pickedColorIdx === idx ? "scale-125 ring-4 ring-[#ff5500]" : "hover:scale-110"
+                          }`}
+                          title={`${c.name}: ${c.hex}`}
+                        />
+                      ))}
+                      <div className="absolute bottom-3 inset-x-3 rounded-xl bg-black/85 backdrop-blur-md border border-white/15 p-3 text-white flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="h-7 w-7 rounded-lg border border-white/30 shrink-0"
+                            style={{ backgroundColor: paletteColors[pickedColorIdx]?.hex }}
+                          />
+                          <div>
+                            <div className="text-xs font-extrabold">{paletteColors[pickedColorIdx]?.name}</div>
+                            <div className="text-[11px] font-mono text-neutral-300">
+                              {paletteColors[pickedColorIdx]?.hex} · {paletteColors[pickedColorIdx]?.rgb}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-[#ff5500]">Click Dots on Photo</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {mode === "photo-editor" && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-muted-foreground">Color Grading Preset:</span>
+                    <div className="flex items-center gap-1.5">
+                      {(["vibrant", "warm", "bw", "cinema"] as const).map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setEditorFilter(f)}
+                          className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase cursor-pointer ${
+                            editorFilter === f ? "bg-[#ff5500] text-white" : "bg-secondary text-foreground"
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── 10. FORMAT CONVERTERS / CODE ENCODING / ASCII ART ── */}
+            {(mode === "format-converter" || mode === "code-encoding" || mode === "ascii-art") && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch min-h-[300px]">
+                <div className="relative rounded-2xl overflow-hidden border border-border bg-neutral-950">
+                  <img
+                    src={girlBefore}
+                    alt="Source input"
+                    className="h-full w-full object-cover object-top"
+                  />
+                  <div className="absolute bottom-2.5 inset-x-2.5 rounded-xl bg-black/85 backdrop-blur-md p-2.5 text-white border border-white/15">
+                    <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold block">
+                      Source Input Format
+                    </span>
+                    <span className="font-mono text-xs sm:text-sm font-black text-white">
+                      {tool.accepts} · Full Color Profile
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border-2 border-[#ff5500]/50 bg-[#0d0d10] text-white p-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <span className="text-xs font-extrabold text-[#ff5500]">
+                      Converted {tool.outputs} Output
+                    </span>
+                    <Code2 className="h-4 w-4 text-emerald-400" />
+                  </div>
+
+                  {mode === "code-encoding" ? (
+                    <pre className="my-auto font-mono text-[10px] leading-relaxed text-emerald-400 bg-black/60 p-3 rounded-xl border border-white/10 overflow-hidden select-all">
+                      {tool.slug.includes("base64")
+                        ? "data:image/png;base64,\niVBORw0KGgoAAAANSUhEUgAA\nBAAAAAQACAYAAAB/HSuDAAA..."
+                        : tool.slug.includes("hex")
+                          ? "89 50 4E 47 0D 0A 1A 0A\n00 00 00 0D 49 48 44 52\n00 00 07 80 00 00 04 38..."
+                          : tool.slug.includes("octal")
+                            ? "211 120 116 107 015 012\n032 012 000 000 000 015..."
+                            : "10001001 01010000 01001110\n01000111 00001101 00001010..."}
+                    </pre>
+                  ) : mode === "ascii-art" ? (
+                    <pre className="my-auto font-mono text-[8px] leading-[9px] text-amber-400 bg-black/70 p-3 rounded-xl border border-white/10 overflow-hidden text-center">
+                      {[
+                        "  ..::;;++**##@@##**++;;::..  ",
+                        " .:;+*#@@%%%%%%%%%%@@#*+;:. ",
+                        " :+*#@@%%##******##%%@@#*+: ",
+                        " ;*#@%#*+;;::::::;;+*#%@#*;",
+                        " *#@%*+:..  ....  ..:+*%@#* ",
+                        " #@%+:   .;+*##*+;.   :+%@# ",
+                        " @%*.   +*#@@@@@@#*+   .*%@ ",
+                      ].join("\n")}
+                    </pre>
+                  ) : (
+                    <div className="my-auto space-y-2.5">
+                      <div className="rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
+                        <span className="text-xs text-neutral-300">Target Container</span>
+                        <span className="font-mono text-xs font-black text-emerald-400">{tool.outputs}</span>
+                      </div>
+                      <div className="rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
+                        <span className="text-xs text-neutral-300">Color &amp; Metadata</span>
+                        <span className="font-mono text-xs font-bold text-white">sRGB · Lossless</span>
+                      </div>
+                      <div className="rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
+                        <span className="text-xs text-neutral-300">Browser Speed</span>
+                        <span className="font-mono text-xs font-bold text-[#ff5500]">&lt; 0.4 Seconds</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-emerald-400 font-bold flex items-center justify-between pt-2 border-t border-white/10">
+                    <span>✓ Ready for Instant Download</span>
+                    <span>100% Spec-Compliant</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 11. OCR & DOCUMENT CONVERTERS (WORD / EXCEL / PPT / OCR) ── */}
+            {(mode === "ocr-text" || mode === "doc-excel" || mode === "doc-word" || mode === "doc-ppt") && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch min-h-[290px]">
+                <div className="rounded-2xl border border-border bg-neutral-950 p-4 flex flex-col justify-between text-white relative overflow-hidden">
+                  <span className="self-start rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold">
+                    1. Source ({tool.accepts})
+                  </span>
+                  <div className="my-auto rounded-xl bg-white/5 border border-white/15 p-3.5 space-y-2 font-mono text-xs relative">
+                    <div className="flex justify-between text-amber-400 font-bold">
+                      <span>STATEMENT #2026</span>
+                      <span>$4,850.00</span>
+                    </div>
+                    <div className="h-2 w-5/6 rounded bg-white/20" />
+                    <div className="h-2 w-4/6 rounded bg-white/20" />
+                    <div className="h-2 w-11/12 rounded bg-white/20" />
+                    <div className="inset-x-0 top-1/2 h-0.5 bg-[#ff5500] shadow-[0_0_12px_#ff5500] absolute" />
+                  </div>
+                  <span className="text-[11px] text-neutral-400">
+                    Optical Layout &amp; Table Structure Recognition
+                  </span>
+                </div>
+
+                <div className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/5 p-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-extrabold">
+                      2. Structured {tool.outputs}
+                    </span>
+                    {mode === "doc-excel" ? (
+                      <Table2 className="h-4 w-4 text-emerald-500" />
+                    ) : mode === "doc-ppt" ? (
+                      <Presentation className="h-4 w-4 text-[#ff5500]" />
+                    ) : (
+                      <ScanText className="h-4 w-4 text-emerald-500" />
+                    )}
+                  </div>
+
+                  {mode === "doc-excel" ? (
+                    <div className="my-auto rounded-xl overflow-hidden border border-border bg-card text-[11px] font-mono">
+                      <div className="grid grid-cols-3 bg-emerald-600 text-white font-bold px-2.5 py-1.5">
+                        <span>Item</span>
+                        <span>Qty</span>
+                        <span>Amount</span>
+                      </div>
+                      <div className="grid grid-cols-3 px-2.5 py-1.5 border-b border-border">
+                        <span>Studio License</span>
+                        <span>01</span>
+                        <span className="font-bold text-emerald-600">$2,400</span>
+                      </div>
+                      <div className="grid grid-cols-3 px-2.5 py-1.5">
+                        <span>Cloud API</span>
+                        <span>01</span>
+                        <span className="font-bold text-emerald-600">$2,450</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="my-auto rounded-xl bg-card border border-border p-3 space-y-2 shadow-xs">
+                      <div className="text-xs font-extrabold text-foreground border-b border-border pb-1">
+                        Editable {tool.outputs} Document
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Headings, tables, fonts, and paragraphs are reconstructed into a clean, editable{" "}
+                        <strong className="text-foreground">{tool.outputs}</strong> file.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex justify-between">
+                    <span>✓ Editable Columns &amp; Text</span>
+                    <span>Instant Download</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 12. PDF TOOLS (MERGE / SPLIT / COMPRESS / EDIT / SIGN / SECURITY / QR / INVOICE) ── */}
+            {mode.startsWith("pdf-") && (
+              <div className="rounded-2xl bg-[#0a0a0a] border border-white/10 p-4 sm:p-5 text-white space-y-4">
+                {mode === "pdf-merge" ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {["Contract_P1.pdf", "Financials_P2.pdf", "Appendix_P3.pdf"].map((name, i) => (
+                        <div key={name} className="rounded-xl bg-[#161616] border border-white/15 p-3 text-center space-y-1.5">
+                          <div className="mx-auto h-10 w-8 rounded bg-white text-[#0a0a0a] font-mono text-[10px] font-black flex items-center justify-center shadow">
+                            PDF {i + 1}
+                          </div>
+                          <div className="text-[10px] font-bold truncate">{name}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-xs font-black text-[#ff5500]">
+                      <Merge className="h-4 w-4" />
+                      <span>Combined in Custom Drag-and-Drop Order ↓</span>
+                    </div>
+                    <div className="rounded-xl bg-emerald-500/15 border border-emerald-500/40 p-3 flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-white">Merged_Master_Document.pdf</span>
+                      <span className="text-[11px] font-mono font-bold text-emerald-400">All Pages Unified</span>
+                    </div>
+                  </div>
+                ) : mode === "pdf-split" ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-2">
+                      {[1, 2, 3, 4].map((p) => {
+                        const selected = p === 1 || p === 3;
+                        return (
+                          <div
+                            key={p}
+                            className={`rounded-xl p-2.5 text-center border transition-all ${
+                              selected
+                                ? "border-[#ff5500] bg-[#ff5500]/15 ring-2 ring-[#ff5500]/40"
+                                : "border-white/10 bg-[#161616] opacity-55"
+                            }`}
+                          >
+                            <div className="mx-auto h-12 w-9 rounded bg-white text-[#0a0a0a] font-mono text-[10px] font-black flex items-center justify-center">
+                              P.{p}
+                            </div>
+                            <span className="mt-1.5 block text-[10px] font-bold">
+                              {selected ? "✓ Extracted" : "Skipped"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="rounded-xl bg-[#161616] border border-white/15 p-3 flex items-center justify-between text-xs">
+                      <span className="font-bold text-neutral-300">Selected Range: Pages 1, 3</span>
+                      <span className="font-mono font-extrabold text-[#ff5500]">Instant Split PDF</span>
+                    </div>
+                  </div>
+                ) : mode === "pdf-compress" ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-[#161616] border border-white/15 p-4 space-y-1">
+                        <span className="text-[10px] uppercase text-neutral-400 font-bold">Original PDF Size</span>
+                        <div className="font-mono text-xl font-black text-rose-400">18.4 MB</div>
+                        <span className="text-[11px] text-neutral-400">Heavy embedded bitmaps</span>
+                      </div>
+                      <div className="rounded-xl bg-emerald-500/10 border-2 border-emerald-500 p-4 space-y-1">
+                        <span className="text-[10px] uppercase text-emerald-400 font-bold">Compressed PDF (-84%)</span>
+                        <div className="font-mono text-xl font-black text-emerald-400">2.9 MB</div>
+                        <span className="text-[11px] text-neutral-200">Crisp 300 DPI Vector Text Kept</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : mode === "pdf-sign" ? (
+                  <div className="bg-white text-[#0a0a0a] rounded-xl p-4 space-y-3">
+                    <div className="text-xs font-bold text-neutral-500 border-b border-neutral-200 pb-2">
+                      EXECUTIVE APPROVAL &amp; SIGNATURE
+                    </div>
+                    <div className="rounded-xl border-2 border-dashed border-[#ff5500] bg-[#ff5500]/5 p-3 flex items-center justify-between">
+                      <div>
+                        <div className="font-serif italic text-xl font-bold text-[#0a0a0a]">Aakash Vavadiya</div>
+                        <div className="text-[10px] font-mono text-emerald-700 font-bold">
+                          ✓ Digitally Signed &amp; Timestamped
+                        </div>
+                      </div>
+                      <FileSignature className="h-6 w-6 text-[#ff5500]" />
+                    </div>
+                  </div>
+                ) : mode === "pdf-security" ? (
+                  <div className="rounded-xl bg-[#161616] border border-white/15 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        {tool.slug.includes("unlock") || tool.slug.includes("remove") ? (
+                          <Unlock className="h-5 w-5 text-emerald-400" />
+                        ) : (
+                          <Lock className="h-5 w-5 text-[#ff5500]" />
+                        )}
+                        <span className="text-sm font-extrabold">{tool.name} Security Shield</span>
+                      </div>
+                      <span className="rounded-full bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                        AES-256 Standard
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-300 leading-relaxed">
+                      Control document access, printing permissions, copying restrictions, and password encryption directly in your browser.
+                    </p>
+                  </div>
+                ) : (
+                  /* Full-Screen PDF Editor / Invoice / QR / General PDF Scene */
+                  <div className="bg-white text-[#0a0a0a] rounded-xl p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3 border-b border-neutral-200 pb-3">
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center gap-1.5 rounded bg-[#ff5500]/15 border border-[#ff5500] px-2 py-0.5 text-[11px] font-extrabold">
+                          {tool.name} Studio Preview
+                        </span>
+                        <p className="text-xs font-bold text-neutral-800">
+                          In-Place Font-Matched Text &amp; Vector Shape Editing
+                        </p>
+                        <p className="text-[11px] text-neutral-500">
+                          Click any line of text or photo on the PDF to edit without shifting layout
+                        </p>
+                      </div>
+                      <QrCode className="h-10 w-10 text-[#0a0a0a] shrink-0" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-[11px]">
+                      <div className="rounded-lg bg-neutral-100 p-2 font-bold text-emerald-700">✓ Same Font &amp; Size</div>
+                      <div className="rounded-lg bg-neutral-100 p-2 font-bold text-[#0a0a0a]">✓ Vector Shapes</div>
+                      <div className="rounded-lg bg-neutral-100 p-2 font-bold text-[#ff5500]">✓ Instant PDF Export</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ─── SECTION 2: REAL-WORLD USE CASES VISUAL GALLERY (Inspired by remove.bg/g/individuals) ─── */}
+      {/* ─── SECTION 2: 4 TOOL-SPECIFIC VISUAL WORKFLOW CARDS (NO CARTOON AVATARS!) ─── */}
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <p className="font-display text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-2">
-              Made for Every Workflow
+              Tailored for Your Workflow
             </p>
             <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground">
               How Individuals &amp; Teams Use {tool.name}
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
-            From one-off personal projects to high-volume daily production, see what you can create in seconds.
+            Built for accuracy, speed, and reliability across personal, creator, e-commerce, and enterprise tasks.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {useCaseCards.map((card, idx) => (
+          {useCases.map((card, idx) => (
             <div
               key={idx}
               className="group rounded-3xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-xl hover:border-accent/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
             >
               <div>
-                {/* Visual Image Header */}
-                <div
-                  className={`relative h-48 w-full overflow-hidden bg-gradient-to-br ${card.accent} flex items-center justify-center p-4`}
-                  style={idx === 0 && !isPdf ? softCheckerStyle : undefined}
-                >
-                  <img
-                    src={card.img}
-                    alt={card.title}
-                    loading="lazy"
-                    className="h-36 w-36 rounded-2xl object-cover shadow-lg border-2 border-white/80 group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <span className="absolute top-3 left-3 rounded-full bg-background/90 backdrop-blur-md border border-border px-2.5 py-0.5 text-[10px] font-extrabold text-foreground">
-                    {card.tag}
-                  </span>
-                  <span className="absolute bottom-3 right-3 rounded-full bg-[#0a0a0a] text-white px-2.5 py-0.5 text-[10px] font-bold shadow">
+                {/* Bespoke Visual Header Diagram Specific to the Tool & Card */}
+                <div className="relative h-44 w-full overflow-hidden bg-neutral-950 flex items-center justify-center p-4">
+                  {mode.startsWith("pdf-") ? (
+                    <div className="w-40 rounded-xl bg-white text-[#0a0a0a] p-3 shadow-xl border-2 border-[#ff5500]/60 space-y-1.5">
+                      <div className="flex items-center justify-between border-b border-neutral-200 pb-1">
+                        <span className="font-mono text-[9px] font-black text-[#ff5500] uppercase">
+                          {tool.name}
+                        </span>
+                        <FileText className="h-3.5 w-3.5 text-[#0a0a0a]" />
+                      </div>
+                      <div className="h-2 w-4/5 rounded bg-neutral-800" />
+                      <div className="h-1.5 w-3/5 rounded bg-neutral-300" />
+                      <div className="h-1.5 w-11/12 rounded bg-neutral-300" />
+                      <div className="pt-1 flex items-center justify-between text-[9px] font-mono font-bold text-emerald-600">
+                        <span>✓ 300 DPI Vector</span>
+                        <span>PDF #{idx + 1}</span>
+                      </div>
+                    </div>
+                  ) : mode === "ocr-text" || mode === "doc-excel" || mode === "doc-word" || mode === "doc-ppt" ? (
+                    <div className="w-44 rounded-xl bg-[#141418] border border-emerald-500/40 p-3 text-white space-y-2 shadow-xl">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400 font-bold">
+                        <span>{tool.accepts}</span>
+                        <span>→</span>
+                        <span>{tool.outputs}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 text-[9px] font-mono bg-black/50 p-1.5 rounded border border-white/10">
+                        <span className="text-neutral-400">Col A</span>
+                        <span className="text-neutral-400">Col B</span>
+                        <span className="text-emerald-400 font-bold">99.4%</span>
+                      </div>
+                      <div className="h-1.5 w-4/5 rounded bg-white/25" />
+                    </div>
+                  ) : mode === "code-encoding" || mode === "ascii-art" ? (
+                    <div className="w-44 rounded-xl bg-black border border-emerald-500/40 p-3 font-mono text-[9px] text-emerald-400 leading-tight shadow-xl">
+                      <div className="text-[#ff5500] font-bold mb-1">// {tool.outputs} Stream</div>
+                      <div>01001001 01001101</div>
+                      <div>89 50 4E 47 0D 0A</div>
+                      <div className="text-white/70 truncate">data:image/png;base64...</div>
+                    </div>
+                  ) : mode === "compress-image" ? (
+                    <div className="relative flex items-center gap-2">
+                      <img
+                        src={girlBefore}
+                        alt={card.title}
+                        loading="lazy"
+                        className="h-28 w-24 rounded-xl object-cover object-top border border-white/20"
+                      />
+                      <div className="rounded-xl bg-[#141418] border border-emerald-500/40 p-2.5 text-left font-mono">
+                        <div className="text-[9px] text-neutral-400 line-through">4.28 MB</div>
+                        <div className="text-xs font-black text-emerald-400">380 KB</div>
+                        <div className="mt-1 rounded bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 text-[9px] font-bold">
+                          -91% Size
+                        </div>
+                      </div>
+                    </div>
+                  ) : mode === "resize-image" ? (
+                    <div className="relative flex items-end gap-2">
+                      <img
+                        src={girlBefore}
+                        alt={card.title}
+                        loading="lazy"
+                        className="h-16 w-14 rounded-lg object-cover object-top border border-white/30 opacity-65"
+                      />
+                      <span className="text-xs font-black text-[#ff5500] mb-5">→</span>
+                      <div className="relative">
+                        <img
+                          src={girlBefore}
+                          alt={card.title}
+                          loading="lazy"
+                          className="h-28 w-24 rounded-xl object-cover object-top border-2 border-[#ff5500] shadow-lg"
+                        />
+                        <span className="absolute -bottom-1.5 inset-x-1 rounded bg-black/90 text-white text-[8px] font-mono font-bold text-center py-0.5">
+                          {idx === 0 ? "1920×1080" : idx === 1 ? "2000×2000" : idx === 2 ? "300 DPI" : "Scale %"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : mode === "rotate-image" ? (
+                    <img
+                      src={girlBefore}
+                      alt={card.title}
+                      loading="lazy"
+                      className="h-24 w-24 rounded-xl object-cover object-top border-2 border-[#ff5500] shadow-lg transition-transform duration-300"
+                      style={{
+                        transform:
+                          idx === 0
+                            ? "rotate(90deg)"
+                            : idx === 1
+                              ? "scaleX(-1)"
+                              : idx === 2
+                                ? "rotate(-6deg)"
+                                : "rotate(180deg)",
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={mode === "remove-background" ? girlAfter : girlBefore}
+                      alt={card.title}
+                      loading="lazy"
+                      className={`object-cover object-top transition-transform duration-300 group-hover:scale-105 ${
+                        card.visualType === "crop-1-1"
+                          ? "h-28 w-28 rounded-xl border-2 border-[#ff5500] shadow-lg"
+                          : card.visualType === "crop-16-9"
+                            ? "h-20 w-40 rounded-xl border-2 border-[#ff5500] shadow-lg"
+                            : card.visualType === "crop-4-5"
+                              ? "h-32 w-24 rounded-xl border-2 border-[#ff5500] shadow-lg"
+                              : "h-28 w-36 rounded-xl border-2 border-[#ff5500]/70 shadow-lg"
+                      }`}
+                    />
+                  )}
+                  <span className="absolute top-2.5 left-2.5 rounded-full bg-black/85 backdrop-blur-md border border-white/15 px-2.5 py-0.5 text-[10px] font-mono font-bold text-white">
                     {card.badge}
+                  </span>
+                  <span className="absolute bottom-2.5 right-2.5 rounded-full bg-[#ff5500] text-white px-2.5 py-0.5 text-[10px] font-extrabold shadow">
+                    {card.metric}
                   </span>
                 </div>
 
-                {/* Copy */}
                 <div className="p-5 space-y-2">
                   <h3 className="font-display text-lg font-bold text-foreground group-hover:text-accent transition-colors">
                     {card.title}
@@ -522,105 +1550,18 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
               </div>
 
               <div className="px-5 pb-4 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
-                <span>Supports {tool.accepts}</span>
+                <span>{tool.accepts} → {tool.outputs}</span>
                 <button
                   type="button"
                   onClick={scrollToWorkspace}
                   className="text-accent hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Try with your file</span>
+                  <span>Try Now</span>
                   <ArrowUpRight className="h-3 w-3" />
                 </button>
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* ─── SECTION 3: DEEP-DIVE FEATURE HIGHLIGHT (ZIG-ZAG SHOWCASE) ─── */}
-      <div className="rounded-3xl border border-border bg-gradient-to-br from-card via-card to-secondary/30 p-6 sm:p-10 lg:p-12 shadow-lg">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Visual Pipeline Diagram */}
-          <div className="lg:col-span-5">
-            <div className="rounded-2xl border border-border bg-background p-5 space-y-4 shadow-md">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold text-foreground">{tool.name} Pipeline</div>
-                    <div className="text-[10px] text-muted-foreground">Automated 3-Stage Studio Engine</div>
-                  </div>
-                </div>
-                <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 text-[10px] font-bold">
-                  Active
-                </span>
-              </div>
-
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between rounded-xl bg-secondary/50 border border-border/70 p-3 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <Upload className="h-4 w-4 text-accent" />
-                    <span className="font-bold text-foreground">1. Input Parsing</span>
-                  </div>
-                  <span className="font-mono text-[11px] text-muted-foreground">{tool.accepts}</span>
-                </div>
-
-                <div className="flex items-center justify-between rounded-xl bg-secondary/50 border border-border/70 p-3 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <Sliders className="h-4 w-4 text-accent" />
-                    <span className="font-bold text-foreground">2. Precision Processing</span>
-                  </div>
-                  <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                    Lossless Engine
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between rounded-xl bg-secondary/50 border border-border/70 p-3 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <Download className="h-4 w-4 text-accent" />
-                    <span className="font-bold text-foreground">3. Instant Export</span>
-                  </div>
-                  <span className="font-mono text-[11px] text-foreground font-bold">{tool.outputs}</span>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-3 flex items-center gap-2.5 text-[11px] text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>
-                  <strong className="text-foreground">Enterprise-Grade Security:</strong> Protected throughout the entire processing workflow.
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Detailed Copy */}
-          <div className="lg:col-span-7 space-y-5">
-            <p className="font-display text-xs uppercase tracking-[0.3em] text-accent font-semibold">
-              Studio-Grade Architecture
-            </p>
-            <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground leading-tight">
-              Why Creators &amp; Professionals Prefer {tool.name} on bg.tools
-            </h3>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Traditional desktop suites require gigabytes of installation, manual layer masking, and complex export dialogs. With{" "}
-              <strong className="text-foreground">{tool.name}</strong>, every control is streamlined into an interactive workspace that previews your changes live before you download.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-              {tool.seo.article.benefits.slice(0, 4).map((b, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
-                    <Check className="h-3 w-3 stroke-[3]" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold text-foreground">{b.heading}</div>
-                    <div className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{b.body}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
