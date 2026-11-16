@@ -7,7 +7,6 @@ import {
   Code2,
   Coffee,
   Heart,
-  Sparkles,
   ShieldCheck,
   Zap,
   Cpu,
@@ -436,10 +435,6 @@ function DeveloperPage() {
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     <span>Instant Razorpay UPI & Cards</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <Sparkles className="h-4 w-4 text-amber-500" />
-                    <span>Bonus AI Tokens included</span>
                   </div>
                 </div>
               </div>

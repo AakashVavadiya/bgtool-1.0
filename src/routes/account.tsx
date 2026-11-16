@@ -476,13 +476,18 @@ export function AccountPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchQuery.trim()) {
+                    navigate({ to: "/search", search: { q: searchQuery.trim() } as any });
+                  }
+                }}
                 placeholder="Search tools, notes, logs..."
                 className="h-9.5 w-48 sm:w-64 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-9 pr-12 text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all shadow-xs"
               />
               <button
                 type="button"
-                onClick={openGlobalSearch}
-                title="Open Global Search (⌘K)"
+                onClick={() => navigate({ to: "/search", search: searchQuery.trim() ? ({ q: searchQuery.trim() } as any) : undefined })}
+                title="Open Global Search (/search)"
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 hover:text-foreground cursor-pointer transition-colors"
               >
                 ⌘K

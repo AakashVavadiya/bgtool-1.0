@@ -34,7 +34,7 @@ export interface PageNumberPreviewProps {
 export interface PdfPreviewViewerProps {
   buffer: ArrayBuffer | null;
   fileName: string;
-  fileSize?: number;
+  fileSize?: number | undefined;
   toolSlug?: string;
   watermarkProps?: WatermarkPreviewProps;
   rotationAngle?: number;
@@ -260,12 +260,12 @@ export function PdfPreviewViewer({
   // Common sheet canvas renderer
   const renderDocumentCanvas = (isLargeModal: boolean) => (
     <div
-      className={`relative flex-1 w-full overflow-auto flex items-center justify-center ${
+      className={`relative flex-1 w-full overflow-auto custom-scrollbar flex items-center justify-center ${
         isLargeModal
           ? "h-[calc(100vh-140px)] p-4 sm:p-8 bg-[#0b0d14]"
           : compact
           ? "min-h-[200px] max-h-[290px] sm:max-h-[320px] p-3 sm:p-4 bg-muted/40"
-          : "min-h-[380px] max-h-[560px] p-4 sm:p-6 bg-muted/40"
+          : "min-h-[440px] sm:min-h-[520px] lg:min-h-[600px] max-h-[760px] p-4 sm:p-8 bg-muted/20 dark:bg-black/30"
       }`}
     >
       {loading && (
@@ -307,7 +307,7 @@ export function PdfPreviewViewer({
                   ? "max-h-[calc(100vh-170px)] sm:max-h-[calc(100vh-190px)] max-w-[90vw] sm:max-w-[85vw] w-auto"
                   : compact
                   ? "max-h-[240px] sm:max-h-[280px] max-w-full"
-                  : "max-h-[520px] max-w-full"
+                  : "max-h-[540px] sm:max-h-[660px] lg:max-h-[740px] max-w-full"
               }`}
               draggable={false}
             />
@@ -357,7 +357,7 @@ export function PdfPreviewViewer({
     if (totalPages <= 1) return null;
     return (
       <div
-        className={`shrink-0 w-full overflow-x-auto flex items-center border-t ${
+        className={`shrink-0 w-full overflow-x-auto custom-scrollbar flex items-center border-t ${
           isLargeModal
             ? "border-white/10 bg-[#12141e] px-4 py-2.5 gap-2.5 shadow-2xl z-20"
             : compact

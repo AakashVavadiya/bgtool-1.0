@@ -2,865 +2,877 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://bg.tools</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://bg.tools/image-tools</loc>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://bg.tools/pdf-tools</loc>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://bg.tools/pricing</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/faq</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/download</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/api</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/docs/api</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/models</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/news</loc>
-    <lastmod>2026-10-20</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://bg.tools/search</loc>
-    <lastmod>2026-10-20</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/developer</loc>
-    <lastmod>2026-10-20</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://bg.tools/contact</loc>
-    <lastmod>2026-10-15</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://bg.tools/privacy</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://bg.tools/terms</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/compress-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/resize-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/crop-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/convert-to-jpg</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/convert-from-jpg</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-text-ocr</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-binary</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-word</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-excel</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-powerpoint</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/html-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/excel-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/word-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/powerpoint-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/binary-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/upscale-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/remove-background</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/remove-watermark</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/watermark-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/rotate-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/blur-face</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/meme-generator</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/photo-editor</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/color-picker-from-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-base64</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/base64-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/octal-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-octal</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-ascii</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/ascii-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/hex-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-hex</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/decimal-to-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-decimal</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/square-your-image</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/merge-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/split-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/compress-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/edit-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/sign-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/create-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-converter</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/image-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-images</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/create-pdf-camera</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/webpage-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/create-fillable-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-job-application</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/generate-qr-code</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/create-invoice</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/create-electronic-invoice</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/annotate-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/fill-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/add-watermark-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/add-page-numbers-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/crop-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/rearrange-pdf-pages</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/remove-pdf-pages</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/extract-pdf-pages</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/rotate-pdf-pages</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/bookmark-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/extract-pdf-images</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/web-optimize-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-ocr</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/repair-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/protect-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/unlock-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/redact-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/compare-pdfs</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-word</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-excel</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-powerpoint</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/word-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/excel-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/powerpoint-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-html</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-text</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-markdown</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-epub</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-pdfa</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/remove-pdf-metadata</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/create-invoice-visually</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-invoice-to-einvoice</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/xml-einvoice-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-overlay</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/change-pdf-page-size</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/change-pdf-document-info</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pages-per-sheet</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/halve-pdf-pages</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/rasterize-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/flatten-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/generate-password</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/view-as-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/set-pdf-viewer-preferences</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/convert-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/publisher-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/jpg-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/png-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/webp-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/heic-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/svg-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/tiff-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/docx-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pptx-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/xlsx-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/doc-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/ppt-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/xls-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/odt-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/odg-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/ods-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/odp-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/text-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/rtf-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/epub-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/markdown-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pub-to-pdf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/convert-pdf-to</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-jpg</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-png</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-svg</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-tiff</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-docx</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-pptx</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-xlsx</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-odt</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-ods</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-odp</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bg.tools/tools/pdf-to-rtf</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

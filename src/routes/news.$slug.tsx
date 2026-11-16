@@ -1,13 +1,26 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getNewsArticle, getRelatedArticles } from "@/lib/news";
+import { LEGACY_TOOL_SLUG_ALIASES } from "@/lib/tools";
 import { buildPageMeta, SITE_URL } from "@/lib/seo";
 import { ArrowRight, Clock, CalendarDays, Sparkles, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: ({ params }) => {
-    const article = getNewsArticle(params.slug);
+    const rawSlug = decodeURIComponent(params.slug || "").trim();
+    if (!rawSlug || rawSlug === "$slug" || rawSlug.startsWith("$")) {
+      throw redirect({ to: "/news", statusCode: 301 });
+    }
+    const aliasTarget = LEGACY_TOOL_SLUG_ALIASES[rawSlug];
+    if (aliasTarget && aliasTarget !== rawSlug) {
+      throw redirect({
+        to: "/news/$slug",
+        params: { slug: aliasTarget },
+        statusCode: 301,
+      });
+    }
+    const article = getNewsArticle(rawSlug);
     if (!article) throw notFound();
     return { slug: article.slug };
   },

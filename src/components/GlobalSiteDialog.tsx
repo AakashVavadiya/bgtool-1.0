@@ -60,10 +60,13 @@ export function GlobalSiteDialog({
   }, [previewMode, previewSettings]);
 
   // Determine visibility based on page targeting, frequency, and delay
+  // Currently hidden on website startup (kept intact for Admin Preview & future activation)
+  const AUTO_OPEN_ON_STARTUP = false;
+
   useEffect(() => {
     if (previewMode) return;
 
-    if (!settings.enabled) {
+    if (!AUTO_OPEN_ON_STARTUP || !settings.enabled) {
       setIsOpen(false);
       return;
     }

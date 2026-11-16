@@ -22,8 +22,10 @@ import { Route as DeveloperRouteImport } from './routes/developer'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ImageToolsRouteImport } from './routes/image-tools'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ModelsRouteImport } from './routes/models'
+import { Route as PdfToolsRouteImport } from './routes/pdf-tools'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -117,6 +119,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImageToolsRoute = ImageToolsRouteImport.update({
+  id: '/image-tools',
+  path: '/image-tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -125,6 +132,11 @@ const LoginRoute = LoginRouteImport.update({
 const ModelsRoute = ModelsRouteImport.update({
   id: '/models',
   path: '/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfToolsRoute = PdfToolsRouteImport.update({
+  id: '/pdf-tools',
+  path: '/pdf-tools',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -277,8 +289,10 @@ export interface FileRoutesByFullPath {
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/image-tools': typeof ImageToolsRoute
   '/login': typeof LoginRoute
   '/models': typeof ModelsRoute
+  '/pdf-tools': typeof PdfToolsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -320,8 +334,10 @@ export interface FileRoutesByTo {
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/image-tools': typeof ImageToolsRoute
   '/login': typeof LoginRoute
   '/models': typeof ModelsRoute
+  '/pdf-tools': typeof PdfToolsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -365,8 +381,10 @@ export interface FileRoutesById {
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/image-tools': typeof ImageToolsRoute
   '/login': typeof LoginRoute
   '/models': typeof ModelsRoute
+  '/pdf-tools': typeof PdfToolsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -411,8 +429,10 @@ export interface FileRouteTypes {
     | '/download'
     | '/faq'
     | '/forgot-password'
+    | '/image-tools'
     | '/login'
     | '/models'
+    | '/pdf-tools'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -454,8 +474,10 @@ export interface FileRouteTypes {
     | '/download'
     | '/faq'
     | '/forgot-password'
+    | '/image-tools'
     | '/login'
     | '/models'
+    | '/pdf-tools'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -498,8 +520,10 @@ export interface FileRouteTypes {
     | '/download'
     | '/faq'
     | '/forgot-password'
+    | '/image-tools'
     | '/login'
     | '/models'
+    | '/pdf-tools'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
@@ -543,8 +567,10 @@ export interface RootRouteChildren {
   DownloadRoute: typeof DownloadRoute
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  ImageToolsRoute: typeof ImageToolsRoute
   LoginRoute: typeof LoginRoute
   ModelsRoute: typeof ModelsRoute
+  PdfToolsRoute: typeof PdfToolsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -664,6 +690,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/image-tools': {
+      id: '/image-tools'
+      path: '/image-tools'
+      fullPath: '/image-tools'
+      preLoaderRoute: typeof ImageToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -676,6 +709,13 @@ declare module '@tanstack/react-router' {
       path: '/models'
       fullPath: '/models'
       preLoaderRoute: typeof ModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-tools': {
+      id: '/pdf-tools'
+      path: '/pdf-tools'
+      fullPath: '/pdf-tools'
+      preLoaderRoute: typeof PdfToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -907,8 +947,10 @@ const rootRouteChildren: RootRouteChildren = {
   DownloadRoute: DownloadRoute,
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  ImageToolsRoute: ImageToolsRoute,
   LoginRoute: LoginRoute,
   ModelsRoute: ModelsRoute,
+  PdfToolsRoute: PdfToolsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,

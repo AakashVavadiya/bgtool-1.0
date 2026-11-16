@@ -7,25 +7,13 @@ import io
 import threading
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-def install_and_import(package, pip_name=None):
-    import subprocess
-    if pip_name is None:
-        pip_name = package
-    try:
-        __import__(package)
-    except ImportError:
-        print(f"Installing {pip_name}...")
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name, "--quiet"])
-        except Exception as e:
-            print(f"Failed to install {pip_name}: {e}")
-
-install_and_import("PIL", "pillow")
-install_and_import("cv2", "opencv-python")
-install_and_import("numpy")
-
 try:
     import cv2
+except ImportError:
+    print("OpenCV is missing. Run: uv pip install opencv-python-headless")
+    sys.exit(1)
+
+try:
     from PIL import Image
     import numpy as np
     print("Face Blur & AI Anonymization Engine dependencies loaded.")

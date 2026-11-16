@@ -13,7 +13,6 @@ import {
   FolderUp,
   Pencil,
   Zap,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CutoutBrushEditorModal } from "@/components/CutoutBrushEditorModal";
@@ -257,16 +256,23 @@ export function RemovalProcess() {
     };
   }, []);
 
-  // Dynamic Island scroll listener
+  // Dynamic Island scroll & header-offset listener
+  const [islandTopPx, setIslandTopPx] = useState<number>(104);
   useEffect(() => {
     if (!hasProcessed) {
       setShowDynamicIsland(false);
+      setHasScrolledOnce(false);
       return;
     }
     const handleScroll = () => {
+      const headerEl = document.querySelector("header");
+      const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
+      const nextTop = headerBottom > 0 ? Math.max(14, Math.round(headerBottom + 14)) : 16;
+      setIslandTopPx(nextTop);
+
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        const shouldShow = rect.bottom < 100;
+        const shouldShow = rect.bottom < 120;
         setShowDynamicIsland(shouldShow);
         if (shouldShow) setHasScrolledOnce(true);
       } else {
@@ -276,8 +282,12 @@ export function RemovalProcess() {
       }
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
   }, [hasProcessed]);
 
   const progress = processing
@@ -543,22 +553,25 @@ export function RemovalProcess() {
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll) ─────── */}
+      {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll, Header-Aware) ─────── */}
       {mounted && typeof document !== "undefined" && hasProcessed && !showCutoutEditor && createPortal(
-        <div className="fixed top-[66px] sm:top-[74px] md:top-[80px] inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
+        <div
+          style={{ top: `${islandTopPx}px` }}
+          className="dynamic-island-wrapper fixed inset-x-0 flex justify-center items-center z-[90] pointer-events-none px-3 sm:px-4"
+        >
           <aside
             aria-label="Quick download dynamic island"
-            className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
+            className={`pointer-events-auto dynamic-island-box flex items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-black text-white p-1.5 sm:p-2 mx-auto ${
               showDynamicIsland
                 ? "island-enter"
                 : hasScrolledOnce
                 ? "island-exit"
-                : "opacity-0 -translate-y-20 pointer-events-none"
+                : "opacity-0 -translate-y-12 scale-90 pointer-events-none"
             }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
-            <div className="flex items-center gap-2 sm:gap-3 pl-0.5 sm:pl-1.5 shrink-0">
-              <div className="relative h-9 w-9 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black">
+            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+              <div className="relative h-9 w-9 sm:h-11 sm:w-11 shrink-0 overflow-hidden rounded-full border border-white/25 bg-neutral-900 shadow-inner">
                 {afterImage || beforeImage ? (
                   <img
                     src={afterImage || beforeImage || undefined}
@@ -569,16 +582,16 @@ export function RemovalProcess() {
                     className="h-full w-full object-cover select-none workspace-protected-image"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-white/10 text-amber-400">
+                  <div className="flex h-full w-full items-center justify-center bg-[#ff5500]/20 text-[#ff5500]">
                     <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 )}
               </div>
-              <div className="hidden md:flex flex-col text-left">
-                <span className="text-sm sm:text-base font-extrabold text-white truncate max-w-[130px] lg:max-w-[190px] leading-tight">
+              <div className="hidden sm:flex flex-col justify-center text-left pr-1">
+                <span className="text-xs sm:text-sm font-extrabold text-white truncate max-w-[130px] lg:max-w-[190px] leading-tight">
                   {fileName || "Background Removed"}
                 </span>
-                <span className="text-xs font-mono font-bold text-emerald-400 leading-tight">
+                <span className="text-[11px] font-mono font-bold text-emerald-400 leading-tight mt-0.5">
                   PNG Cutout
                 </span>
               </div>
@@ -588,7 +601,7 @@ export function RemovalProcess() {
             <button
               type="button"
               onClick={() => setShowCutoutEditor(true)}
-              className="wobbly-btn flex items-center gap-1.5 sm:gap-2 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black px-2.5 xs:px-3 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="wobbly-btn h-9 sm:h-11 flex items-center gap-1.5 sm:gap-2 rounded-full border border-white/15 bg-white/10 text-white hover:bg-white hover:text-[#0a0a0a] px-3 sm:px-4 text-xs sm:text-sm font-bold shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
               title="Edit cutout with remove brush, restore brush, and magic brush"
             >
               <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -599,21 +612,21 @@ export function RemovalProcess() {
             <button
               type="button"
               onClick={handleDownload}
-              className="wobbly-btn flex items-center gap-1.5 sm:gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-3 xs:px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="wobbly-btn h-9 sm:h-11 flex items-center gap-2 rounded-full bg-white text-[#0a0a0a] hover:bg-neutral-100 px-4 sm:px-5 text-xs sm:text-sm font-black shadow-lg active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <Download className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
-              <span>Download<span className="hidden xs:inline"> PNG</span></span>
+              <Download className="h-4 w-4 text-[#ff5500] shrink-0" />
+              <span>Download PNG</span>
             </button>
 
-            {/* 4. Upload Another File (Icon Only Button) */}
+            {/* 4. Upload Another File (Concentric Circular Button) */}
             <button
               type="button"
               onClick={handleReset}
-              className="wobbly-btn flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
+              className="wobbly-btn flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-citation items-center justify-center rounded-full border border-white/15 bg-white/10 text-white hover:bg-white hover:text-[#0a0a0a] hover:scale-105 active:scale-90 transition-all shadow-sm cursor-pointer"
               title="Process another File"
               aria-label="Process another File"
             >
-              <FolderUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              <FolderUp className="h-4 w-4" />
             </button>
           </aside>
         </div>,
@@ -739,15 +752,6 @@ export function RemovalProcess() {
                       title="Edit cutout with remove brush, restore brush, and magic brush"
                     >
                       <Pencil className="h-3.5 w-3.5 text-primary" /> Edit Cutout
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => runRevealAnimation()}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 sm:px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-all shrink-0 cursor-pointer"
-                      title="Replay reveal slider animation"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Replay
                     </button>
                   </>
                 )}

@@ -5,7 +5,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminStore, type PurchasePlanConfig, type UiEditSettings } from "@/admin/lib/admin-store";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings, Key, Search } from "lucide-react";
+import { Wand2, LogOut, ChevronDown, Menu, X, ArrowRight, Settings, Key, Search, Layers, FileText } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
 import { NotificationPopover } from "@/components/NotificationPopover";
@@ -57,16 +57,15 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toolsMenuRef = useRef<HTMLDivElement>(null);
 
   const handleSearchToggle = () => {
-    if (isSearchPage) {
-      window.dispatchEvent(new CustomEvent("close-search-page"));
-    } else {
-      navigate({ to: "/search" });
-    }
+    navigate({ to: "/search" });
   };
 
   useEffect(() => {
@@ -84,6 +83,9 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
+      }
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) {
+        setToolsMenuOpen(false);
       }
     };
     window.addEventListener("mousedown", handleClickOutside);
@@ -109,6 +111,23 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
       window.removeEventListener("keydown", handleGlobalSearchKey);
     };
   }, [navigate]);
+
+  // Close menus on route navigation
+  useEffect(() => {
+    setToolsMenuOpen(false);
+    setMobileMenuOpen(false);
+  }, [routerState.location.pathname]);
+
+  // Handle ESC key to dismiss tools dropdown
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setToolsMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -185,9 +204,119 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        <nav className="hidden items-center gap-2 lg:gap-3.5 xl:gap-5 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-65px)] shrink-0 overflow-hidden whitespace-nowrap select-none">
-          {visibleLinks.map((l) =>
-            "hash" in l ? (
+        <nav className="hidden items-center gap-2 lg:gap-3.5 xl:gap-5 py-4 text-xs sm:text-sm xl:text-[15px] font-semibold md:flex max-w-[calc(50vw-65px)] shrink-0 overflow-visible whitespace-nowrap select-none">
+          {visibleLinks.map((l) => {
+            if (l.to === "/tools") {
+              const isToolsActive =
+                routerState.location.pathname.startsWith("/tools") ||
+                routerState.location.pathname === "/image-tools" ||
+                routerState.location.pathname === "/pdf-tools";
+              return (
+                <div key={l.label} className="relative inline-flex items-center shrink-0" ref={toolsMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setToolsMenuOpen((prev) => !prev)}
+                    className={`inline-flex items-center gap-1 transition-all hover:text-accent hover:opacity-80 shrink-0 select-none cursor-pointer py-1 ${
+                      toolsMenuOpen || isToolsActive
+                        ? "text-accent font-bold"
+                        : "text-foreground"
+                    }`}
+                    aria-expanded={toolsMenuOpen}
+                    aria-haspopup="true"
+                  >
+                    <span>{renderTabLabel(l.label)}</span>
+                    <ChevronDown
+                      className={`h-3 w-3 sm:h-3.5 sm:w-3.5 transition-transform duration-200 ${
+                        toolsMenuOpen ? "rotate-180 text-accent" : "text-muted-foreground/70"
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown Popup Menu */}
+                  {toolsMenuOpen && (
+                    <div
+                      role="menu"
+                      aria-label="Tools Navigation Menu"
+                      className="absolute left-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-2xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 space-y-1 text-foreground"
+                    >
+                      {/* All Tools */}
+                      <Link
+                        to="/tools"
+                        onClick={() => setToolsMenuOpen(false)}
+                        className="flex items-center justify-between gap-3 rounded-xl p-2.5 hover:bg-muted/70 transition-all group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 group-hover:scale-105 transition-transform">
+                            <Layers className="h-4.5 w-4.5" />
+                          </div>
+                          <div className="min-w-0 text-left">
+                            <div className="font-bold text-xs sm:text-sm text-foreground group-hover:text-accent transition-colors">
+                              All Tools
+                            </div>
+                            <div className="text-[11px] text-muted-foreground font-normal truncate">
+                              Explore all 130+ creative AI & utilities
+                            </div>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-md bg-secondary border border-border/60 px-2 py-0.5 text-[10px] font-mono font-bold text-muted-foreground">
+                          130+
+                        </span>
+                      </Link>
+
+                      {/* Image Tools. */}
+                      <Link
+                        to="/image-tools"
+                        onClick={() => setToolsMenuOpen(false)}
+                        className="flex items-center justify-between gap-3 rounded-xl p-2.5 hover:bg-muted/70 transition-all group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent group-hover:scale-105 transition-transform">
+                            <Wand2 className="h-4.5 w-4.5" />
+                          </div>
+                          <div className="min-w-0 text-left">
+                            <div className="font-bold text-xs sm:text-sm text-foreground group-hover:text-accent transition-colors">
+                              Image Tools<span className="text-accent font-bold">.</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground font-normal truncate">
+                              Dedicated photo studio, background removal & 4K editing
+                            </div>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-md bg-accent/10 text-accent border border-accent/20 px-2 py-0.5 text-[10px] font-bold">
+                          Popular
+                        </span>
+                      </Link>
+
+                      {/* PDF tools Space. */}
+                      <Link
+                        to="/pdf-tools"
+                        onClick={() => setToolsMenuOpen(false)}
+                        className="flex items-center justify-between gap-3 rounded-xl p-2.5 hover:bg-muted/70 transition-all group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+                            <FileText className="h-4.5 w-4.5" />
+                          </div>
+                          <div className="min-w-0 text-left">
+                            <div className="font-bold text-xs sm:text-sm text-foreground group-hover:text-accent transition-colors">
+                              PDF tools Space<span className="text-accent font-bold">.</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground font-normal truncate">
+                              Merge, convert, compress, protect & OCR
+                            </div>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold">
+                          94 Tools
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return "hash" in l ? (
               <Link
                 key={l.label}
                 to={l.to}
@@ -200,8 +329,8 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
               <Link key={l.label} to={l.to} className="transition-all hover:text-accent hover:opacity-80 shrink-0 select-none">
                 {renderTabLabel(l.label)}
               </Link>
-            ),
-          )}
+            );
+          })}
         </nav>
 
         {/* Center-Aligned Brand Logo */}
@@ -224,37 +353,25 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
         </Link>
 
         <div className="relative z-30 flex items-center gap-1.5 sm:gap-2.5 py-4">
-          {/* Quick Global Dedicated Search / Close Trigger Icon Button with Open/Close Morph Animation */}
-          <button
-            type="button"
-            onClick={handleSearchToggle}
-            aria-label={isSearchPage ? "Close search page" : "Search tools, models and guides"}
-            title={isSearchPage ? "Close search page (Esc)" : "Search 130+ tools, models & guides (Ctrl+K)"}
+          {/* Global Dedicated Search Button - Always opens /search page */}
+          <Link
+            to="/search"
+            aria-label="Search tools, models and guides"
+            title="Search 130+ tools, models & guides (Ctrl+K)"
             className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-300 cursor-pointer group hover:scale-105 active:scale-95 ${
               isSearchPage
-                ? "border-rose-500/50 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:border-rose-500/70 shadow-xs ring-2 ring-rose-500/20"
+                ? "border-accent/60 bg-accent/10 text-accent shadow-xs ring-2 ring-accent/20"
                 : "border-border/80 bg-card text-foreground hover:bg-muted hover:border-accent/40 shadow-2xs"
             }`}
           >
-            <div className="relative h-4 w-4 flex items-center justify-center overflow-hidden">
-              {/* Search Icon (morphs out when on search page) */}
-              <Search
-                className={`absolute inset-0 h-4 w-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                  isSearchPage
-                    ? "opacity-0 -rotate-90 scale-50 pointer-events-none"
-                    : "opacity-100 rotate-0 scale-100 text-muted-foreground group-hover:text-accent group-hover:scale-110"
-                }`}
-              />
-              {/* Close (X) Icon (morphs in when on search page) */}
-              <X
-                className={`absolute inset-0 h-4 w-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                  isSearchPage
-                    ? "opacity-100 rotate-0 scale-100 text-rose-500 group-hover:rotate-90"
-                    : "opacity-0 rotate-90 scale-50 pointer-events-none text-muted-foreground"
-                }`}
-              />
-            </div>
-          </button>
+            <Search
+              className={`h-4 w-4 transition-all duration-300 ${
+                isSearchPage
+                  ? "text-accent scale-110"
+                  : "text-muted-foreground group-hover:text-accent group-hover:scale-110"
+              }`}
+            />
+          </Link>
 
           {/* Real-time Notifications Popover Button */}
           <NotificationPopover />
@@ -501,8 +618,75 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
 
             {/* Navigation links */}
             <nav className="flex flex-col gap-1 select-none">
-              {visibleLinks.map((l) =>
-                "hash" in l ? (
+              {visibleLinks.map((l) => {
+                if (l.to === "/tools") {
+                  return (
+                    <div key={l.label} className="flex flex-col rounded-2xl bg-muted/20 border border-border/50 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setMobileToolsOpen(!mobileToolsOpen)}
+                        className="flex items-center justify-between px-4 py-3 text-base font-bold text-foreground hover:bg-muted/50 transition-colors cursor-pointer select-none"
+                      >
+                        <span>{renderTabLabel(l.label)}</span>
+                        <ChevronDown
+                          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                            mobileToolsOpen ? "rotate-180 text-accent" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {mobileToolsOpen && (
+                        <div className="px-3 pb-3 pt-1 space-y-1 bg-muted/30 border-t border-border/40">
+                          <Link
+                            to="/tools"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-foreground hover:bg-muted/70 transition-colors"
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <Layers className="h-4 w-4 text-orange-500" />
+                              <span>All Tools</span>
+                            </span>
+                            <span className="text-xs font-mono text-muted-foreground">130+</span>
+                          </Link>
+
+                          <Link
+                            to="/image-tools"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-foreground hover:bg-muted/70 transition-colors"
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <Wand2 className="h-4 w-4 text-accent" />
+                              <span>
+                                Image Tools<span className="text-accent font-bold">.</span>
+                              </span>
+                            </span>
+                            <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
+                              Popular
+                            </span>
+                          </Link>
+
+                          <Link
+                            to="/pdf-tools"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold text-foreground hover:bg-muted/70 transition-colors"
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <FileText className="h-4 w-4 text-emerald-500" />
+                              <span>
+                                PDF tools Space<span className="text-accent font-bold">.</span>
+                              </span>
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                              94
+                            </span>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return "hash" in l ? (
                   <Link
                     key={l.label}
                     to={l.to}
@@ -523,8 +707,8 @@ export function SiteHeader({ floating = false }: { floating?: boolean }) {
                     <span>{renderTabLabel(l.label)}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </Link>
-                ),
-              )}
+                );
+              })}
             </nav>
 
             {/* Theme Toggle row inside drawer */}

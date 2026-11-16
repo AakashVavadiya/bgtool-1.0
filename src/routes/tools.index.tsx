@@ -20,7 +20,20 @@ import {
 
 import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
 
+interface ToolsSearchParams {
+  cat?: string | undefined;
+  category?: string | undefined;
+  q?: string | undefined;
+}
+
 export const Route = createFileRoute("/tools/")({
+  validateSearch: (search: Record<string, unknown>): ToolsSearchParams => {
+    return {
+      cat: typeof search["cat"] === "string" ? (search["cat"] as string) : undefined,
+      category: typeof search["category"] === "string" ? (search["category"] as string) : undefined,
+      q: typeof search["q"] === "string" ? (search["q"] as string) : undefined,
+    };
+  },
   head: () => {
     const collectionSchema = {
       "@context": "https://schema.org",
@@ -161,13 +174,35 @@ function SmoothSearchTicker({
 }
 
 export function ToolsDirectoryPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = Route.useSearch();
+  const [searchQuery, setSearchQuery] = useState(searchParams.q || "");
   const [selectedCategory, setSelectedCategory] = useState<"All" | ToolCategory>("All");
   const [, setTick] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Sync category & query from URL search params (e.g. ?cat=image or ?cat=pdf)
+  useEffect(() => {
+    const raw = (searchParams.cat || searchParams.category || "").trim().toLowerCase();
+    if (!raw || raw === "all" || raw === "all tools") {
+      setSelectedCategory("All");
+    } else if (raw.includes("pdf")) {
+      setSelectedCategory("PDF Tools");
+    } else if (raw.includes("image")) {
+      setSelectedCategory("Image Editing & Optimization");
+    } else {
+      const match = TOOL_CATEGORIES.find((c) => c.toLowerCase() === raw);
+      if (match) setSelectedCategory(match);
+    }
+  }, [searchParams.cat, searchParams.category]);
+
+  useEffect(() => {
+    if (searchParams.q !== undefined) {
+      setSearchQuery(searchParams.q);
+    }
+  }, [searchParams.q]);
 
   const isMac = typeof window !== "undefined" && navigator.platform?.toUpperCase().includes("MAC");
 

@@ -56,6 +56,8 @@ function getGitLastMod(relativeFile?: string): string {
 const staticRoutes = [
   { path: "", changefreq: "daily", priority: "1.0", file: "src/routes/index.tsx" },
   { path: "/tools", changefreq: "daily", priority: "0.9", file: "src/routes/tools.index.tsx" },
+  { path: "/image-tools", changefreq: "daily", priority: "0.9", file: "src/routes/image-tools.tsx" },
+  { path: "/pdf-tools", changefreq: "daily", priority: "0.9", file: "src/routes/pdf-tools.tsx" },
   { path: "/pricing", changefreq: "weekly", priority: "0.8", file: "src/routes/pricing.tsx" },
   { path: "/faq", changefreq: "weekly", priority: "0.8", file: "src/routes/faq.tsx" },
   { path: "/download", changefreq: "weekly", priority: "0.8", file: "src/routes/download.tsx" },

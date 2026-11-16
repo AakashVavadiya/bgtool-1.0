@@ -719,7 +719,7 @@ export async function generateColorReportPdf(options: ColorReportOptions): Promi
 
   // Save PDF as bytes and return Blob
   const pdfBytes = await doc.save();
-  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const filename = `color-report-${options.activeHex.replace("#", "").toLowerCase()}-${Date.now().toString(36)}.pdf`;
 
   return { blob, filename };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { getTool, tools } from "@/lib/tools";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { getTool, tools, LEGACY_TOOL_SLUG_ALIASES } from "@/lib/tools";
 import { RemovalProcess } from "@/components/RemovalProcess";
 import { InteractiveToolWorkspace } from "@/components/InteractiveToolWorkspace";
 import { PdfToolWorkspace } from "@/components/PdfToolWorkspace";
@@ -88,7 +88,19 @@ import {
 
 export const Route = createFileRoute("/tools/$slug")({
   loader: ({ params }) => {
-    const tool = getTool(params.slug);
+    const rawSlug = decodeURIComponent(params.slug || "").trim();
+    if (!rawSlug || rawSlug === "$slug" || rawSlug.startsWith("$")) {
+      throw redirect({ to: "/tools", statusCode: 301 });
+    }
+    const aliasTarget = LEGACY_TOOL_SLUG_ALIASES[rawSlug];
+    if (aliasTarget && aliasTarget !== rawSlug) {
+      throw redirect({
+        to: "/tools/$slug",
+        params: { slug: aliasTarget },
+        statusCode: 301,
+      });
+    }
+    const tool = getTool(rawSlug);
     if (!tool) throw notFound();
     return { slug: tool.slug, name: tool.name, blurb: tool.blurb };
   },
@@ -100,7 +112,7 @@ export const Route = createFileRoute("/tools/$slug")({
     }
     const tool = getTool(loaderData.slug);
     const seo = tool?.seo;
-    
+
     // Preserve rich keyword-targeted title without destructive character slicing
     const rawTitle = seo?.title || `${loaderData.name} Online Free — Fast, Secure & No Watermark`;
     const title = rawTitle.includes("bg.tools") ? rawTitle : `${rawTitle} | bg.tools`;
@@ -129,10 +141,10 @@ export const Route = createFileRoute("/tools/$slug")({
     const faqSchema = seo?.article?.faqs ? buildFaqSchema(seo.article.faqs) : null;
     const howToSchema = seo?.article?.howTo
       ? buildHowToSchema({
-          name: loaderData.name,
-          description,
-          steps: seo.article.howTo,
-        })
+        name: loaderData.name,
+        description,
+        steps: seo.article.howTo,
+      })
       : null;
 
     const allSchemas = [

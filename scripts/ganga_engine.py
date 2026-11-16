@@ -23,16 +23,15 @@ os.environ["OPENBLAS_NUM_THREADS"] = "4"
 try:
     import onnxruntime as ort
 except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "onnxruntime", "pillow", "numpy", "opencv-python", "--quiet"])
-    import onnxruntime as ort
+    print("onnxruntime is missing. Run: uv pip install onnxruntime")
+    sys.exit(1)
 
 try:
     import cv2
 except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python", "--quiet"])
-    import cv2
+    print("OpenCV is missing. Run: uv pip install opencv-python-headless")
+    sys.exit(1)
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BASE_DIR, "models")

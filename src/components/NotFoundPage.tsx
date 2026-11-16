@@ -78,9 +78,9 @@ export function NotFoundPage() {
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { name: "Clean & Upscale", slug: "clean-upscale" },
-                { name: "Rotate & Crop", slug: "rotate-crop" },
-                { name: "Convert Formats", slug: "convert-compress" },
+                { name: "Clean & Upscale", slug: "upscale-image" },
+                { name: "Rotate & Crop", slug: "rotate-image" },
+                { name: "Convert Formats", slug: "compress-image" },
                 { name: "Erase Watermark", slug: "remove-watermark" },
               ].map((tool) => (
                 <Link

@@ -187,10 +187,76 @@ if (typeof process !== "undefined") {
   }, 100);
 }
 
+const LEGACY_SLUG_REDIRECTS: Record<string, string> = {
+  "clean-upscale": "upscale-image",
+  "rotate-crop": "rotate-image",
+  "convert-compress": "compress-image",
+  "images-to-pdf": "image-to-pdf",
+  "image-to-text": "image-to-text-ocr",
+  "remove-bg": "remove-background",
+  "face-blur": "blur-face",
+  "convert-image": "convert-to-jpg",
+  "batch-png": "convert-from-jpg",
+};
+
+function resolveCanonicalRedirectPath(pathname: string): string {
+  let decoded = pathname;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    // keep raw pathname if malformed URI encoding
+  }
+
+  // 1. Handle literal TanStack Router template paths crawled by bots (e.g. /tools/$slug, /news/$slug)
+  if (/^\/tools\/\$[^/]*\/?$/i.test(decoded)) {
+    return "/tools";
+  }
+  if (/^\/news\/\$[^/]*\/?$/i.test(decoded)) {
+    return "/news";
+  }
+  if (/^\/chat\/\$[^/]*\/?$/i.test(decoded)) {
+    return "/chat";
+  }
+
+  // 2. Handle legacy tool & news slugs (e.g. /tools/clean-upscale -> /tools/upscale-image)
+  const toolMatch = decoded.match(/^\/tools\/([^/]+)\/?$/);
+  if (toolMatch?.[1]) {
+    const slug = toolMatch[1];
+    const mapped = LEGACY_SLUG_REDIRECTS[slug];
+    if (mapped) return `/tools/${mapped}`;
+  }
+
+  const newsMatch = decoded.match(/^\/news\/([^/]+)\/?$/);
+  if (newsMatch?.[1]) {
+    const slug = newsMatch[1];
+    const mapped = LEGACY_SLUG_REDIRECTS[slug];
+    if (mapped) return `/news/${mapped}`;
+  }
+
+  return pathname;
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown): Promise<Response> {
     const url = new URL(request.url);
     const clientIp = extractClientIp(request);
+
+    // 0. Canonical Domain & Legacy/Template Route 301 Redirects (Fixes Google Search Console 404s)
+    const canonicalPath = resolveCanonicalRedirectPath(url.pathname);
+    const isWwwHost = url.hostname.toLowerCase() === "www.bg.tools";
+    if (canonicalPath !== url.pathname || isWwwHost) {
+      const targetOrigin = isWwwHost ? "https://bg.tools" : url.origin;
+      const redirectUrl = `${targetOrigin}${canonicalPath}${url.search}`;
+      return applySecurityHeaders(
+        new Response(null, {
+          status: 301,
+          headers: {
+            Location: redirectUrl,
+            "Cache-Control": "public, max-age=86400",
+          },
+        })
+      );
+    }
 
     // 0. Static SEO Endpoints: /sitemap.xml & /robots.txt
     if (url.pathname === "/sitemap.xml") {

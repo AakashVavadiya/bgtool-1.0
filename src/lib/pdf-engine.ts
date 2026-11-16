@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, degrees, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb, degrees, StandardFonts, PDFName } from "pdf-lib";
 import { getPdfJs } from "./pdf-preview";
 
 export interface InvoiceItem {
@@ -320,7 +320,7 @@ export async function compressPdfDocument(
       : null;
   const isGrayscale = !!options.convertToGrayscale;
 
-  // 1. Load the original document with pdf-lib to get metadata and vector structure
+  // 1. Load original document with pdf-lib to get metadata and vector structure
   const origDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
   const totalPages = origDoc.getPageCount();
   if (totalPages === 0) {
@@ -328,12 +328,44 @@ export async function compressPdfDocument(
     return { pdfBytes: raw, pageCount: 0, originalSize, compressedSize: raw.byteLength };
   }
 
-  // 2. Try fast pdf-lib stream deflating
-  const pureStreamBytes = await origDoc.save({
+  // 2. Perform Lossless Structural Optimization (Tier 1)
+  // Strip redundant Adobe XMP XML packets, pieceinfo, and embedded thumbnails
+  try {
+    const catalog = origDoc.catalog;
+    catalog.delete(PDFName.of("Metadata"));
+    catalog.delete(PDFName.of("PieceInfo"));
+    catalog.delete(PDFName.of("Thumb"));
+    catalog.delete(PDFName.of("StructTreeRoot"));
+    for (const page of origDoc.getPages()) {
+      page.node.delete(PDFName.of("Thumb"));
+      page.node.delete(PDFName.of("PieceInfo"));
+    }
+  } catch (cleanErr) {
+    console.warn("PDF metadata strip notice:", cleanErr);
+  }
+
+  // Save structural stream deflated version
+  const losslessStreamBytes = await origDoc.save({
     useObjectStreams: true,
     addDefaultPage: false,
   });
 
+  const isLosslessSmaller = losslessStreamBytes.byteLength < originalSize;
+
+  // KEY FIX: If user requested a target size (e.g. 100 KB), and the document already meets that target
+  // (e.g. 14.9 KB <= 100 KB or lossless deflated <= 100 KB), return the pristine lossless vector document!
+  // Do NOT degrade clean vector text into a low-resolution raster JPEG!
+  if (targetSizeBytes && (originalSize <= targetSizeBytes || losslessStreamBytes.byteLength <= targetSizeBytes)) {
+    const bestLossless = isLosslessSmaller ? losslessStreamBytes : new Uint8Array(buffer);
+    return {
+      pdfBytes: bestLossless,
+      pageCount: totalPages,
+      originalSize,
+      compressedSize: bestLossless.byteLength,
+    };
+  }
+
+  // 3. Visual & Perceptual Compression Pass (Tier 2)
   try {
     const pdfjs = await getPdfJs();
     const copyBuffer = buffer.slice(0);
@@ -347,116 +379,169 @@ export async function compressPdfDocument(
     const pdfDoc = await loadingTask.promise;
     const numPages = Math.min(totalPages, pdfDoc.numPages);
 
-    // Calculate budget & starting parameters
-    let scale = 1.25;
-    let initialQuality = 0.65;
+    // Structure overhead for PDF wrapper: ~500B per page + ~900B catalog & object streams
+    const structureOverhead = numPages * 500 + 900;
 
+    // Determine target budget and starting parameters
+    let effectiveTarget: number;
     if (targetSizeBytes) {
-      // Structure overhead: ~1.2KB per page + ~2KB header/catalog
-      const structureOverhead = numPages * 1200 + 2048;
-      const availableImageBudget = Math.max(2048 * numPages, targetSizeBytes - structureOverhead);
-      const budgetPerPage = Math.floor(availableImageBudget / numPages);
-
-      // Adjust scale and initial quality based on per-page budget
-      if (budgetPerPage >= 200 * 1024) {
-        scale = 1.6;
-        initialQuality = 0.85;
-      } else if (budgetPerPage >= 100 * 1024) {
-        scale = 1.4;
-        initialQuality = 0.75;
-      } else if (budgetPerPage >= 50 * 1024) {
-        scale = 1.2;
-        initialQuality = 0.65;
-      } else if (budgetPerPage >= 25 * 1024) {
-        scale = 1.0;
-        initialQuality = 0.50;
-      } else {
-        scale = 0.85;
-        initialQuality = 0.35;
-      }
+      effectiveTarget = targetSizeBytes;
     } else {
       if (qualityLevel === "extreme") {
-        scale = 0.95;
-        initialQuality = 0.45;
+        effectiveTarget = Math.round(originalSize * 0.35);
       } else if (qualityLevel === "high") {
-        scale = 1.5;
-        initialQuality = 0.82;
+        effectiveTarget = Math.round(originalSize * 0.75);
       } else {
-        // recommended
-        scale = 1.2;
-        initialQuality = 0.65;
+        effectiveTarget = Math.round(originalSize * 0.50);
       }
+      // Ensure target is capped at 85% of original and at least 2KB per page
+      effectiveTarget = Math.max(2048 * numPages, Math.min(effectiveTarget, Math.round(originalSize * 0.85)));
     }
 
-    const structureOverhead = numPages * 1200 + 2048;
-    const budgetPerPage = targetSizeBytes
-      ? Math.floor(Math.max(2048 * numPages, targetSizeBytes - structureOverhead) / numPages)
-      : null;
+    const availableBudget = Math.max(1024 * numPages, effectiveTarget - structureOverhead);
+    const budgetPerPage = Math.floor(availableBudget / numPages);
 
-    const pageJpgs: string[] = [];
+    // Compute initial rendering scale and quality based on per-page budget
+    let renderScale: number;
+    let initialQuality: number;
 
-    for (let p = 1; p <= numPages; p++) {
-      const page = await pdfDoc.getPage(p);
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(10, Math.round(viewport.width));
-      canvas.height = Math.max(10, Math.round(viewport.height));
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas context unavailable");
+    if (budgetPerPage >= 250 * 1024) {
+      renderScale = 2.4;
+      initialQuality = 0.92;
+    } else if (budgetPerPage >= 140 * 1024) {
+      renderScale = 2.0;
+      initialQuality = 0.88;
+    } else if (budgetPerPage >= 75 * 1024) {
+      renderScale = 1.75;
+      initialQuality = 0.84;
+    } else if (budgetPerPage >= 35 * 1024) {
+      renderScale = 1.35;
+      initialQuality = 0.75;
+    } else if (budgetPerPage >= 18 * 1024) {
+      renderScale = 1.05;
+      initialQuality = 0.65;
+    } else if (budgetPerPage >= 10 * 1024) {
+      renderScale = 0.85;
+      initialQuality = 0.52;
+    } else {
+      renderScale = 0.65;
+      initialQuality = 0.40;
+    }
 
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const renderAllPages = async (scale: number, qLevel: number): Promise<string[]> => {
+      const jpgs: string[] = [];
+      for (let p = 1; p <= numPages; p++) {
+        const page = await pdfDoc.getPage(p);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(10, Math.round(viewport.width));
+        canvas.height = Math.max(10, Math.round(viewport.height));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas context unavailable");
 
-      if (isGrayscale) {
-        ctx.filter = "grayscale(100%)";
-      }
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      await page.render({
-        canvasContext: ctx,
-        viewport,
-        intent: "display",
-      } as any).promise;
-
-      let quality = initialQuality;
-      let dataUrl = canvas.toDataURL("image/jpeg", quality);
-
-      // If targeting specific size and this page exceeds budget, down-tune quality
-      if (budgetPerPage && budgetPerPage > 0) {
-        let approxBytes = Math.round((dataUrl.length - 22) * 0.75);
-        let attempts = 0;
-        while (approxBytes > budgetPerPage && quality > 0.15 && attempts < 4) {
-          attempts++;
-          quality = Math.max(0.12, quality * (budgetPerPage / approxBytes) * 0.92);
-          dataUrl = canvas.toDataURL("image/jpeg", quality);
-          approxBytes = Math.round((dataUrl.length - 22) * 0.75);
+        if (isGrayscale) {
+          ctx.filter = "grayscale(100%)";
         }
-      }
 
-      pageJpgs.push(dataUrl);
-    }
+        await page.render({
+          canvasContext: ctx,
+          viewport,
+          intent: "display",
+        } as any).promise;
+
+        let quality = qLevel;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        let approxBytes = Math.round((dataUrl.length - 22) * 0.75);
+
+        // If image exceeds per-page budget, downscale canvas dimensions
+        if (approxBytes > budgetPerPage && budgetPerPage > 0) {
+          const downscaleRatio = Math.max(0.25, Math.min(0.96, Math.sqrt(budgetPerPage / approxBytes)));
+          const downCanvas = document.createElement("canvas");
+          downCanvas.width = Math.max(10, Math.round(canvas.width * downscaleRatio));
+          downCanvas.height = Math.max(10, Math.round(canvas.height * downscaleRatio));
+          const downCtx = downCanvas.getContext("2d");
+          if (downCtx) {
+            downCtx.imageSmoothingEnabled = true;
+            downCtx.imageSmoothingQuality = "high";
+            downCtx.drawImage(canvas, 0, 0, downCanvas.width, downCanvas.height);
+            quality = Math.max(0.2, quality * 0.92);
+            dataUrl = downCanvas.toDataURL("image/jpeg", quality);
+          }
+        }
+
+        jpgs.push(dataUrl);
+      }
+      return jpgs;
+    };
+
+    let pageJpgs = await renderAllPages(renderScale, initialQuality);
 
     // Build new compact PDF document with embedded compressed pages
-    const newDoc = await PDFDocument.create();
-    for (let i = 0; i < numPages; i++) {
-      const origPage = origDoc.getPage(i);
-      const { width, height } = origPage.getSize();
-      const jpgImage = await newDoc.embedJpg(pageJpgs[i]!);
-      const newPage = newDoc.addPage([width, height]);
-      newPage.drawImage(jpgImage, {
-        x: 0,
-        y: 0,
-        width,
-        height,
+    const buildPdfFromJpgs = async (jpgList: string[]): Promise<Uint8Array> => {
+      const newDoc = await PDFDocument.create();
+      for (let i = 0; i < numPages; i++) {
+        const origPage = origDoc.getPage(i);
+        const { width, height } = origPage.getSize();
+        const jpgImage = await newDoc.embedJpg(jpgList[i]!);
+        const newPage = newDoc.addPage([width, height]);
+        newPage.drawImage(jpgImage, {
+          x: 0,
+          y: 0,
+          width,
+          height,
+        });
+      }
+      return await newDoc.save({
+        useObjectStreams: true,
+        addDefaultPage: false,
       });
+    };
+
+    let compressedPdfBytes = await buildPdfFromJpgs(pageJpgs);
+
+    // 4. Verification & Target Size Guarantee Pass
+    // A. If targetSizeBytes was set and result exceeds target or original, run tighter pass
+    if (
+      (targetSizeBytes && compressedPdfBytes.byteLength > targetSizeBytes) ||
+      compressedPdfBytes.byteLength >= originalSize
+    ) {
+      const tighterScale = Math.max(0.35, renderScale * 0.72);
+      const tighterQuality = Math.max(0.2, initialQuality * 0.72);
+      const secondPassJpgs = await renderAllPages(tighterScale, tighterQuality);
+      const secondPassBytes = await buildPdfFromJpgs(secondPassJpgs);
+
+      if (secondPassBytes.byteLength < compressedPdfBytes.byteLength) {
+        compressedPdfBytes = secondPassBytes;
+      }
     }
 
-    const compressedPdfBytes = await newDoc.save({
-      useObjectStreams: true,
-      addDefaultPage: false,
-    });
+    // B. If targetSizeBytes was set, and result is significantly UNDER target (e.g. < 55% of target)
+    // and was smaller than original, calibrate upward to maximize sharpness within user's budget!
+    if (
+      targetSizeBytes &&
+      compressedPdfBytes.byteLength < targetSizeBytes * 0.55 &&
+      renderScale < 2.5 &&
+      initialQuality < 0.92
+    ) {
+      const boostScale = Math.min(2.5, renderScale * 1.35);
+      const boostQuality = Math.min(0.92, initialQuality + 0.12);
+      const boostedJpgs = await renderAllPages(boostScale, boostQuality);
+      const boostedBytes = await buildPdfFromJpgs(boostedJpgs);
 
-    // If targetSizeBytes was explicitly requested, always return the target-optimized result
-    if (targetSizeBytes) {
+      if (
+        boostedBytes.byteLength <= targetSizeBytes &&
+        boostedBytes.byteLength < originalSize &&
+        boostedBytes.byteLength > compressedPdfBytes.byteLength
+      ) {
+        compressedPdfBytes = boostedBytes;
+      }
+    }
+
+    // 5. Decision: Pick the best result that is strictly smaller than original!
+    if (targetSizeBytes && compressedPdfBytes.byteLength <= targetSizeBytes) {
       return {
         pdfBytes: compressedPdfBytes,
         pageCount: numPages,
@@ -465,32 +550,45 @@ export async function compressPdfDocument(
       };
     }
 
-    // Otherwise, pick the smaller of pure stream or rasterized
-    if (
-      pureStreamBytes.byteLength < compressedPdfBytes.byteLength &&
-      pureStreamBytes.byteLength < originalSize
-    ) {
+    if (isLosslessSmaller && (!targetSizeBytes || losslessStreamBytes.byteLength <= targetSizeBytes)) {
+      if (losslessStreamBytes.byteLength < compressedPdfBytes.byteLength || compressedPdfBytes.byteLength >= originalSize) {
+        return {
+          pdfBytes: losslessStreamBytes,
+          pageCount: totalPages,
+          originalSize,
+          compressedSize: losslessStreamBytes.byteLength,
+        };
+      }
+    }
+
+    if (compressedPdfBytes.byteLength < originalSize) {
       return {
-        pdfBytes: pureStreamBytes,
-        pageCount: totalPages,
+        pdfBytes: compressedPdfBytes,
+        pageCount: numPages,
         originalSize,
-        compressedSize: pureStreamBytes.byteLength,
+        compressedSize: compressedPdfBytes.byteLength,
       };
     }
 
+    // Final fallback: Ensure compressedSize is NEVER larger than originalSize!
+    const bestBytes = isLosslessSmaller
+      ? losslessStreamBytes
+      : new Uint8Array(buffer);
+
     return {
-      pdfBytes: compressedPdfBytes,
-      pageCount: numPages,
-      originalSize,
-      compressedSize: compressedPdfBytes.byteLength,
-    };
-  } catch (err) {
-    console.warn("Visual page compression fallback to pureStreamBytes:", err);
-    return {
-      pdfBytes: pureStreamBytes,
+      pdfBytes: bestBytes,
       pageCount: totalPages,
       originalSize,
-      compressedSize: pureStreamBytes.byteLength,
+      compressedSize: bestBytes.byteLength,
+    };
+  } catch (err) {
+    console.warn("Visual page compression fallback to losslessStreamBytes:", err);
+    const bestBytes = isLosslessSmaller ? losslessStreamBytes : new Uint8Array(buffer);
+    return {
+      pdfBytes: bestBytes,
+      pageCount: totalPages,
+      originalSize,
+      compressedSize: bestBytes.byteLength,
     };
   }
 }
@@ -866,3 +964,507 @@ export async function convertImagesToPdf(
   const pdfBytes = await pdfDoc.save();
   return { pdfBytes, pageCount: pdfDoc.getPageCount() };
 }
+
+export type PdfStandardFontName =
+  | "Helvetica"
+  | "Helvetica-Bold"
+  | "Helvetica-Oblique"
+  | "Helvetica-BoldOblique"
+  | "Times-Roman"
+  | "Times-Bold"
+  | "Times-Italic"
+  | "Times-BoldItalic"
+  | "Courier"
+  | "Courier-Bold"
+  | "Courier-Oblique"
+  | "Courier-BoldOblique";
+
+export type PdfEditElementKind =
+  | "text"
+  | "whiteout"
+  | "highlight"
+  | "rect"
+  | "circle"
+  | "line"
+  | "image";
+
+export type PdfImageShape =
+  | "rect"
+  | "rounded"
+  | "circle"
+  | "pill"
+  | "diamond"
+  | "hexagon";
+
+export interface PdfTextEditItem {
+  id: string;
+  sourceId?: string | undefined; // ID of extracted PDF text/image item being replaced
+  kind?: PdfEditElementKind | undefined; // defaults to "text"
+  pageNumber: number; // 1-indexed
+  xPercent: number; // 0-100 percentage from left of page
+  yPercent: number; // 0-100 percentage from top of page
+  widthPercent?: number | undefined; // width as percentage of page width
+  heightPercent?: number | undefined; // height as percentage of page height
+  origXPercent?: number | undefined; // original bounding box X if replacing existing PDF content
+  origYPercent?: number | undefined; // original bounding box Y if replacing existing PDF content
+  origWidthPercent?: number | undefined; // original bounding box W if replacing existing PDF content
+  origHeightPercent?: number | undefined; // original bounding box H if replacing existing PDF content
+  baselineYPercent?: number | undefined; // exact PDF text baseline Y percentage from top of page
+  bgColor?: string | undefined; // background cover color (defaults to "#ffffff")
+  isDeleted?: boolean | undefined; // if true, erases original region without drawing new element
+  text: string;
+  fontFamily: PdfStandardFontName;
+  fontSize: number; // in PDF points (e.g. 10, 12, 14, 18, 24, 32)
+  color: string; // hex color e.g. "#000000"
+  hasWhiteout: boolean; // whether to draw opaque background to cover/replace existing text
+  whiteoutPadding?: number | undefined;
+  opacity?: number | undefined;
+  borderWidth?: number | undefined;
+  borderColor?: string | undefined;
+  fillColor?: string | undefined;
+  imageDataUrl?: string | undefined;
+  imageShape?: PdfImageShape | undefined;
+}
+
+function parseHexToRgb(hexColor: string, fallback: [number, number, number] = [0, 0, 0]): [number, number, number] {
+  const cleanHex = (hexColor || "").replace("#", "");
+  if (cleanHex.length < 6) return fallback;
+  const r = (parseInt(cleanHex.substring(0, 2), 16) || 0) / 255;
+  const g = (parseInt(cleanHex.substring(2, 4), 16) || 0) / 255;
+  const b = (parseInt(cleanHex.substring(4, 6), 16) || 0) / 255;
+  return [r, g, b];
+}
+
+function sanitizeWinAnsiText(input: string): string {
+  return input
+    .replace(/✓|✔/g, "Yes")
+    .replace(/✗|✘/g, "No")
+    .replace(/☑/g, "[X]")
+    .replace(/☐/g, "[ ]")
+    .replace(/[^\x00-\xFF]/g, "");
+}
+
+function buildShapePath(ctx: CanvasRenderingContext2D, w: number, h: number, shape: PdfImageShape, pad: number = 0) {
+  const x = pad;
+  const y = pad;
+  const sw = Math.max(4, w - pad * 2);
+  const sh = Math.max(4, h - pad * 2);
+
+  ctx.beginPath();
+  if (shape === "circle") {
+    ctx.ellipse(x + sw / 2, y + sh / 2, sw / 2, sh / 2, 0, 0, Math.PI * 2);
+  } else if (shape === "pill") {
+    const r = Math.min(sw, sh) / 2;
+    ctx.roundRect(x, y, sw, sh, r);
+  } else if (shape === "rounded") {
+    const r = Math.min(sw, sh) * 0.16;
+    ctx.roundRect(x, y, sw, sh, r);
+  } else if (shape === "diamond") {
+    ctx.moveTo(x + sw / 2, y);
+    ctx.lineTo(x + sw, y + sh / 2);
+    ctx.lineTo(x + sw / 2, y + sh);
+    ctx.lineTo(x, y + sh / 2);
+    ctx.closePath();
+  } else if (shape === "hexagon") {
+    ctx.moveTo(x + sw * 0.25, y);
+    ctx.lineTo(x + sw * 0.75, y);
+    ctx.lineTo(x + sw, y + sh * 0.5);
+    ctx.lineTo(x + sw * 0.75, y + sh);
+    ctx.lineTo(x + sw * 0.25, y + sh);
+    ctx.lineTo(x, y + sh * 0.5);
+    ctx.closePath();
+  } else {
+    ctx.rect(x, y, sw, sh);
+  }
+}
+
+async function renderShapedImageToPngBuffer(
+  imageDataUrl: string,
+  shape: PdfImageShape = "rect",
+  borderWidth: number = 0,
+  borderColor: string = "#0f172a",
+  targetWidthPts: number = 200,
+  targetHeightPts: number = 200
+): Promise<ArrayBuffer | null> {
+  if (typeof document === "undefined") {
+    const res = await fetch(imageDataUrl);
+    return res.arrayBuffer();
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = async () => {
+      try {
+        const scale = 3;
+        const w = Math.max(64, Math.round(targetWidthPts * scale));
+        const h = Math.max(64, Math.round(targetHeightPts * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+
+        const effectiveBorder = borderWidth > 0 ? borderWidth : (shape !== "rect" ? 2 : 0);
+        const bWidth = effectiveBorder > 0 ? Math.max(2, Math.round(effectiveBorder * scale)) : 0;
+
+        ctx.save();
+        buildShapePath(ctx, w, h, shape, bWidth / 2);
+        ctx.clip();
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.restore();
+
+        if (bWidth > 0) {
+          ctx.save();
+          buildShapePath(ctx, w, h, shape, bWidth / 2);
+          ctx.strokeStyle = borderColor || "#0a0a0a";
+          ctx.lineWidth = bWidth;
+          ctx.lineJoin = "round";
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        const pngDataUrl = canvas.toDataURL("image/png");
+        const res = await fetch(pngDataUrl);
+        resolve(await res.arrayBuffer());
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = imageDataUrl;
+  });
+}
+
+async function renderGeometricShapeToPngBuffer(
+  shape: PdfImageShape,
+  borderWidth: number,
+  borderColor: string,
+  fillColor: string | undefined,
+  targetWidthPts: number,
+  targetHeightPts: number
+): Promise<ArrayBuffer | null> {
+  if (typeof document === "undefined") return null;
+  try {
+    const scale = 3;
+    const w = Math.max(64, Math.round(targetWidthPts * scale));
+    const h = Math.max(64, Math.round(targetHeightPts * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const bWidth = Math.max(2, Math.round((borderWidth || 2) * scale));
+    buildShapePath(ctx, w, h, shape, bWidth / 2);
+    if (fillColor && fillColor !== "transparent") {
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+    }
+    ctx.strokeStyle = borderColor || "#0a0a0a";
+    ctx.lineWidth = bWidth;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    const pngDataUrl = canvas.toDataURL("image/png");
+    const res = await fetch(pngDataUrl);
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Apply in-place text edits, additions, whiteout blocks, highlights, shapes, and shaped images to a PDF document
+ * using standard PDF fonts (Helvetica, Times Roman, Courier + Bold/Italic variants) with exact positioning.
+ */
+export async function applyEditsToPdf(
+  buffer: ArrayBuffer,
+  edits: PdfTextEditItem[]
+): Promise<{ pdfBytes: Uint8Array; pageCount: number }> {
+  const doc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+  const totalPages = doc.getPageCount();
+
+  if (edits.length === 0) {
+    const raw = await doc.save({ useObjectStreams: true });
+    return { pdfBytes: raw, pageCount: totalPages };
+  }
+
+  // Pre-embed required standard fonts (all 12 PostScript fonts)
+  const fontMap: Record<PdfStandardFontName, StandardFonts> = {
+    "Helvetica": StandardFonts.Helvetica,
+    "Helvetica-Bold": StandardFonts.HelveticaBold,
+    "Helvetica-Oblique": StandardFonts.HelveticaOblique,
+    "Helvetica-BoldOblique": StandardFonts.HelveticaBoldOblique,
+    "Times-Roman": StandardFonts.TimesRoman,
+    "Times-Bold": StandardFonts.TimesRomanBold,
+    "Times-Italic": StandardFonts.TimesRomanItalic,
+    "Times-BoldItalic": StandardFonts.TimesRomanBoldItalic,
+    "Courier": StandardFonts.Courier,
+    "Courier-Bold": StandardFonts.CourierBold,
+    "Courier-Oblique": StandardFonts.CourierOblique,
+    "Courier-BoldOblique": StandardFonts.CourierBoldOblique,
+  };
+
+  const embeddedFonts: Partial<Record<PdfStandardFontName, any>> = {};
+  for (const edit of edits) {
+    const fontKey = edit.fontFamily || "Helvetica";
+    if (!embeddedFonts[fontKey]) {
+      const standardEnum = fontMap[fontKey] || StandardFonts.Helvetica;
+      embeddedFonts[fontKey] = await doc.embedFont(standardEnum);
+    }
+  }
+
+  const defaultFont = embeddedFonts["Helvetica"] || (await doc.embedFont(StandardFonts.Helvetica));
+
+  // Process edits by page
+  for (const edit of edits) {
+    const pageIdx = edit.pageNumber - 1;
+    if (pageIdx < 0 || pageIdx >= totalPages) continue;
+    const page = doc.getPage(pageIdx);
+    const { width, height } = page.getSize();
+    const kind = edit.kind || "text";
+
+    // 0. If this edit replaces or deletes an existing PDF text/image element, cover its original bounding box first
+    if (
+      typeof edit.origXPercent === "number" &&
+      typeof edit.origYPercent === "number" &&
+      typeof edit.origWidthPercent === "number" &&
+      typeof edit.origHeightPercent === "number"
+    ) {
+      const padX = kind === "text" ? 0.6 : 1.5;
+      const padY = kind === "text" ? 0.2 : 1.5;
+      const origW = (edit.origWidthPercent / 100) * width + padX * 2;
+      const origH = (edit.origHeightPercent / 100) * height + padY * 2;
+      const origX = Math.max(0, (edit.origXPercent / 100) * width - padX);
+      const origY = Math.max(0, height - (edit.origYPercent / 100) * height - origH + padY);
+      const [br, bg, bb] = parseHexToRgb(edit.bgColor || "#ffffff", [1, 1, 1]);
+
+      page.drawRectangle({
+        x: origX,
+        y: origY,
+        width: origW,
+        height: origH,
+        color: rgb(br, bg, bb),
+        opacity: 1,
+      });
+    }
+
+    if (edit.isDeleted) {
+      continue;
+    }
+
+    // 1. Handle area-based annotations: whiteout block, highlight, rectangle, circle, line, or image
+    if (
+      kind === "whiteout" ||
+      kind === "highlight" ||
+      kind === "rect" ||
+      kind === "circle" ||
+      kind === "line" ||
+      kind === "image"
+    ) {
+      const wPct = Math.max(1, edit.widthPercent ?? 18);
+      const hPct = Math.max(0.5, edit.heightPercent ?? 6);
+      const boxW = (wPct / 100) * width;
+      const boxH = (hPct / 100) * height;
+      const boxX = Math.max(0, Math.min(width - 4, (edit.xPercent / 100) * width));
+      const boxY = Math.max(0, height - (edit.yPercent / 100) * height - boxH);
+
+      if (kind === "whiteout") {
+        const [r, g, b] = parseHexToRgb(edit.color || "#ffffff", [1, 1, 1]);
+        page.drawRectangle({
+          x: boxX,
+          y: boxY,
+          width: boxW,
+          height: boxH,
+          color: rgb(r, g, b),
+          opacity: 1,
+        });
+        continue;
+      }
+
+      if (kind === "highlight") {
+        const [r, g, b] = parseHexToRgb(edit.color || "#facc15", [0.98, 0.8, 0.08]);
+        page.drawRectangle({
+          x: boxX,
+          y: boxY,
+          width: boxW,
+          height: boxH,
+          color: rgb(r, g, b),
+          opacity: edit.opacity ?? 0.38,
+        });
+        continue;
+      }
+
+      if (kind === "rect" || kind === "circle") {
+        const activeShape: PdfImageShape = edit.imageShape || (kind === "circle" ? "circle" : "rect");
+        if (activeShape === "rounded" || activeShape === "pill" || activeShape === "diamond" || activeShape === "hexagon") {
+          const shapePng = await renderGeometricShapeToPngBuffer(
+            activeShape,
+            edit.borderWidth ?? 2,
+            edit.color || "#0a0a0a",
+            edit.fillColor,
+            boxW,
+            boxH
+          );
+          if (shapePng) {
+            const embeddedShape = await doc.embedPng(shapePng);
+            page.drawImage(embeddedShape, {
+              x: boxX,
+              y: boxY,
+              width: boxW,
+              height: boxH,
+              opacity: 1,
+            });
+            continue;
+          }
+        }
+
+        const [r, g, b] = parseHexToRgb(edit.color || "#0a0a0a", [0.04, 0.04, 0.04]);
+        const hasFill = Boolean(edit.fillColor && edit.fillColor !== "transparent");
+        const [fr, fg, fb] = parseHexToRgb(edit.fillColor || "#ffffff", [1, 1, 1]);
+        if (activeShape === "circle") {
+          page.drawEllipse({
+            x: boxX + boxW / 2,
+            y: boxY + boxH / 2,
+            xScale: boxW / 2,
+            yScale: boxH / 2,
+            ...(hasFill ? { color: rgb(fr, fg, fb), opacity: edit.opacity ?? 0.2 } : {}),
+            borderColor: rgb(r, g, b),
+            borderWidth: edit.borderWidth ?? 2,
+            borderOpacity: 1,
+          });
+        } else {
+          page.drawRectangle({
+            x: boxX,
+            y: boxY,
+            width: boxW,
+            height: boxH,
+            ...(hasFill ? { color: rgb(fr, fg, fb), opacity: edit.opacity ?? 0.2 } : {}),
+            borderColor: rgb(r, g, b),
+            borderWidth: edit.borderWidth ?? 2,
+            borderOpacity: 1,
+          });
+        }
+        continue;
+      }
+
+      if (kind === "line") {
+        const [r, g, b] = parseHexToRgb(edit.color || "#0f172a", [0.06, 0.09, 0.16]);
+        const lineY = boxY + boxH / 2;
+        page.drawLine({
+          start: { x: boxX, y: lineY },
+          end: { x: boxX + boxW, y: lineY },
+          thickness: edit.borderWidth ?? 2,
+          color: rgb(r, g, b),
+          opacity: edit.opacity ?? 1,
+        });
+        continue;
+      }
+
+      if (kind === "image" && edit.imageDataUrl) {
+        try {
+          const shape = edit.imageShape || "rect";
+          const bWidth = edit.borderWidth ?? 0;
+          const bColor = edit.borderColor || edit.color || "#0f172a";
+
+          let embeddedImg;
+          if (shape !== "rect" || bWidth > 0) {
+            const shapedPng = await renderShapedImageToPngBuffer(
+              edit.imageDataUrl,
+              shape,
+              bWidth,
+              bColor,
+              boxW,
+              boxH
+            );
+            if (shapedPng) {
+              embeddedImg = await doc.embedPng(shapedPng);
+            }
+          }
+          if (!embeddedImg) {
+            const res = await fetch(edit.imageDataUrl);
+            const imgBuf = await res.arrayBuffer();
+            try {
+              embeddedImg = await doc.embedPng(imgBuf);
+            } catch {
+              embeddedImg = await doc.embedJpg(imgBuf);
+            }
+          }
+          if (embeddedImg) {
+            page.drawImage(embeddedImg, {
+              x: boxX,
+              y: boxY,
+              width: boxW,
+              height: boxH,
+              opacity: edit.opacity ?? 1,
+            });
+          }
+        } catch (imgErr) {
+          console.warn("Could not embed image annotation:", imgErr);
+        }
+        continue;
+      }
+    }
+
+    // 2. Default: kind === "text"
+    const font = embeddedFonts[edit.fontFamily] || defaultFont;
+    const fontSize = edit.fontSize || 12;
+
+    // Convert percentage coordinates to PDF points (0,0 is bottom-left in PDF)
+    const x = Math.max(0, Math.min(width - 10, (edit.xPercent / 100) * width));
+    const isUnmovedOriginalText =
+      typeof edit.baselineYPercent === "number" &&
+      typeof edit.origYPercent === "number" &&
+      Math.abs(edit.yPercent - edit.origYPercent) < 0.1;
+    const y = isUnmovedOriginalText
+      ? height - (edit.baselineYPercent! / 100) * height
+      : height - (edit.yPercent / 100) * height - fontSize * 0.77;
+
+    const rawLines = (edit.text || "").split("\n");
+    const lines = rawLines.map((l) => sanitizeWinAnsiText(l));
+
+    // If whiteout is enabled and not already covered by origXPercent, draw an opaque background patch
+    if (edit.hasWhiteout && typeof edit.origXPercent !== "number" && lines.some((l) => l.trim().length > 0)) {
+      const pad = edit.whiteoutPadding ?? 3;
+      let maxLineWidth = 0;
+      for (const line of lines) {
+        const lw = font.widthOfTextAtSize(line || " ", fontSize);
+        if (lw > maxLineWidth) maxLineWidth = lw;
+      }
+      const lineHeight = fontSize * 1.22;
+      const totalBoxHeight = Math.max(fontSize, lines.length * lineHeight);
+      const [br, bg, bb] = parseHexToRgb(edit.bgColor || "#ffffff", [1, 1, 1]);
+
+      page.drawRectangle({
+        x: Math.max(0, x - pad),
+        y: Math.max(0, y - pad - (totalBoxHeight - fontSize)),
+        width: maxLineWidth + pad * 2,
+        height: totalBoxHeight + pad * 2,
+        color: rgb(br, bg, bb),
+      });
+    }
+
+    const [r, g, b] = parseHexToRgb(edit.color || "#000000", [0, 0, 0]);
+
+    // Draw text lines
+    lines.forEach((line, idx) => {
+      const lineY = y - idx * (fontSize * 1.22);
+      if (line.length > 0) {
+        page.drawText(line, {
+          x,
+          y: lineY,
+          size: fontSize,
+          font,
+          color: rgb(r, g, b),
+        });
+      }
+    });
+  }
+
+  const pdfBytes = await doc.save({ useObjectStreams: true });
+  return { pdfBytes, pageCount: totalPages };
+}
+

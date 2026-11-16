@@ -34,6 +34,7 @@ import {
   Globe,
   Search,
   FileText,
+  ScanText,
   FileDown,
   Table2,
   MonitorPlay,
@@ -3651,16 +3652,10 @@ const assembleOcrOutputText = (
 
   // 1. Include QR & Barcode payloads if detected and not skipped
   if (!skipBarcodeAndQr && barcodes && barcodes.length > 0) {
-    parts.push("======================================================================");
-    parts.push("📷 DETECTED BARCODE & QR CODE DATA");
-    parts.push("======================================================================");
     barcodes.forEach((b, i) => {
-      parts.push(`[${i + 1}] Type: ${b.type} (${b.format})`);
-      parts.push(`    Payload: ${b.rawValue}`);
-      parts.push("");
+      parts.push(`[${b.type} (${b.format})]: ${b.rawValue}`);
     });
-    parts.push("======================================================================");
-    parts.push("");
+    if (lines.length > 0) parts.push("");
   }
 
   // 2. Format Extracted Document Content
@@ -3692,8 +3687,6 @@ const assembleOcrOutputText = (
       outputObj["text_lines"] = unassigned;
       parts.push(JSON.stringify(outputObj, null, 2));
     } else {
-      parts.push("📄 EXTRACTED DOCUMENT TEXT");
-      parts.push("──────────────────────────────────────────────────────────────────────");
       parts.push(lines.join("\n"));
     }
   } else if (!(!skipBarcodeAndQr && barcodes.length > 0)) {
@@ -4208,6 +4201,14 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   const [compressFormat, setCompressFormat] = useState<"auto" | "image/webp" | "image/jpeg" | "image/png">("auto");
   const [isEditingSettings, setIsEditingSettings] = useState<boolean>(false);
   const [showOriginalComparison, setShowOriginalComparison] = useState<boolean>(false);
+  const [previewBackdrop, setPreviewBackdrop] = useState<"checker" | "white" | "black">("checker");
+  const [copiedText, setCopiedText] = useState<boolean>(false);
+
+  const handleCopyExtractedText = () => {
+    copyToClipboard(ocrText || binaryOutputText, "Extracted Text");
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
+  };
 
   // 2. Resize
   const [targetWidth, setTargetWidth] = useState<number>(800);
@@ -4527,18 +4528,25 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
     };
   }, [rawBinaryBytes]);
 
-  // Scroll listener for Top Dynamic Island Bar
+  // Scroll & Header-Offset listener for Top Dynamic Island Bar
+  const [islandTopPx, setIslandTopPx] = useState<number>(104);
   useEffect(() => {
     if (!hasProcessed || isEditingSettings) {
       setShowDynamicIsland(false);
+      setHasScrolledOnce(false);
       return;
     }
 
     const handleScroll = () => {
+      const headerEl = document.querySelector("header");
+      const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
+      const nextTop = headerBottom > 0 ? Math.max(14, Math.round(headerBottom + 14)) : 16;
+      setIslandTopPx(nextTop);
+
       if (workspaceContainerRef.current) {
         const rect = workspaceContainerRef.current.getBoundingClientRect();
         // Only show sticky Dynamic Island when user has scrolled past the main workspace actions
-        const isPastWorkspace = rect.bottom < 100;
+        const isPastWorkspace = rect.bottom < 120;
         setShowDynamicIsland(isPastWorkspace);
         if (isPastWorkspace) setHasScrolledOnce(true);
       } else {
@@ -4549,10 +4557,12 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
     handleScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
     };
   }, [hasProcessed, isEditingSettings]);
 
@@ -8978,10 +8988,32 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
+  const isOcrTool =
+    tool.slug.includes("ocr") ||
+    tool.slug.includes("to-text") ||
+    tool.slug === "image-to-text";
+
+  const isDocumentTool =
+    tool.slug === "image-to-word" ||
+    tool.slug === "image-to-excel" ||
+    tool.slug === "image-to-powerpoint" ||
+    tool.slug === "image-to-pdf";
+
+  const isBinaryTool =
+    tool.slug === "image-to-binary" ||
+    tool.slug === "image-to-base64" ||
+    tool.slug === "image-to-hex" ||
+    tool.slug === "image-to-octal" ||
+    tool.slug === "image-to-decimal" ||
+    tool.slug === "image-to-ascii";
+
   const isConversionTool =
-    tool.slug.startsWith("convert-") ||
-    tool.slug.includes("-to-") ||
-    tool.category === "Format Converters";
+    (tool.slug.startsWith("convert-") ||
+      tool.slug.includes("-to-") ||
+      tool.category === "Format Converters") &&
+    !isOcrTool &&
+    !isDocumentTool &&
+    !isBinaryTool;
 
   const formatLabelMap: Record<string, string> = {
     "image/jpeg": "JPG",
@@ -8994,14 +9026,15 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   };
 
   const getTargetFormatLabel = (): string => {
-    if (tool.slug === "convert-to-jpg") return "JPG";
-    if (tool.slug === "convert-to-png") return "PNG";
-    if (tool.slug === "convert-to-webp") return "WebP";
-    if (tool.slug === "convert-from-jpg") return formatLabelMap[targetFormat] || "PNG";
+    if (isOcrTool) return "TXT";
     if (tool.slug === "image-to-pdf") return "PDF";
     if (tool.slug === "image-to-word") return "DOCX";
     if (tool.slug === "image-to-excel") return "XLSX";
     if (tool.slug === "image-to-powerpoint") return "PPTX";
+    if (tool.slug === "convert-to-jpg") return "JPG";
+    if (tool.slug === "convert-to-png") return "PNG";
+    if (tool.slug === "convert-to-webp") return "WebP";
+    if (tool.slug === "convert-from-jpg") return formatLabelMap[targetFormat] || "PNG";
     if (tool.slug === "html-to-image") return htmlOutputFormat || "PNG";
     if (tool.slug === "pdf-to-image") return pdfDocOutputFormat || "PNG";
     if (tool.slug === "word-to-image") return wordDocOutputFormat || "PNG";
@@ -9009,7 +9042,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
     if (tool.slug === "powerpoint-to-image") return pptDocOutputFormat || "PNG";
     if (tool.slug === "base64-to-image") return base64ExportFormat;
     if (tool.slug === "square-your-image") return squareExportFormat;
-    if (tool.slug.includes("-to-")) {
+    if (isConversionTool && tool.slug.includes("-to-")) {
       const parts = tool.slug.split("-to-");
       if (parts[1]) {
         const p = parts[1].toLowerCase();
@@ -9035,7 +9068,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
       if (sub) return sub === "JPEG" ? "JPG" : sub;
     }
     if (tool.slug === "convert-from-jpg") return "JPG";
-    if (tool.slug.includes("-to-")) {
+    if (isConversionTool && tool.slug.includes("-to-")) {
       const parts = tool.slug.split("-to-");
       if (parts[0]) {
         const p = parts[0].replace("convert-", "").toLowerCase();
@@ -9129,22 +9162,25 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
 
   return (
     <div ref={workspaceContainerRef} className="w-full flex flex-col gap-8">
-      {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Smooth Centered Animation) ─────── */}
+      {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Smooth Centered Animation, Header-Aware) ─────── */}
       {typeof document !== "undefined" && hasProcessed && !isEditingSettings && !isCodeEditorOpen && createPortal(
-        <div className="fixed top-[66px] sm:top-[74px] md:top-[80px] inset-x-0 flex justify-center items-center z-[100] pointer-events-none px-2 sm:px-4">
+        <div
+          style={{ top: `${islandTopPx}px` }}
+          className="dynamic-island-wrapper fixed inset-x-0 flex justify-center items-center z-[90] pointer-events-none px-3 sm:px-4"
+        >
           <aside
             aria-label="Quick download dynamic island"
-            className={`pointer-events-auto dynamic-island-box flex items-center gap-1.5 xs:gap-2 sm:gap-4 rounded-full border border-white/20 bg-black text-white p-1.5 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-3xl ring-1 ring-white/15 max-w-[calc(100vw-16px)] sm:max-w-2xl mx-auto ${
+            className={`pointer-events-auto dynamic-island-box flex items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-black text-white p-1.5 sm:p-2 mx-auto ${
               showDynamicIsland
                 ? "island-enter"
                 : hasScrolledOnce
                 ? "island-exit"
-                : "opacity-0 -translate-y-20 pointer-events-none"
+                : "opacity-0 -translate-y-12 scale-90 pointer-events-none"
             }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
-            <div className="flex items-center gap-2 sm:gap-3 pl-0.5 sm:pl-1.5 shrink-0">
-              <div className="relative h-9 w-9 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-neutral-900 shadow-md ring-2 ring-black">
+            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+              <div className="relative h-9 w-9 sm:h-11 sm:w-11 shrink-0 overflow-hidden rounded-full border border-white/25 bg-neutral-900 shadow-inner">
                 {processedSrc || imageSrc ? (
                   <img
                     src={processedSrc || imageSrc || undefined}
@@ -9155,21 +9191,21 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                     className="h-full w-full object-cover select-none workspace-protected-image"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-white/10 text-amber-400">
+                  <div className="flex h-full w-full items-center justify-center bg-[#ff5500]/20 text-[#ff5500]">
                     <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 )}
               </div>
-              <div className="hidden md:flex flex-col text-left">
-                <span className="text-sm sm:text-base font-extrabold text-white truncate max-w-[130px] lg:max-w-[190px] leading-tight">
+              <div className="hidden sm:flex flex-col justify-center text-left pr-1">
+                <span className="text-xs sm:text-sm font-extrabold text-white truncate max-w-[130px] lg:max-w-[190px] leading-tight">
                   {file?.name || `${tool.name}`}
                 </span>
                 {isConversionTool ? (
-                  <span className="text-xs font-bold text-amber-400 leading-tight flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-[#ff5500] leading-tight flex items-center gap-1 mt-0.5">
                     {sourceFormatLabel} → {targetFormatLabel}
                   </span>
                 ) : (
-                  <span className="text-xs font-mono font-bold text-emerald-400 leading-tight">
+                  <span className="text-[11px] font-mono font-bold text-emerald-400 leading-tight mt-0.5">
                     {tool.slug === "resize-image" && (outputDimensions.width || targetWidth) > 0
                       ? `${outputDimensions.width || targetWidth}×${outputDimensions.height || targetHeight} · ${formatBytes(newSize || origSize)}`
                       : formatBytes(newSize || origSize)}
@@ -9182,9 +9218,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             <button
               type="button"
               onClick={handleDownload}
-              className="wobbly-btn flex items-center gap-1.5 sm:gap-2.5 rounded-full bg-white text-black hover:bg-neutral-100 px-3 xs:px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-base font-black shadow-xl hover:shadow-2xl active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              className="wobbly-btn h-9 sm:h-11 flex items-center gap-2 rounded-full bg-white text-[#0a0a0a] hover:bg-neutral-100 px-4 sm:px-5 text-xs sm:text-sm font-black shadow-lg active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <Download className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
+              <Download className="h-4 w-4 text-[#ff5500] shrink-0" />
               <span>
                 {tool.slug === "compress-image"
                   ? "Download Image"
@@ -9215,37 +9251,37 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   : "Download Result"}
               </span>
               {!isConversionTool && (
-                <span className="hidden xs:inline-block rounded-full bg-black/10 text-neutral-800 px-2.5 py-0.5 text-xs font-mono font-bold">
+                <span className="hidden md:inline-block rounded-full bg-black/10 text-neutral-800 px-2 py-0.5 text-[11px] font-mono font-bold">
                   {formatBytes(newSize || origSize)}
                 </span>
               )}
             </button>
 
-            {/* 3. Change Settings (Icon Only Button) */}
+            {/* 3. Change Settings (Concentric Circular Button) */}
             <button
               type="button"
               onClick={() => {
                 setIsEditingSettings(true);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="wobbly-btn flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
+              className="wobbly-btn flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white hover:bg-white hover:text-[#0a0a0a] hover:scale-105 active:scale-90 transition-all shadow-sm cursor-pointer"
               title="Change Settings"
               aria-label="Change Settings"
             >
-              <Sliders className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" />
+              <Sliders className="h-4 w-4 text-[#ff5500]" />
             </button>
 
-            {/* 4. Upload Another File (Icon Only Button) */}
+            {/* 4. Upload Another File (Concentric Circular Button) */}
             <button
               type="button"
               onClick={() => {
                 fileInputRef.current?.click();
               }}
-              className="wobbly-btn flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white hover:bg-white hover:text-black hover:scale-105 active:scale-90 transition-all shadow-md cursor-pointer"
+              className="wobbly-btn flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white hover:bg-white hover:text-[#0a0a0a] hover:scale-105 active:scale-90 transition-all shadow-sm cursor-pointer"
               title="Process another File"
               aria-label="Process another File"
             >
-              <FolderUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              <FolderUp className="h-4 w-4" />
             </button>
           </aside>
         </div>,
@@ -9276,41 +9312,67 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
         /* Dedicated Processed View for All Tools */
         <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95 duration-300">
           {/* Top Result Banner with Statistics */}
-          <div className="rounded-3xl border border-border bg-card p-5 md:p-6 shadow-xl transition-all">
+          <div className="rounded-3xl border border-border/80 bg-card/90 backdrop-blur-md p-5 md:p-6 shadow-xl transition-all">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
               {/* Left Column: Icon & Headings */}
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-xs">
-                  <Check className="h-6 w-6 stroke-[2.5]" />
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                    isOcrTool
+                      ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
+                      : isDocumentTool
+                      ? "bg-blue-500/15 text-blue-500 border border-blue-500/30"
+                      : isBinaryTool
+                      ? "bg-purple-500/15 text-purple-500 border border-purple-500/30"
+                      : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                  } shadow-xs`}
+                >
+                  {isOcrTool ? (
+                    <ScanText className="h-6 w-6 stroke-[2.2]" />
+                  ) : isDocumentTool ? (
+                    <FileText className="h-6 w-6 stroke-[2.2]" />
+                  ) : isBinaryTool ? (
+                    <Binary className="h-6 w-6 stroke-[2.2]" />
+                  ) : (
+                    <Check className="h-6 w-6 stroke-[2.5]" />
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                      {tool.slug === "compress-image"
-                        ? "Compression Complete"
-                        : tool.slug.startsWith("convert-") || tool.slug.includes("-to-")
-                        ? "Conversion Complete"
+                    <span className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      {isOcrTool
+                        ? "AI OCR Extraction Complete"
+                        : tool.slug === "compress-image"
+                        ? "Lossless Compression Complete"
                         : tool.slug === "resize-image"
-                        ? "Resize Complete"
+                        ? "Smart Resize Complete"
                         : tool.slug === "crop-image"
-                        ? "Crop Complete"
+                        ? "Precision Crop Complete"
                         : tool.slug === "square-your-image"
                         ? "1:1 Square Complete"
+                        : isDocumentTool
+                        ? "Document Conversion Complete"
+                        : isBinaryTool
+                        ? "Binary Stream Complete"
+                        : isConversionTool
+                        ? "Format Conversion Complete"
                         : `${tool.name} Complete`}
                     </span>
                     <span className="text-xs text-muted-foreground font-semibold">
-                      {tool.slug === "square-your-image"
+                      {isOcrTool
+                        ? `${ocrText ? ocrText.split(/\s+/).filter(Boolean).length : 0} Words · ${ocrText ? ocrText.length : 0} Chars`
+                        : tool.slug === "square-your-image"
                         ? `${Math.max(dimensions.width || 0, dimensions.height || 0)} × ${Math.max(dimensions.width || 0, dimensions.height || 0)} px`
                         : tool.slug === "resize-image"
-                        ? `${formatBytes(newSize || origSize)} · Ready to download`
+                        ? `${outputDimensions.width || targetWidth || dimensions.width} × ${outputDimensions.height || targetHeight || dimensions.height} px`
                         : `${dimensions.width} × ${dimensions.height} px`}
                     </span>
                   </div>
                   <h3 className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground mt-1">
-                    {tool.slug === "compress-image"
+                    {isOcrTool
+                      ? "Text Successfully Extracted"
+                      : tool.slug === "compress-image"
                       ? "Image Successfully Compressed"
-                      : tool.slug.startsWith("convert-") || tool.slug.includes("-to-")
-                      ? "Image Successfully Converted"
                       : tool.slug === "resize-image"
                       ? "Image Successfully Resized"
                       : tool.slug === "crop-image"
@@ -9321,15 +9383,46 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                       ? "Image Successfully Blurred"
                       : tool.slug === "watermark-image"
                       ? "Watermark Successfully Applied"
-                      : tool.slug.includes("ocr") || tool.slug === "image-to-text"
-                      ? "Text Successfully Extracted"
+                      : isDocumentTool
+                      ? `${tool.name} Ready`
+                      : isConversionTool
+                      ? `Converted to ${targetFormatLabel}`
                       : `${tool.name} Completed Successfully`}
                   </h3>
                 </div>
               </div>
 
-              {/* Right Column: Comparative Stats Box OR Conversion Flow */}
-              {isConversionTool ? (
+              {/* Right Column: Comparative Stats Box OR Conversion Flow OR OCR Action */}
+              {isOcrTool ? (
+                <div className="w-full md:w-auto flex items-center justify-between md:justify-end gap-3 bg-secondary/60 px-4 py-2.5 rounded-2xl border border-border/80 shadow-xs">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-foreground">
+                    <span className="rounded-lg bg-background border border-border px-2.5 py-1 text-xs text-muted-foreground shadow-2xs">
+                      {ocrText ? ocrText.split(/\s+/).filter(Boolean).length : 0} words
+                    </span>
+                    <span className="rounded-lg bg-background border border-border px-2.5 py-1 text-xs text-muted-foreground shadow-2xs">
+                      {ocrText ? ocrText.length : 0} chars
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyExtractedText}
+                    className="flex items-center gap-1.5 rounded-xl bg-foreground text-background hover:opacity-90 px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    title="Copy extracted text to clipboard"
+                  >
+                    {copiedText ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5 text-accent" />
+                        <span>Copy Text</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : isConversionTool ? (
                 <div className="w-full md:w-auto flex items-center gap-3 bg-secondary/50 px-4 py-2.5 rounded-2xl border border-border/80 shadow-xs">
                   <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                     <span className="text-[10px] uppercase font-extrabold text-muted-foreground tracking-wider block">Conversion:</span>
@@ -9415,14 +9508,56 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
           </div>
 
           {/* Processed Output Preview Stage */}
-          <div className="relative rounded-3xl border-2 border-border bg-card/70 overflow-hidden shadow-xl flex flex-col items-center justify-center p-4 md:p-8 min-h-[460px] max-h-[640px]">
-            {/* Top Preview Controls Bar (Only for Single-Item Previews; Batch Grid uses its own unified header) */}
-            {!(tool.slug === "rotate-image" && rotateBatch.length > 1) && (
+          <div className="relative rounded-3xl border-2 border-border/80 bg-card/70 backdrop-blur-sm overflow-hidden shadow-xl flex flex-col p-4 md:p-6 min-h-[480px]">
+            {/* Top Preview Controls Bar (Only for Single-Item Previews, excluding OCR which has its own Split Studio) */}
+            {!isOcrTool && !(tool.slug === "rotate-image" && rotateBatch.length > 1) && (
               <div className="absolute top-4 inset-x-4 flex items-center justify-between z-10 pointer-events-none">
-                <span className="pointer-events-auto rounded-full bg-background/90 border border-border px-3.5 py-1 text-xs font-bold text-foreground shadow-sm backdrop-blur truncate max-w-[240px] sm:max-w-md">
+                <span className="pointer-events-auto rounded-full bg-background/90 border border-border px-3.5 py-1 text-xs font-bold text-foreground shadow-sm backdrop-blur truncate max-w-[200px] sm:max-w-md">
                   {file?.name || `${tool.slug}_output`}
                 </span>
                 <div className="flex items-center gap-2 pointer-events-auto">
+                  {/* Studio Backdrop Switcher (for non-document image tools) */}
+                  {!isDocumentTool && !isBinaryTool && (
+                    <div className="hidden sm:flex items-center gap-1 rounded-full border border-border bg-background/90 p-0.5 shadow-sm backdrop-blur">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewBackdrop("checker")}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
+                          previewBackdrop === "checker"
+                            ? "bg-foreground text-background shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Checkerboard transparent backdrop"
+                      >
+                        Checker
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewBackdrop("white")}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
+                          previewBackdrop === "white"
+                            ? "bg-foreground text-background shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Clean white studio backdrop"
+                      >
+                        White
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewBackdrop("black")}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
+                          previewBackdrop === "black"
+                            ? "bg-foreground text-background shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Dark studio backdrop"
+                      >
+                        Dark
+                      </button>
+                    </div>
+                  )}
+
                   {imageSrc && processedSrc && imageSrc !== processedSrc && (
                     <button
                       type="button"
@@ -9653,84 +9788,190 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   </div>
                 </div>
               </div>
-            ) : hasProcessed &&
-            (ocrText || binaryOutputText) &&
-            (tool.slug.includes("ocr") ||
-              tool.slug.includes("to-text") ||
-              tool.slug.includes("to-binary") ||
-              tool.slug.includes("to-ascii") ||
-              tool.slug.includes("to-base64") ||
-              tool.slug.includes("to-hex") ||
-              tool.slug.includes("to-octal") ||
-              tool.slug.includes("to-decimal")) ? (
-              <div className="w-full max-w-3xl flex flex-col gap-3 z-0 mt-8">
-                {/* Barcode / QR Code Quick Control Bar if detected */}
-                {detectedBarcodes.length > 0 && (
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 shadow-2xs">
+            ) : hasProcessed && isOcrTool ? (
+              /* Two-Column Split Studio (Dual-Pane OCR Inspector) */
+              <div className="w-full flex flex-col gap-4 z-0 mt-2">
+                {/* OCR Studio Header Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-muted/40 border border-border/80 shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500 shrink-0">
+                      <ScanText className="h-4 w-4" />
+                    </span>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white font-black text-[10px]">
-                        ✓
+                      <span className="text-xs sm:text-sm font-bold text-foreground">
+                        Document Inspection &amp; Text Studio
                       </span>
-                      <span className="text-xs font-black text-foreground">
-                        {detectedBarcodes.length} {detectedBarcodes.some(b => b.type === "QR Code") && detectedBarcodes.some(b => b.type === "Barcode") ? "QR & Barcode" : detectedBarcodes[0]!.type} Detected
+                      <span className="rounded-full bg-accent/15 border border-accent/30 text-accent px-2 py-0.5 text-[10px] font-mono font-bold">
+                        Tesseract AI OCR
                       </span>
-                      <div className="flex gap-1">
-                        {detectedBarcodes.map((b, bi) => (
-                          <span key={bi} className="rounded-md bg-background/80 border border-border px-2 py-0.5 text-[10px] font-mono font-bold text-foreground">
-                            {b.format}
-                          </span>
-                        ))}
+                      <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+                        Side-by-side verification: original scan vs. extracted text
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => setIsFullscreenPreview(true)}
+                      className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-foreground hover:text-background transition-all shadow-xs cursor-pointer"
+                      title="Enlarge source document preview"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5 text-accent" />
+                      <span>Enlarge Scanned Image</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Two Column Grid: Left Image, Right Text */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+                  {/* Left Column: Scanned Document Image */}
+                  <div className="flex flex-col rounded-2xl border-2 border-border/80 bg-background overflow-hidden shadow-md">
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border text-xs font-bold text-foreground">
+                      <span className="truncate max-w-[200px] sm:max-w-xs flex items-center gap-2">
+                        <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="truncate">{file?.name || "Scanned Document"}</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground bg-muted/70 px-2 py-0.5 rounded-md">
+                        {dimensions.width} × {dimensions.height} px
+                      </span>
+                    </div>
+
+                    <div
+                      onClick={() => setIsFullscreenPreview(true)}
+                      className="relative flex-1 min-h-[340px] max-h-[460px] p-4 flex items-center justify-center bg-muted/15 cursor-zoom-in group/scan overflow-hidden"
+                      title="Click to enlarge source image"
+                    >
+                      <img
+                        src={imageSrc || processedSrc || undefined}
+                        alt="Scanned Source Document"
+                        className="max-h-[420px] max-w-full object-contain rounded-lg shadow-sm border border-border/50 group-hover/scan:scale-[1.02] transition-transform duration-200 select-none"
+                      />
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/scan:opacity-100 flex items-center justify-center gap-1.5 text-white text-xs font-bold transition-opacity backdrop-blur-[2px]">
+                        <Maximize2 className="h-4 w-4 text-accent" />
+                        <span>Click to Enlarge</span>
                       </div>
                     </div>
 
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-foreground bg-background/70 border border-border px-3 py-1 rounded-xl hover:border-foreground transition-all">
-                      <input
-                        type="checkbox"
-                        checked={skipBarcodeAndQr}
-                        onChange={(e) => {
-                          setSkipBarcodeAndQr(e.target.checked);
-                          recomputeOcrOutput(e.target.checked, ocrContrastMode, ocrOutputStructure);
-                        }}
-                        className="h-3.5 w-3.5 rounded accent-foreground cursor-pointer"
-                      />
-                      <span>Skip Barcode &amp; QR Code</span>
-                    </label>
+                    <div className="flex items-center justify-between px-4 py-2 bg-muted/20 border-t border-border/70 text-[11px] text-muted-foreground">
+                      <span>OCR Language: <strong className="text-foreground capitalize">{ocrLanguage === "eng" ? "English" : ocrLanguage}</strong></span>
+                      <span>Contrast: <strong className="text-foreground capitalize">{ocrContrastMode}</strong></span>
+                    </div>
                   </div>
-                )}
 
+                  {/* Right Column: Extracted Document Content Studio */}
+                  <div className="flex flex-col rounded-2xl border-2 border-border/80 bg-background overflow-hidden shadow-md">
+                    {/* Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <ScanText className="h-4 w-4 text-emerald-500" />
+                        <span className="text-xs font-bold text-foreground">Extracted Text Content</span>
+                        <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-mono font-bold">
+                          {ocrText ? ocrText.split(/\s+/).filter(Boolean).length : 0} words
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyExtractedText}
+                          className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1 text-xs font-bold hover:bg-foreground hover:text-background transition-all shadow-xs cursor-pointer"
+                          title="Copy extracted text"
+                        >
+                          {copiedText ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 text-emerald-500" />
+                              <span>Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3.5 w-3.5 text-accent" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Barcode / QR Detected Sub-Bar if any */}
+                    {detectedBarcodes.length > 0 && (
+                      <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 text-xs font-bold">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white text-[9px] font-black">✓</span>
+                          <span className="text-foreground">{detectedBarcodes.length} Barcode / QR Codes detected</span>
+                        </div>
+                        <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={skipBarcodeAndQr}
+                            onChange={(e) => {
+                              setSkipBarcodeAndQr(e.target.checked);
+                              recomputeOcrOutput(e.target.checked, ocrContrastMode, ocrOutputStructure);
+                            }}
+                            className="h-3.5 w-3.5 rounded accent-foreground cursor-pointer"
+                          />
+                          <span>Skip Codes</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Editable Document Studio Textarea */}
+                    <div className="p-3 sm:p-4 flex-1 flex flex-col">
+                      <textarea
+                        rows={14}
+                        value={ocrText}
+                        onChange={(e) => {
+                          setOcrText(e.target.value);
+                          setBinaryOutputText(e.target.value);
+                          setRawOcrDocumentLines(e.target.value.split("\n"));
+                        }}
+                        placeholder="Extracted document text will appear here. You can directly edit or polish this text before saving!"
+                        className="w-full flex-1 min-h-[300px] max-h-[440px] rounded-xl border border-border/80 bg-card p-3.5 font-mono text-xs sm:text-sm text-foreground focus:border-accent focus:outline-none resize-none leading-relaxed shadow-inner"
+                      />
+                    </div>
+
+                    {/* Footer note & live stats */}
+                    <div className="flex items-center justify-between px-4 py-2 bg-muted/20 border-t border-border/70 text-[11px] text-muted-foreground">
+                      <span>✏️ <strong>Live Editable</strong>: Edit text directly before downloading.</span>
+                      <span className="font-mono font-bold">{ocrText ? `${ocrText.length} characters` : "0 chars"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : hasProcessed && (ocrText || binaryOutputText) && isBinaryTool ? (
+              /* Binary / Hex / Base64 Code Editor Preview */
+              <div className="w-full max-w-3xl flex flex-col gap-3 z-0 mt-8">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <span>Extracted Content</span>
+                    <span>Encoded Stream Content</span>
                     <span className="rounded-full bg-secondary border border-border px-2 py-0.5 text-[10px] font-mono font-extrabold text-foreground">
-                      {ocrText ? `${ocrText.split(/\s+/).filter(Boolean).length} words · ${ocrText.length} chars` : `${binaryOutputText.length} chars`}
+                      {binaryOutputText.length} chars
                     </span>
                   </span>
                   <div className="flex items-center gap-2">
-                    {["image-to-binary", "image-to-base64", "image-to-hex", "image-to-octal", "image-to-decimal", "image-to-ascii"].includes(tool.slug) && (
-                      <button
-                        type="button"
-                        onClick={() => setIsCodeEditorOpen(true)}
-                        className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-accent-foreground transition-all shadow-xs cursor-pointer"
-                        title="Open output in Custom Code & Binary Editor"
-                      >
-                        <Code2 className="h-3.5 w-3.5" />
-                        <span>Open in Code Editor</span>
-                      </button>
-                    )}
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(ocrText || binaryOutputText, "Extracted Text")}
+                      onClick={() => setIsCodeEditorOpen(true)}
+                      className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-accent-foreground transition-all shadow-xs cursor-pointer"
+                      title="Open output in Custom Code & Binary Editor"
+                    >
+                      <Code2 className="h-3.5 w-3.5" />
+                      <span>Open in Code Editor</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(binaryOutputText, "Binary Stream")}
                       className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold hover:bg-foreground hover:text-background transition-all shadow-xs cursor-pointer"
                     >
                       <Copy className="h-3.5 w-3.5" />
-                      <span>Copy Text</span>
+                      <span>Copy Stream</span>
                     </button>
                   </div>
                 </div>
 
                 <textarea
                   readOnly
-                  value={ocrText || binaryOutputText}
+                  value={binaryOutputText}
                   className="w-full h-80 rounded-2xl border-2 border-border bg-background p-4 font-mono text-xs text-foreground focus:outline-none resize-none shadow-inner leading-relaxed"
                 />
               </div>
@@ -9978,15 +10219,25 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                 </div>
               </div>
             ) : (
-              /* Image Preview */
-              <img
-                src={showOriginalComparison ? imageSrc || undefined : processedSrc || imageSrc || undefined}
-                alt="Processed Output Preview"
-                draggable={false}
-                onDragStart={(e) => e.preventDefault()}
-                onContextMenu={(e) => e.preventDefault()}
-                className="max-h-[480px] max-w-full object-contain rounded-xl shadow-lg border border-border/50 transition-all duration-200 select-none workspace-protected-image"
-              />
+              /* Image Preview Studio Canvas */
+              <div
+                className={`relative flex-1 w-full min-h-[420px] max-h-[560px] flex items-center justify-center p-4 sm:p-6 rounded-2xl transition-all duration-300 overflow-hidden ${
+                  previewBackdrop === "checker"
+                    ? "bg-[linear-gradient(45deg,#1f2937_25%,transparent_25%),linear-gradient(-45deg,#1f2937_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#1f2937_75%),linear-gradient(-45deg,transparent_75%,#1f2937_75%)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] bg-muted/40"
+                    : previewBackdrop === "white"
+                    ? "bg-white shadow-inner"
+                    : "bg-slate-950 shadow-inner"
+                }`}
+              >
+                <img
+                  src={showOriginalComparison ? imageSrc || undefined : processedSrc || imageSrc || undefined}
+                  alt="Processed Output Preview"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className="max-h-[480px] max-w-full object-contain rounded-xl shadow-2xl border border-border/40 transition-all duration-200 select-none workspace-protected-image"
+                />
+              </div>
             )}
           </div>
 
@@ -10000,7 +10251,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             >
               <Download className="h-5 w-5 text-accent shrink-0" />
               <span>
-                {tool.slug === "compress-image"
+                {isOcrTool
+                  ? "Download Extracted Text (.txt)"
+                  : tool.slug === "compress-image"
                   ? "Download Compressed Image"
                   : tool.slug === "pdf-to-image"
                   ? documentBlob
@@ -10054,11 +10307,9 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
                   ? "Download Cropped Image"
                   : tool.slug === "square-your-image"
                   ? `Download 1:1 Square Image (${squareExportFormat})`
-                  : tool.slug.includes("ocr") || tool.slug === "image-to-text"
-                  ? "Download Extracted Text"
                   : `Download ${tool.outputs || "Processed"} File`}
               </span>
-              {!isConversionTool && (
+              {newSize > 0 && !isOcrTool && (
                 <span className="shrink-0 rounded-full bg-background/20 px-2.5 py-0.5 text-xs font-bold font-mono">
                   {formatBytes(newSize || origSize)}
                 </span>
@@ -10072,7 +10323,7 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
               className="sm:col-span-1 lg:col-span-3 w-full min-h-[58px] flex items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card px-4 py-4 text-xs sm:text-sm font-extrabold text-foreground shadow-md hover:border-foreground hover:bg-secondary active:scale-98 transition-all cursor-pointer whitespace-nowrap"
             >
               <Sliders className="h-4 w-4 text-accent shrink-0" />
-              <span>Change Settings</span>
+              <span>Adjust Settings</span>
             </button>
 
             {/* 3. Process another File Button */}
@@ -10084,19 +10335,81 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
             >
               <RefreshCw className="h-4 w-4 shrink-0" />
               <span>
-                {tool.slug === "compress-image"
-                  ? "Compress another File"
-                  : tool.slug.startsWith("convert-") || tool.slug.includes("-to-")
-                  ? "Convert another File"
+                {isOcrTool
+                  ? "Scan another Document"
+                  : tool.slug === "compress-image"
+                  ? "Compress another Image"
+                  : isConversionTool
+                  ? "Convert another Image"
                   : tool.slug === "resize-image"
-                  ? "Resize another File"
+                  ? "Resize another Image"
                   : tool.slug === "crop-image"
-                  ? "Crop another File"
+                  ? "Crop another Image"
                   : tool.slug === "square-your-image"
                   ? "Square another Image"
                   : "Process another File"}
               </span>
             </button>
+          </div>
+
+          {/* Studio Trust & Next Workflow Strip */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 text-xs text-muted-foreground">
+            <div className="flex items-start gap-3 text-left">
+              <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-foreground">
+                    Enterprise-Grade Security &amp; Privacy
+                  </span>
+                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                    Professional &amp; Trust-Focused
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Your files and data are handled with security-focused safeguards. We prioritize your privacy and take measures to protect your information throughout the processing workflow.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] uppercase font-bold tracking-wider text-muted-foreground hidden md:inline">Suggested:</span>
+              {isOcrTool ? (
+                <>
+                  <a
+                    href="/chat"
+                    className="flex items-center gap-1 font-bold text-foreground hover:text-accent transition-colors"
+                  >
+                    <span>Summarize with AI Chat</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </a>
+                  <span className="text-border">·</span>
+                  <a
+                    href="/tools/compress-image"
+                    className="flex items-center gap-1 font-bold text-foreground hover:text-accent transition-colors"
+                  >
+                    <span>Compress Scanned Image</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a
+                    href="/tools/compress-image"
+                    className="flex items-center gap-1 font-bold text-foreground hover:text-accent transition-colors"
+                  >
+                    <span>Compress Image</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </a>
+                  <span className="text-border">·</span>
+                  <a
+                    href="/tools/remove-background"
+                    className="flex items-center gap-1 font-bold text-foreground hover:text-accent transition-colors"
+                  >
+                    <span>Remove Background</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </a>
+                </>
+              )}
+            </div>
           </div>
         </div>
       ) : !imageSrc && !file && !processedSrc ? (

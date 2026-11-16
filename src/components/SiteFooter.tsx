@@ -120,9 +120,9 @@ export function SiteFooter() {
                   </Link>
                 </li>
               )}
-              {AdminStore.isToolEnabled("rotate-crop") && (
+              {AdminStore.isToolEnabled("rotate-image") && (
                 <li>
-                  <Link to="/tools/$slug" params={{ slug: "rotate-crop" }} className="hover:text-accent transition-colors">
+                  <Link to="/tools/$slug" params={{ slug: "rotate-image" }} className="hover:text-accent transition-colors">
                     Rotate & Flip Image
                   </Link>
                 </li>
@@ -134,16 +134,16 @@ export function SiteFooter() {
                   </Link>
                 </li>
               )}
-              {AdminStore.isToolEnabled("clean-upscale") && (
+              {AdminStore.isToolEnabled("upscale-image") && (
                 <li>
-                  <Link to="/tools/$slug" params={{ slug: "clean-upscale" }} className="hover:text-accent transition-colors">
+                  <Link to="/tools/$slug" params={{ slug: "upscale-image" }} className="hover:text-accent transition-colors">
                     Clean & 4K Upscale
                   </Link>
                 </li>
               )}
-              {AdminStore.isToolEnabled("convert-compress") && (
+              {AdminStore.isToolEnabled("compress-image") && (
                 <li>
-                  <Link to="/tools/$slug" params={{ slug: "convert-compress" }} className="hover:text-accent transition-colors">
+                  <Link to="/tools/$slug" params={{ slug: "compress-image" }} className="hover:text-accent transition-colors">
                     Convert PNG, JPG, WebP
                   </Link>
                 </li>

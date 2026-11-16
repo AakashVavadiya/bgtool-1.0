@@ -1,4 +1,4 @@
-import { tools, type Tool, type ToolCategory } from "@/lib/tools";
+import { tools, resolveCanonicalToolSlug, type Tool, type ToolCategory } from "@/lib/tools";
 
 /**
  * News & Guides engine.
@@ -569,7 +569,8 @@ export function getNewsArticles(): NewsArticle[] {
 }
 
 export function getNewsArticle(slug: string): NewsArticle | undefined {
-  return getNewsArticles().find((a) => a.slug === slug);
+  const canonical = resolveCanonicalToolSlug(slug);
+  return getNewsArticles().find((a) => a.slug === canonical);
 }
 
 export function getRelatedArticles(article: NewsArticle, limit = 4): NewsArticle[] {

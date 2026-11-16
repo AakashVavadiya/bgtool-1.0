@@ -4920,7 +4920,22 @@ export const tools: Tool[] = [
   },
 ];
 
-export const getTool = (slug: string) =>
-  tools.find((t) => t.slug === slug) ||
-  (slug === "images-to-pdf" ? tools.find((t) => t.slug === "image-to-pdf") : undefined) ||
-  (slug === "image-to-text" ? tools.find((t) => t.slug === "image-to-text-ocr") : undefined);
+export const LEGACY_TOOL_SLUG_ALIASES: Record<string, string> = {
+  "clean-upscale": "upscale-image",
+  "rotate-crop": "rotate-image",
+  "convert-compress": "compress-image",
+  "images-to-pdf": "image-to-pdf",
+  "image-to-text": "image-to-text-ocr",
+  "remove-bg": "remove-background",
+  "face-blur": "blur-face",
+  "convert-image": "convert-to-jpg",
+  "batch-png": "convert-from-jpg",
+};
+
+export const resolveCanonicalToolSlug = (slug: string): string =>
+  LEGACY_TOOL_SLUG_ALIASES[slug] || slug;
+
+export const getTool = (slug: string) => {
+  const canonical = resolveCanonicalToolSlug(slug);
+  return tools.find((t) => t.slug === canonical);
+};
