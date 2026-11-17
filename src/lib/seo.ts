@@ -1,5 +1,42 @@
-export const SITE_URL = process.env["SITE_URL"] || "https://bg.tools";
+const RAW_SITE_URL = (typeof process !== "undefined" && process.env?.["SITE_URL"]) || "https://bg.tools";
+export const SITE_URL = RAW_SITE_URL.trim()
+  .replace(/^https?:\/\/(www\.)?/i, "https://")
+  .replace(/\/+$/, "");
 export const BRAND_NAME = "bg.tools";
+
+const CANONICAL_SLUG_ALIASES: Record<string, string> = {
+  "clean-upscale": "upscale-image",
+  "rotate-crop": "rotate-image",
+  "convert-compress": "compress-image",
+  "images-to-pdf": "image-to-pdf",
+  "image-to-text": "image-to-text-ocr",
+  "remove-bg": "remove-background",
+  "face-blur": "blur-face",
+  "convert-image": "convert-to-jpg",
+  "batch-png": "convert-from-jpg",
+};
+
+export function normalizeCanonicalPath(rawPath: string): string {
+  const clean = (rawPath || "/").split("?")[0]!.split("#")[0]!.trim();
+  const withSlash = clean.startsWith("/") ? clean : `/${clean}`;
+  if (withSlash === "/") return "/";
+  const trimmed = withSlash.replace(/\/+$/, "");
+
+  const toolMatch = trimmed.match(/^\/tools\/([^/]+)$/);
+  if (toolMatch?.[1] && CANONICAL_SLUG_ALIASES[toolMatch[1]]) {
+    return `/tools/${CANONICAL_SLUG_ALIASES[toolMatch[1]]}`;
+  }
+  const newsMatch = trimmed.match(/^\/news\/([^/]+)$/);
+  if (newsMatch?.[1] && CANONICAL_SLUG_ALIASES[newsMatch[1]]) {
+    return `/news/${CANONICAL_SLUG_ALIASES[newsMatch[1]]}`;
+  }
+  return trimmed;
+}
+
+export function buildCanonicalUrl(rawPath: string): string {
+  const normPath = normalizeCanonicalPath(rawPath);
+  return `${SITE_URL}${normPath}`;
+}
 
 export interface PageMetaOptions {
   title: string;
@@ -26,7 +63,7 @@ export function buildPageMeta({
   type = "website",
   jsonLd,
 }: PageMetaOptions) {
-  const canonicalUrl = `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const canonicalUrl = buildCanonicalUrl(path);
   
   // Clean, trim whitespace without damaging keywords
   const cleanTitle = title.trim();
@@ -138,7 +175,7 @@ export function buildBreadcrumbsSchema(
       "@type": "ListItem",
       position: idx + 1,
       name: item.name,
-      item: item.path.startsWith("http") ? item.path : `${SITE_URL}${item.path}`,
+      item: item.path.startsWith("http") ? item.path : buildCanonicalUrl(item.path),
     })),
   };
 }

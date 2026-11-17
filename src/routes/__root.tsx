@@ -55,6 +55,12 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Canonical Host & Tracking Query Sanitizer */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var l=window.location;var p=l.pathname.length>1?l.pathname.replace(/\\/+$/,""):l.pathname;var u=new URL(l.href);var k=["ref","utm_source","utm_medium","utm_campaign","utm_term","utm_content","utm_id","fbclid","gclid","msclkid","_ga","_gl"];var c=false;for(var i=0;i<k.length;i++){if(u.searchParams.has(k[i])){u.searchParams.delete(k[i]);c=true;}}var qs=u.searchParams.toString();var s=qs?"?"+qs:"";if(l.hostname==="www.bg.tools"){l.replace("https://bg.tools"+p+s+l.hash);return;}if((c||p!==l.pathname)&&window.history&&window.history.replaceState){window.history.replaceState(null,"",p+s+l.hash);}}catch(e){}})();`,
+          }}
+        />
         {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-RP1JF6Q4TY" />
         <script

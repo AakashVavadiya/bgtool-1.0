@@ -54,7 +54,7 @@ function getGitLastMod(relativeFile?: string): string {
 
 // Canonical Public Indexable Routes (strictly excluding /admin and account management)
 const staticRoutes = [
-  { path: "", changefreq: "daily", priority: "1.0", file: "src/routes/index.tsx" },
+  { path: "/", changefreq: "daily", priority: "1.0", file: "src/routes/index.tsx" },
   { path: "/tools", changefreq: "daily", priority: "0.9", file: "src/routes/tools.index.tsx" },
   { path: "/image-tools", changefreq: "daily", priority: "0.9", file: "src/routes/image-tools.tsx" },
   { path: "/pdf-tools", changefreq: "daily", priority: "0.9", file: "src/routes/pdf-tools.tsx" },

@@ -1,0 +1,24 @@
+# Canonical domain and legacy tool slug 301 redirects
+https://www.bg.tools/* https://bg.tools/:splat 301!
+http://www.bg.tools/* https://bg.tools/:splat 301!
+http://bg.tools/* https://bg.tools/:splat 301!
+
+/tools/image-to-text /tools/image-to-text-ocr 301!
+/tools/clean-upscale /tools/upscale-image 301!
+/tools/rotate-crop /tools/rotate-image 301!
+/tools/convert-compress /tools/compress-image 301!
+/tools/images-to-pdf /tools/image-to-pdf 301!
+/tools/remove-bg /tools/remove-background 301!
+/tools/face-blur /tools/blur-face 301!
+/tools/convert-image /tools/convert-to-jpg 301!
+/tools/batch-png /tools/convert-from-jpg 301!
+
+/news/image-to-text /news/image-to-text-ocr 301!
+/news/clean-upscale /news/upscale-image 301!
+/news/rotate-crop /news/rotate-image 301!
+/news/convert-compress /news/compress-image 301!
+/news/images-to-pdf /news/image-to-pdf 301!
+/news/remove-bg /news/remove-background 301!
+/news/face-blur /news/blur-face 301!
+/news/convert-image /news/convert-to-jpg 301!
+/news/batch-png /news/convert-from-jpg 301!

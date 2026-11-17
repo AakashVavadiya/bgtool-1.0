@@ -150,6 +150,23 @@ const LEGACY_SLUG_REDIRECTS: Record<string, string> = {
   "batch-png": "convert-from-jpg",
 };
 
+const TRACKING_QUERY_PARAMS = new Set([
+  "ref",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "utm_id",
+  "fbclid",
+  "gclid",
+  "msclkid",
+  "_ga",
+  "_gl",
+  "mc_cid",
+  "mc_eid",
+]);
+
 function resolveCanonicalRedirectPath(pathname: string): string {
   let decoded = pathname;
   try {
@@ -169,22 +186,25 @@ function resolveCanonicalRedirectPath(pathname: string): string {
     return "/chat";
   }
 
-  // 2. Handle legacy tool & news slugs (e.g. /tools/clean-upscale -> /tools/upscale-image)
-  const toolMatch = decoded.match(/^\/tools\/([^/]+)\/?$/);
+  // 2. Strip trailing slashes on non-root public paths (e.g. /pricing/ -> /pricing)
+  const trimmed = decoded.length > 1 && !decoded.startsWith("/api/") ? decoded.replace(/\/+$/, "") : decoded;
+
+  // 3. Handle legacy tool & news slugs (e.g. /tools/image-to-text -> /tools/image-to-text-ocr)
+  const toolMatch = trimmed.match(/^\/tools\/([^/]+)$/);
   if (toolMatch?.[1]) {
     const slug = toolMatch[1];
     const mapped = LEGACY_SLUG_REDIRECTS[slug];
     if (mapped) return `/tools/${mapped}`;
   }
 
-  const newsMatch = decoded.match(/^\/news\/([^/]+)\/?$/);
+  const newsMatch = trimmed.match(/^\/news\/([^/]+)$/);
   if (newsMatch?.[1]) {
     const slug = newsMatch[1];
     const mapped = LEGACY_SLUG_REDIRECTS[slug];
     if (mapped) return `/news/${mapped}`;
   }
 
-  return pathname;
+  return trimmed;
 }
 
 export default {
@@ -192,12 +212,40 @@ export default {
     const url = new URL(request.url);
     const clientIp = extractClientIp(request);
 
-    // 0. Canonical Domain & Legacy/Template Route 301 Redirects (Fixes Google Search Console 404s)
+    // 0. Canonical Domain, Tracking Parameter & Legacy Route 301 Redirects (Fixes Google Search Console Canonical & Indexing Issues)
+    const rawHostHeader = (
+      request.headers.get("x-forwarded-host") ||
+      request.headers.get("host") ||
+      url.hostname ||
+      ""
+    )
+      .split(",")[0]!
+      .trim()
+      .toLowerCase()
+      .replace(/:\d+$/, "");
+    const isWwwHost = rawHostHeader === "www.bg.tools" || url.hostname.toLowerCase() === "www.bg.tools";
+    const isProdDomain = isWwwHost || rawHostHeader === "bg.tools" || url.hostname.toLowerCase() === "bg.tools";
     const canonicalPath = resolveCanonicalRedirectPath(url.pathname);
-    const isWwwHost = url.hostname.toLowerCase() === "www.bg.tools";
-    if (canonicalPath !== url.pathname || isWwwHost) {
-      const targetOrigin = isWwwHost ? "https://bg.tools" : url.origin;
-      const redirectUrl = `${targetOrigin}${canonicalPath}${url.search}`;
+
+    let hasTrackingParams = false;
+    let cleanSearch = url.search;
+    if ((request.method === "GET" || request.method === "HEAD") && !url.pathname.startsWith("/api/") && url.search) {
+      const cleanedParams = new URLSearchParams(url.searchParams);
+      for (const key of Array.from(cleanedParams.keys())) {
+        if (TRACKING_QUERY_PARAMS.has(key.toLowerCase())) {
+          cleanedParams.delete(key);
+          hasTrackingParams = true;
+        }
+      }
+      if (hasTrackingParams) {
+        const qs = cleanedParams.toString();
+        cleanSearch = qs ? `?${qs}` : "";
+      }
+    }
+
+    if (canonicalPath !== url.pathname || isWwwHost || hasTrackingParams) {
+      const targetOrigin = isProdDomain ? "https://bg.tools" : url.origin;
+      const redirectUrl = `${targetOrigin}${canonicalPath}${cleanSearch}`;
       return applySecurityHeaders(
         new Response(null, {
           status: 301,
@@ -1574,7 +1622,18 @@ export default {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
-      return applySecurityHeaders(normalized);
+      const secured = applySecurityHeaders(normalized);
+      const ct = secured.headers.get("content-type") || "";
+      if (secured.status === 200 && ct.includes("text/html")) {
+        const headers = new Headers(secured.headers);
+        headers.set("Link", `<https://bg.tools${canonicalPath}>; rel="canonical"`);
+        return new Response(secured.body, {
+          status: secured.status,
+          statusText: secured.statusText,
+          headers,
+        });
+      }
+      return secured;
     } catch (error) {
       console.error(error);
       const errRes = new Response(renderErrorPage(), {
