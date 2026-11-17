@@ -3,25 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import {
-  Mail,
-  MessageSquare,
-  Send,
-  CheckCircle2,
-  Clock,
-  MapPin,
-  ChevronDown,
-  Check,
-  HelpCircle,
-  CreditCard,
-  Zap,
-  Bug,
-  X,
-  Sparkles,
-  Briefcase,
-  ShieldCheck,
-  MoreHorizontal,
-} from "lucide-react";
+import { Mail, MessageSquare, Send, CheckCircle2, Clock, ChevronDown, Check, HelpCircle, CreditCard, Zap, Bug, X, Sparkles, Briefcase, ShieldCheck, MoreHorizontal } from "lucide-react";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 
 interface ContactTopic {

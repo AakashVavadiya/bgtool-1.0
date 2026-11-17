@@ -1,4 +1,4 @@
-import { detectUserCountry, findCountryByCode } from "./countries";
+import { detectUserCountry } from "./countries";
 
 export type CurrencyCode = "INR" | "USD" | "EUR" | "GBP" | "AED" | "CAD" | "AUD";
 

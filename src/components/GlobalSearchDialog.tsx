@@ -10,22 +10,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { tools } from "@/lib/tools";
-import {
-  Wand2,
-  Sparkles,
-  Search,
-  Scissors,
-  Layers,
-  FileText,
-  Key,
-  CreditCard,
-  Download,
-  HelpCircle,
-  User,
-  Zap,
-  ArrowRight,
-  Sliders,
-} from "lucide-react";
+import { Wand2, Sparkles, Search, Scissors, Layers, FileText, Key, CreditCard, Download, HelpCircle, User, ArrowRight } from "lucide-react";
 
 export const OPEN_SEARCH_DIALOG_EVENT = "open_global_search_dialog";
 

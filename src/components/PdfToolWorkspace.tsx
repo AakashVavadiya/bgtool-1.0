@@ -1,106 +1,16 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import {
-  Upload,
-  FileText,
-  FilePlus,
-  ArrowRight,
-  Download,
-  Check,
-  RefreshCw,
-  Lock,
-  Unlock,
-  Eye,
-  EyeOff,
-  RotateCw,
-  Sliders,
-  Scissors,
-  Layers,
-  Wand2,
-  Shield,
-  Trash2,
-  Plus,
-  KeyRound,
-  FileCheck,
-  Receipt,
-  PenTool,
-  Maximize2,
-  Minimize2,
-  PanelLeft,
-  PanelLeftClose,
-  LayoutGrid,
-  Loader2,
-  Copy,
-  ChevronUp,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  GripVertical,
-  Split,
-  AlertCircle,
-  Sparkles,
-  Printer,
-  ExternalLink,
-  ShieldCheck,
-  CheckCircle2,
-  HardDrive,
-  FileDown,
-  Type,
-  Eraser,
-  Move,
-  ZoomIn,
-  ZoomOut,
-  Palette,
-  Minus,
-  Undo2,
-  Redo2,
-  Square,
-  Highlighter,
-  Image as ImageIcon,
-  MousePointer,
-  Stamp,
-  Circle,
-  Crop,
-  CheckSquare,
-  Shapes,
-} from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Upload, FileText, Download, Check, RefreshCw, Trash2, Maximize2, Loader2, Copy, ChevronLeft, ChevronRight, ShieldCheck, Type, Eraser, Move, Image as ImageIcon, Shapes } from "lucide-react";
 import { fireConfetti } from "@/lib/confetti";
 import { type Tool } from "@/lib/tools";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
-import {
-  mergePdfDocuments,
-  splitPdfDocument,
-  rotatePdfPages,
-  addWatermarkToPdf,
-  addPageNumbersToPdf,
-  compressPdfDocument,
-  protectPdfDocument,
-  flattenPdfDocument,
-  changePdfPageDimensions,
-  generateInvoicePdf,
-  convertImagesToPdf,
-  applyEditsToPdf,
-  type PdfTextEditItem,
-  type PdfStandardFontName,
-  type PdfEditElementKind,
-  type PdfImageShape,
-  type InvoiceData,
-} from "@/lib/pdf-engine";
-import {
-  generateFileThumbnail,
-  renderPdfPage,
-  extractPdfPageElements,
-  cropRegionFromPageDataUrl,
-  type ExtractedPdfTextItem,
-  type ExtractedPdfImageItem,
-} from "@/lib/pdf-preview";
+import { mergePdfDocuments, splitPdfDocument, rotatePdfPages, addWatermarkToPdf, addPageNumbersToPdf, compressPdfDocument, protectPdfDocument, flattenPdfDocument, changePdfPageDimensions, generateInvoicePdf, convertImagesToPdf, applyEditsToPdf, type PdfTextEditItem, type PdfStandardFontName, type PdfEditElementKind, type PdfImageShape, type InvoiceData } from "@/lib/pdf-engine";
+import { generateFileThumbnail, renderPdfPage, extractPdfPageElements, cropRegionFromPageDataUrl, type ExtractedPdfTextItem, type ExtractedPdfImageItem } from "@/lib/pdf-preview";
 import { PdfPreviewViewer } from "@/components/PdfPreviewViewer";
 import { Telemetry, REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
-import { TokenCoin } from "@/components/TokenCoins";
 import { PdfStudioPortal } from "@/components/pdf-workspace/PdfStudioPortal";
 import { PdfCompletedView } from "@/components/pdf-workspace/PdfCompletedView";
 import { PdfActiveWorkspaceGrid } from "@/components/pdf-workspace/PdfActiveWorkspaceGrid";

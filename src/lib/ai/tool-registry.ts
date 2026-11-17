@@ -1,20 +1,9 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { runImageTool, type ImageOperationResult } from "./image-tools";
-import {
-  runMergePdf,
-  runSplitPdf,
-  runRotatePdf,
-  runCompressPdf,
-  runAddPdfWatermark,
-  runAddPageNumbers,
-  runRemovePdfPages,
-  runProtectPdf,
-  runCreateInvoice,
-  type PdfOperationResult,
-} from "./pdf-tools";
+import { runImageTool } from "./image-tools";
+import { runMergePdf, runSplitPdf, runRotatePdf, runCompressPdf, runAddPdfWatermark, runAddPageNumbers, runRemovePdfPages, runProtectPdf, runCreateInvoice } from "./pdf-tools";
 import { searchInExtractedDoc, type ExtractedDocumentContext } from "./document-context";
-import { performWebSearch, type WebResearchResponse } from "./web-research";
+import { performWebSearch } from "./web-research";
 
 export interface ToolRegistryItem {
   name: string;

@@ -1,38 +1,9 @@
 // Fullscreen preview, binary code lab, and live HTML/CSS editor modals for the tool workspace.
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import {
-  Layers,
-  Image as ImageIcon,
-  Download,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Code2,
-  Search,
-  WrapText,
-  Copy,
-  EyeOff,
-  ShieldCheck,
-  Activity,
-  Binary,
-  Cpu,
-  Eye,
-  Terminal,
-  Check,
-  Wand2,
-} from "lucide-react";
-import {
-  EDITOR_THEMES,
-  type EditorThemeKey,
-  SAMPLE_VISUAL_TEST,
-  SAMPLE_OG_CARD,
-  SAMPLE_BADGE,
-  SAMPLE_INVOICE,
-  SAMPLE_CODE_BOX,
-} from "@/lib/workspace/workspace-presets";
+import { Layers, Image as ImageIcon, Download, X, ChevronLeft, ChevronRight, Code2, Search, WrapText, Copy, EyeOff, ShieldCheck, Activity, Binary, Cpu, Eye, Terminal, Check, Wand2 } from "lucide-react";
+import { EDITOR_THEMES, type EditorThemeKey, SAMPLE_VISUAL_TEST, SAMPLE_OG_CARD, SAMPLE_BADGE, SAMPLE_INVOICE, SAMPLE_CODE_BOX } from "@/lib/workspace/workspace-presets";
 import { type RotateBatchItem } from "@/lib/workspace/excel-and-rotate-renderer";
-import { type Tool } from "@/lib/tools";
 
 export function WorkspaceFullscreenModals(props: any) {
   const {
@@ -289,8 +260,8 @@ export function WorkspaceFullscreenModals(props: any) {
                             type="button"
                             onClick={() => setFullscreenActiveIndex(idx)}
                             className={`group/thumb relative h-13 w-13 sm:h-15 sm:w-15 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 flex items-center justify-center bg-zinc-900 ${isSelected
-                                ? "border-accent ring-2 ring-accent/60 scale-105 shadow-lg shadow-accent/20"
-                                : "border-white/20 opacity-60 hover:opacity-100 hover:border-white/60"
+                              ? "border-accent ring-2 ring-accent/60 scale-105 shadow-lg shadow-accent/20"
+                              : "border-white/20 opacity-60 hover:opacity-100 hover:border-white/60"
                               }`}
                             title={`${idx + 1}. ${item.name}`}
                           >

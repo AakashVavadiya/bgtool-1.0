@@ -6,31 +6,7 @@ import {
   type SeoSiteAuditReport,
 } from "@/admin/lib/admin-store";
 import { toast } from "sonner";
-import {
-  Archive,
-  HeartPulse,
-  Cpu,
-  Wand2,
-  Search,
-  Calendar,
-  Clock,
-  Download,
-  Trash2,
-  Eye,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Copy,
-  Check,
-  RotateCcw,
-  ExternalLink,
-  Layers,
-  ArrowRight,
-  X,
-  FileText,
-  Activity,
-  Zap,
-} from "lucide-react";
+import { Archive, HeartPulse, Cpu, Wand2, Search, Calendar, Clock, Download, Trash2, Eye, CheckCircle2, AlertTriangle, XCircle, Copy, Check, RotateCcw, Layers, X } from "lucide-react";
 
 export type OlderReportType = "all" | "website" | "tools" | "seo";
 

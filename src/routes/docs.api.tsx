@@ -2,26 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import {
-  BookOpen,
-  Terminal,
-  KeyRound,
-  Shield,
-  Zap,
-  Copy,
-  Check,
-  ChevronRight,
-  ExternalLink,
-  Download,
-  AlertTriangle,
-  Lock,
-  Code2,
-  Layers,
-  ArrowRight,
-  FileJson,
-  Hash,
-  Cpu,
-} from "lucide-react";
+import { BookOpen, KeyRound, Shield, Zap, Copy, Check, Download, AlertTriangle, Lock, Layers, Cpu } from "lucide-react";
 import { toast } from "sonner";
 
 import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";

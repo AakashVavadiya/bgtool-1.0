@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { Gift, Check, ArrowRight, X, Shield, Lock, Coins } from "lucide-react";
-import { TokenCoin } from "@/components/TokenCoins";
+import { Gift, Check, ArrowRight, X, Shield, Lock } from "lucide-react";
 
 export interface GuestLoginDialogDetail {
   toolName?: string;

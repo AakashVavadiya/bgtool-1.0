@@ -1,5 +1,5 @@
 // Pixel processing engines: watermark inpainting, binary/ASCII decoders, QR/barcode scanner, and super-resolution upscaler.
-import { removeGeminiWatermark, detectGeminiWatermark } from "@/lib/watermark/geminiWatermarkEngine";
+import { removeGeminiWatermark } from "@/lib/watermark/geminiWatermarkEngine";
 import { RICH_OCR_LANGUAGES, type OcrLanguageOption } from "@/components/OcrLanguageDialog";
 import { sanitizeHtmlForImageExport, tryRawSvgFallback } from "./pdf-and-word-renderer";
 
@@ -30,7 +30,7 @@ export const removeWatermarkAdvanced = (
   }
 
   // 2. Full Auto Scan: Check for Gemini AI watermark and losslessly restore first
-  let workingData: ImageData["data"] = srcData;
+  const workingData: ImageData["data"] = srcData;
 
   if (options.mode === "full_auto") {
     const gRes = removeGeminiWatermark(srcData, w, h, {

@@ -3,17 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { AuthUser } from "@/lib/auth-user";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Loader2,
-  Mail,
-  ShieldCheck,
-  RefreshCw,
-  AlertCircle,
-  CheckCircle2,
-  ArrowRight,
-  Clock,
-  Sparkles,
-} from "lucide-react";
+import { Loader2, Mail, ShieldCheck, RefreshCw, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/verify-email")({

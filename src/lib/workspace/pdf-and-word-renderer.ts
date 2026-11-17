@@ -393,19 +393,7 @@ export {
   getExcelColumnLetter,
   type AdvancedOcrResult,
 } from "@/lib/ocrEngine";
-import {
-  parseOcrTextToGrid,
-  parseOcrTsvToGrid,
-  buildEditableDocxFromOcr,
-  buildDocxFromImage,
-  buildEditableXlsxFromOcr,
-  buildXlsxFromImage,
-  buildPptxFromOcrAndImage,
-  buildPptxFromImage,
-  performAdvancedOcr,
-  getExcelColumnLetter,
-  type AdvancedOcrResult,
-} from "@/lib/ocrEngine";
+import { parseOcrTextToGrid, parseOcrTsvToGrid, buildEditableDocxFromOcr, buildDocxFromImage, buildEditableXlsxFromOcr, buildXlsxFromImage, buildPptxFromOcrAndImage, buildPptxFromImage, performAdvancedOcr, getExcelColumnLetter, type AdvancedOcrResult } from "@/lib/ocrEngine";
 
 // Custom ZIP reader (scan central directory with deflate decompression)
 export const extractTextFromZip = async (buffer: ArrayBuffer, targetPath: string): Promise<string | null> => {

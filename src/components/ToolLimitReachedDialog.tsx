@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clock, ShieldAlert, Zap, ArrowRight, X } from "lucide-react";
+import { Clock, ShieldAlert, ArrowRight, X } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
 interface ToolLimitReachedDialogProps {

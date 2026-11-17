@@ -11,8 +11,7 @@
  * - Web Search when requested (via DuckDuckGo / Wikipedia without any API key)
  */
 
-import { KARUDI_TOOL_REGISTRY, createAiSdkTools, type ToolExecutionContext } from "./tool-registry";
-import { extractDocumentContext, type ExtractedDocumentContext } from "./document-context";
+import { createAiSdkTools, type ToolExecutionContext } from "./tool-registry";
 import { performWebSearch } from "./web-research";
 
 export interface LocalAgentRequest {

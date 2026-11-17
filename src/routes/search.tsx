@@ -2,28 +2,10 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { tools, TOOL_CATEGORIES, type Tool } from "@/lib/tools";
+import { tools, type Tool } from "@/lib/tools";
 import { bgModels, type BgModel } from "@/lib/bg-models";
 import { getNewsArticles, type NewsArticle } from "@/lib/news";
-import {
-  Search,
-  X,
-  Sparkles,
-  ArrowRight,
-  SlidersHorizontal,
-  Wand2,
-  Cpu,
-  BookOpen,
-  Compass,
-  Zap,
-  Tag,
-  ChevronRight,
-  ExternalLink,
-  Flame,
-  Layers,
-  ArrowUpRight,
-  CheckCircle2,
-} from "lucide-react";
+import { Search, X, Sparkles, ArrowRight, Wand2, Cpu, BookOpen, Compass, Zap, Flame, Layers, CheckCircle2 } from "lucide-react";
 
 interface SearchParams {
   q?: string | undefined;

@@ -1,5 +1,5 @@
 import { fetchImageWithSsrfProtection } from "./ssrf";
-import { inspectFileSignature, validateBuffer } from "../security/upload-policy";
+import { inspectFileSignature } from "../security/upload-policy";
 import { createApiErrorResponse } from "./guard";
 
 export interface ParsedImageInput {

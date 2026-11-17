@@ -1,4 +1,3 @@
-import React from "react";
 import { ArrowUpRight, Star } from "lucide-react";
 
 interface ProductHuntBadgeProps {

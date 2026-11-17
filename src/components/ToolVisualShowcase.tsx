@@ -2,40 +2,7 @@ import { useState } from "react";
 import girlBefore from "@/assets/girl-before.jpg";
 import girlAfter from "@/assets/girl-after.png";
 import type { Tool } from "@/lib/tools";
-import {
-  Sparkles,
-  Zap,
-  ShieldCheck,
-  ArrowUpRight,
-  CheckCircle2,
-  FileText,
-  Sliders,
-  Download,
-  Upload,
-  Check,
-  Crop,
-  Scaling,
-  Minimize2,
-  RotateCw,
-  FlipHorizontal,
-  FlipVertical,
-  Lock,
-  Unlock,
-  Merge,
-  SplitSquareVertical,
-  FileSignature,
-  QrCode,
-  Receipt,
-  Pipette,
-  ScanText,
-  Table2,
-  Presentation,
-  Code2,
-  EyeOff,
-  Stamp,
-  Square,
-  Maximize2,
-} from "lucide-react";
+import { Zap, ShieldCheck, ArrowUpRight, CheckCircle2, FileText, Crop, Scaling, Minimize2, RotateCw, FlipHorizontal, FlipVertical, Lock, Unlock, Merge, FileSignature, QrCode, ScanText, Table2, Presentation, Code2, EyeOff } from "lucide-react";
 
 const softCheckerStyle: React.CSSProperties = {
   backgroundImage:

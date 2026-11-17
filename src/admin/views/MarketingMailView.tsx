@@ -1,15 +1,7 @@
 import { useState } from "react";
 import { AdminStore, type MarketingCampaign } from "@/admin/lib/admin-store";
 import { toast } from "sonner";
-import {
-  Mail,
-  Send,
-  Users,
-  Eye,
-  CheckCircle2,
-  Gift,
-  ArrowRight,
-} from "lucide-react";
+import { Mail, Send, Eye, Gift } from "lucide-react";
 
 export function MarketingMailView() {
   const [campaigns, setCampaigns] = useState<MarketingCampaign[]>(() =>

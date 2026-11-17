@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Wrench, Wand2, ArrowRight, ShieldAlert, Home, X } from "lucide-react";
+import { Wrench, ArrowRight, ShieldAlert, Home, X } from "lucide-react";
 
 interface ToolMaintenanceDialogProps {
   isOpen: boolean;

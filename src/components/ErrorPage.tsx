@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { AlertCircle, RefreshCw, Home, Zap, ShieldCheck, CheckCircle2, Wrench } from "lucide-react";
+import { RefreshCw, Home, Zap, ShieldCheck, CheckCircle2, Wrench } from "lucide-react";
 import { AdminStore } from "@/admin/lib/admin-store";
 
 interface ErrorPageProps {

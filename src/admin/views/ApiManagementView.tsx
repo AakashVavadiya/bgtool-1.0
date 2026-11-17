@@ -1,24 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import {
-  Terminal,
-  KeyRound,
-  ShieldAlert,
-  ShieldCheck,
-  Power,
-  RotateCw,
-  Search,
-  Filter,
-  Check,
-  AlertTriangle,
-  Clock,
-  ExternalLink,
-  Loader2,
-  Trash2,
-  Ban,
-  Activity,
-  Zap,
-} from "lucide-react";
+import { KeyRound, ShieldAlert, Power, Search, Clock, Loader2 } from "lucide-react";
 import { SafeApiKey, ApiKeyEvent } from "@/lib/db/api-keys-repo";
 
 interface AdminApiData {

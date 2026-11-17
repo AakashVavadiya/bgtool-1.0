@@ -2,29 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import {
-  Terminal,
-  Zap,
-  Shield,
-  Code2,
-  Copy,
-  Check,
-  ChevronRight,
-  Sparkles,
-  ArrowRight,
-  Layers,
-  Cpu,
-  Lock,
-  Flame,
-  CheckCircle2,
-  ExternalLink,
-  Download,
-  BookOpen,
-  Server,
-  FileCode,
-  Gauge,
-  HelpCircle,
-} from "lucide-react";
+import { Terminal, Zap, Shield, Copy, Check, ChevronRight, ArrowRight, Lock, ExternalLink, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
 

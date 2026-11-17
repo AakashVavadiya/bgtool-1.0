@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { TokenCoin } from "@/components/TokenCoins";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Input } from "@/components/ui/input";
@@ -12,49 +11,7 @@ import { AccountNotificationsTab } from "@/components/account/AccountNotificatio
 import { AccountPurchasesTab } from "@/components/account/AccountPurchasesTab";
 import { AccountStatementTab } from "@/components/account/AccountStatementTab";
 import { NotificationPopover } from "@/components/NotificationPopover";
-import { openGlobalSearch } from "@/components/GlobalSearchDialog";
-import {
-  User,
-  Mail,
-  ShieldCheck,
-  Lock,
-  LogOut,
-  Sparkles,
-  ArrowRight,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  Coins,
-  Check,
-  Zap,
-  KeyRound,
-  Calendar as CalendarIcon,
-  Clock,
-  Flame,
-  Search,
-  Plus,
-  Edit3,
-  Trash2,
-  Download,
-  FileText,
-  BadgeCheck,
-  Wrench,
-  Bot,
-  Bold,
-  Italic,
-  List,
-  Link2,
-  Layers,
-  MapPin,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Bell,
-  Receipt,
-  Play,
-  Camera,
-} from "lucide-react";
+import { User, Mail, ShieldCheck, Lock, LogOut, Sparkles, ArrowRight, CheckCircle2, Coins, Zap, KeyRound, Calendar as CalendarIcon, Search, Plus, Edit3, Trash2, Download, FileText, BadgeCheck, Bold, Italic, List, Link2, Layers, MapPin, ChevronLeft, ChevronRight, X, Bell, Receipt, Play, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { getAvatarUrl } from "@/lib/profile-avatars";
 import { AvatarPickerModal } from "@/components/account/AvatarPickerModal";

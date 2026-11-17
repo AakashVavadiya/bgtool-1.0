@@ -5,22 +5,7 @@ import { COUNTRIES, detectUserCountry, isCountryRestricted, type CountryInfo } f
 import { setSavedCurrency } from "@/lib/currency";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  AlertCircle,
-  ArrowRight,
-  ShieldCheck,
-  User,
-  Mail,
-  Lock,
-  ArrowLeft,
-  Shield,
-  Phone,
-  Globe,
-  ChevronDown,
-} from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight, ShieldCheck, User, Mail, Lock, ArrowLeft, Shield, Phone, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { CountrySelectModal } from "@/components/CountrySelectModal";
 import { ServiceUnavailableDialog } from "@/components/ServiceUnavailableDialog";

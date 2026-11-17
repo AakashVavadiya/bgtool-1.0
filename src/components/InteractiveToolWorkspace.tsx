@@ -1,112 +1,17 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import {
-  Upload,
-  Download,
-  Check,
-  Loader2,
-  RotateCw,
-  RotateCcw,
-  FlipHorizontal,
-  FlipVertical,
-  Sliders,
-  Crop as CropIcon,
-  Wand2,
-  RefreshCw,
-  Image as ImageIcon,
-  FileType,
-  Layers,
-  Eye,
-  EyeOff,
-  Pipette,
-  Copy,
-  Palette,
-  CheckSquare,
-  Square,
-  Maximize2,
-  X,
-  Code2,
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight,
-  FolderUp,
-  Languages,
-  Globe,
-  Search,
-  FileText,
-  ScanText,
-  FileDown,
-  Table2,
-  MonitorPlay,
-  Presentation,
-  Binary,
-  Cpu,
-  Terminal,
-  Activity,
-  WrapText,
-  ZoomIn,
-  ZoomOut,
-  Hash,
-  ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  SlidersHorizontal,
-  Table as TableIcon,
-  FileSpreadsheet,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Type,
-  Sun,
-  Moon,
-  QrCode,
-  Barcode as BarcodeIcon,
-  Lock,
-  Unlock,
-  KeyRound,
-  ShieldAlert,
-  Grid3X3,
-  Stamp,
-  Move,
-  Bold,
-  Italic,
-  Sparkle,
-  Smile,
-  Plus,
-  Minus,
-  Circle,
-  Zap,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Download, Check, Loader2, Sliders, Wand2, Image as ImageIcon, Copy, FolderUp, FileText, Binary, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { AuthUser } from "@/lib/auth-user";
 import { Telemetry, REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { TokenCoin } from "@/components/TokenCoins";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { type Tool } from "@/lib/tools";
 import { PdfToolWorkspace } from "@/components/PdfToolWorkspace";
-import { removeGeminiWatermark, detectGeminiWatermark } from "@/lib/watermark/geminiWatermarkEngine";
-import { AnimatedCounter } from "@/components/AnimatedCounter";
-import {
-  type FaceBox,
-  detectFacesInImage,
-  applyFaceAnonymization,
-} from "@/lib/faceDetector";
-import {
-  OcrLanguageDialog,
-  RICH_OCR_LANGUAGES,
-  type OcrLanguageOption,
-} from "@/components/OcrLanguageDialog";
-import {
-  renderPptSlideToImage,
-  renderAllPptSlidesToZip,
-  getPptxMetadata,
-  type PptxMetadata,
-} from "@/lib/pptxRenderer";
+import { removeGeminiWatermark } from "@/lib/watermark/geminiWatermarkEngine";
+import { type FaceBox, detectFacesInImage, applyFaceAnonymization } from "@/lib/faceDetector";
+import { type OcrLanguageOption } from "@/components/OcrLanguageDialog";
+import { renderPptSlideToImage, renderAllPptSlidesToZip, getPptxMetadata } from "@/lib/pptxRenderer";
 import { generateColorReportPdf } from "@/lib/color-report-pdf";
 
 
@@ -124,96 +29,12 @@ export {
   getExcelColumnLetter,
   type AdvancedOcrResult,
 } from "@/lib/ocrEngine";
-import {
-  parseOcrTextToGrid,
-  parseOcrTsvToGrid,
-  buildEditableDocxFromOcr,
-  buildDocxFromImage,
-  buildEditableXlsxFromOcr,
-  buildXlsxFromImage,
-  buildPptxFromOcrAndImage,
-  buildPptxFromImage,
-  performAdvancedOcr,
-  getExcelColumnLetter,
-  type AdvancedOcrResult,
-} from "@/lib/ocrEngine";
-import {
-  rgbToHsl,
-  SAMPLE_VISUAL_TEST,
-  SAMPLE_OG_CARD,
-  SAMPLE_BADGE,
-  SAMPLE_INVOICE,
-  SAMPLE_CODE_BOX,
-  SAMPLE_BINARY_INVADER,
-  SAMPLE_BINARY_HEART,
-  SAMPLE_BINARY_IMAGE,
-  type BinaryThemeKey,
-  BINARY_THEMES,
-  SAMPLE_BASE64_STAR,
-  SAMPLE_BASE64_GRADIENT_ICON,
-  ROTATE_GRADIENT_PRESETS,
-  ROTATE_COLOR_SWATCHES,
-  type EditorThemeKey,
-  EDITOR_THEMES,
-  calculateEntropy,
-  detectMagicSignature,
-  MEME_FONTS,
-  SQUARE_COLOR_PRESETS,
-  SQUARE_GRADIENT_PRESETS,
-  type CropBox,
-} from "@/lib/workspace/workspace-presets";
-import {
-  sanitizeHtmlForImageExport,
-  tryRawSvgFallback,
-  type PdfOptions,
-  buildPdfFromImageDataUrl,
-  buildZip,
-  extractTextFromZip,
-  renderTextToCanvas,
-  generateLockedPdfCanvas,
-  renderPdfToImage,
-  renderAllPdfPagesToZip,
-  type WordDocumentModel,
-  parseWordDocumentToPages,
-  renderWordPageToImage,
-  renderAllWordPagesToZip,
-  renderWordDocumentToImage,
-} from "@/lib/workspace/pdf-and-word-renderer";
-import {
-  getColIndexFromCellRef,
-  type ExcelMergeRange,
-  type ExcelSheetMetadata,
-  getExcelSheetsMetadata,
-  renderExcelSheetToImage,
-  renderAllExcelSheetsToZip,
-  type RotateBatchItem,
-  renderRotatedImageToBlob,
-} from "@/lib/workspace/excel-and-rotate-renderer";
-import {
-  type WatermarkRemovalOptions,
-  removeWatermarkAdvanced,
-  decodeBinaryStringToImageUrl,
-  encodeAscii85WithWrap,
-  decodeAscii85,
-  detectImageMimeType,
-  tryDecodeAsciiToOriginalImage,
-  renderAsciiToImage,
-  type DetectedCodeItem,
-  formatBarcodeTypeName,
-  detectBarcodesAndQRs,
-  OCR_SUPPORTED_LANGUAGES,
-  assembleOcrOutputText,
-  renderHtmlToImage,
-  applyHDResizingEnhancement,
-  type SuperResolutionOptions,
-  performSuperResolutionUpscale,
-} from "@/lib/workspace/pixel-and-barcode-engines";
-import {
-  renderSquareFrameDataUrl,
-  drawWatermarkOverlayOnCanvas,
-  drawMemeCaptionsOnCanvas,
-  encodeBinaryStreamPayload,
-} from "@/lib/workspace/canvas-compositor";
+import { parseOcrTextToGrid, parseOcrTsvToGrid, buildEditableDocxFromOcr, buildDocxFromImage, buildEditableXlsxFromOcr, buildXlsxFromImage, buildPptxFromOcrAndImage, buildPptxFromImage, performAdvancedOcr, getExcelColumnLetter, type AdvancedOcrResult } from "@/lib/ocrEngine";
+import { rgbToHsl, SAMPLE_OG_CARD, type BinaryThemeKey, BINARY_THEMES, ROTATE_GRADIENT_PRESETS, type EditorThemeKey, calculateEntropy, detectMagicSignature, type CropBox } from "@/lib/workspace/workspace-presets";
+import { buildPdfFromImageDataUrl, buildZip, renderPdfToImage, renderAllPdfPagesToZip, renderWordPageToImage, renderAllWordPagesToZip } from "@/lib/workspace/pdf-and-word-renderer";
+import { getExcelSheetsMetadata, renderExcelSheetToImage, renderAllExcelSheetsToZip, type RotateBatchItem, renderRotatedImageToBlob } from "@/lib/workspace/excel-and-rotate-renderer";
+import { type WatermarkRemovalOptions, removeWatermarkAdvanced, decodeBinaryStringToImageUrl, tryDecodeAsciiToOriginalImage, renderAsciiToImage, type DetectedCodeItem, detectBarcodesAndQRs, OCR_SUPPORTED_LANGUAGES, assembleOcrOutputText, renderHtmlToImage, applyHDResizingEnhancement, type SuperResolutionOptions, performSuperResolutionUpscale } from "@/lib/workspace/pixel-and-barcode-engines";
+import { renderSquareFrameDataUrl, drawWatermarkOverlayOnCanvas, drawMemeCaptionsOnCanvas, encodeBinaryStreamPayload } from "@/lib/workspace/canvas-compositor";
 import { WorkspaceFullscreenModals } from "@/components/workspace/WorkspaceFullscreenModals";
 import { WorkspaceCompletedView } from "@/components/workspace/WorkspaceCompletedView";
 import { WorkspaceUploadStage } from "@/components/workspace/WorkspaceUploadStage";
@@ -229,6 +50,10 @@ export function InteractiveToolWorkspace({ tool }: { tool: Tool }) {
   if (tool.category === "PDF Tools") {
     return <PdfToolWorkspace tool={tool} />;
   }
+  return <ImageToolWorkspaceInner tool={tool} />;
+}
+
+function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
   const [file, setFile] = useState<File | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [processedSrc, setProcessedSrc] = useState<string | null>(null);

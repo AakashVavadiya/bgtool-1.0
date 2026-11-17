@@ -1,24 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import {
-  CreditCard,
-  Receipt,
-  Download,
-  Printer,
-  CheckCircle2,
-  Clock,
-  ShieldCheck,
-  Zap,
-  Plus,
-  Search,
-  ExternalLink,
-  X,
-  FileText,
-  IndianRupee,
-  Layers,
-  Sparkles,
-  Loader2,
-} from "lucide-react";
+import { Receipt, Download, Printer, CheckCircle2, ShieldCheck, Zap, Plus, Search, X, FileText, Loader2 } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";

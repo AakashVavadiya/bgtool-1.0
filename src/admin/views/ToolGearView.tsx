@@ -1,39 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { AdminStore, type ToolGearReport, type ToolExecutionStat } from "@/admin/lib/admin-store";
+import { AdminStore, type ToolGearReport } from "@/admin/lib/admin-store";
 import { TOOL_CATEGORIES, type ToolCategory } from "@/lib/tools";
-import {
-  Cog,
-  Cpu,
-  Activity,
-  Layers,
-  Zap,
-  CheckCircle2,
-  AlertTriangle,
-  RefreshCw,
-  Search,
-  Filter,
-  ArrowUpRight,
-  Gauge,
-  Clock,
-  HardDrive,
-  BarChart3,
-  TrendingUp,
-  SlidersHorizontal,
-  ChevronDown,
-  Sparkles,
-} from "lucide-react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { Cog, Cpu, Layers, Zap, CheckCircle2, RefreshCw, Search, Gauge, Clock, BarChart3, SlidersHorizontal } from "lucide-react";
+import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 type TimeframeOption = "1d" | "yesterday" | "7d" | "30d";
 

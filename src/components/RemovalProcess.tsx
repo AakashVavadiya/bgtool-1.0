@@ -1,20 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "@tanstack/react-router";
-import {
-  Check,
-  Download,
-  Loader2,
-  Upload,
-  Wand2,
-  RefreshCw,
-  Eye,
-  Image as ImageIcon,
-  FolderUp,
-  Pencil,
-  Zap,
-  ShieldCheck,
-} from "lucide-react";
+import { Check, Download, Loader2, Upload, Wand2, RefreshCw, Image as ImageIcon, FolderUp, Pencil, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { CutoutBrushEditorModal } from "@/components/CutoutBrushEditorModal";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";

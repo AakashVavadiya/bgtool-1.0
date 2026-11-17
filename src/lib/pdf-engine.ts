@@ -454,7 +454,7 @@ export async function compressPdfDocument(
 
         let quality = qLevel;
         let dataUrl = canvas.toDataURL("image/jpeg", quality);
-        let approxBytes = Math.round((dataUrl.length - 22) * 0.75);
+        const approxBytes = Math.round((dataUrl.length - 22) * 0.75);
 
         // If image exceeds per-page budget, downscale canvas dimensions
         if (approxBytes > budgetPerPage && budgetPerPage > 0) {
@@ -477,7 +477,7 @@ export async function compressPdfDocument(
       return jpgs;
     };
 
-    let pageJpgs = await renderAllPages(renderScale, initialQuality);
+    const pageJpgs = await renderAllPages(renderScale, initialQuality);
 
     // Build new compact PDF document with embedded compressed pages
     const buildPdfFromJpgs = async (jpgList: string[]): Promise<Uint8Array> => {
@@ -1036,12 +1036,14 @@ function parseHexToRgb(hexColor: string, fallback: [number, number, number] = [0
 }
 
 function sanitizeWinAnsiText(input: string): string {
-  return input
+  const mapped = input
     .replace(/✓|✔/g, "Yes")
     .replace(/✗|✘/g, "No")
     .replace(/☑/g, "[X]")
-    .replace(/☐/g, "[ ]")
-    .replace(/[^\x00-\xFF]/g, "");
+    .replace(/☐/g, "[ ]");
+  return Array.from(mapped)
+    .filter((ch) => ch.charCodeAt(0) <= 0xff)
+    .join("");
 }
 
 function buildShapePath(ctx: CanvasRenderingContext2D, w: number, h: number, shape: PdfImageShape, pad: number = 0) {

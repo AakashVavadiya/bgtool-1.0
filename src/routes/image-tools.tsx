@@ -1,41 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { tools, type Tool } from "@/lib/tools";
+import { tools } from "@/lib/tools";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import {
-  Wand2,
-  Sparkles,
-  Search,
-  X,
-  ArrowRight,
-  Layers,
-  Zap,
-  ShieldCheck,
-  CheckCircle2,
-  SlidersHorizontal,
-  Flame,
-  ArrowUpRight,
-  Maximize2,
-  Minimize2,
-  Crop,
-  RotateCw,
-  Stamp,
-  ScanText,
-  Pipette,
-  SmilePlus,
-  Eye,
-  Sliders,
-} from "lucide-react";
+import { Wand2, Sparkles, Search, X, ArrowRight, Zap, ShieldCheck, CheckCircle2, Flame, ArrowUpRight, Minimize2, Eye } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { buildPageMeta, buildBreadcrumbsSchema, buildFaqSchema, SITE_URL } from "@/lib/seo";
+import { buildPageMeta, buildBreadcrumbsSchema, buildFaqSchema } from "@/lib/seo";
 import { useTypewriterPlaceholder } from "@/hooks/use-typewriter";
 
 const TYPEWRITER_IMAGE_SEARCH_PROMPTS = [

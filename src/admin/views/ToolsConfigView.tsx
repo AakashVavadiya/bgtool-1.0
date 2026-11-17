@@ -2,11 +2,7 @@ import { useState } from "react";
 import { AdminStore, type AdminToolConfig } from "@/admin/lib/admin-store";
 import { TOOL_CATEGORIES, type ToolCategory } from "@/lib/tools";
 import { toast } from "sonner";
-import {
-  Search,
-  Filter,
-  Wrench,
-} from "lucide-react";
+import { Search, Filter } from "lucide-react";
 
 export function ToolsConfigView() {
   const [toolsConfig, setToolsConfig] = useState<AdminToolConfig[]>(() =>

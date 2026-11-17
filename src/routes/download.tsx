@@ -3,26 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { toast } from "sonner";
-import {
-  Monitor,
-  Smartphone,
-  Apple,
-  Chrome,
-  Sparkles,
-  Zap,
-  FolderDown,
-  Cloud,
-  Bell,
-  ArrowRight,
-  ChevronDown,
-  Laptop,
-  Check,
-  Clock,
-  ShieldCheck,
-  MousePointerClick,
-  Copy,
-  Layers,
-} from "lucide-react";
+import { Monitor, Smartphone, Apple, Chrome, Zap, FolderDown, Cloud, Bell, ArrowRight, ChevronDown, Laptop, Check, Clock, ShieldCheck, MousePointerClick, Copy, Layers } from "lucide-react";
 
 import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
 

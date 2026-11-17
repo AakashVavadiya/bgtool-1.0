@@ -2,78 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
-import {
-  Scissors,
-  RefreshCw,
-  Wand2,
-  BookOpen,
-  Crown,
-  Download,
-  UploadCloud,
-  CheckCircle2,
-  Loader2,
-  FileText,
-  FileImage,
-  Palette,
-  ArrowUp,
-  ArrowRight,
-  Plus,
-  Paperclip,
-  Mic,
-  Brain,
-  ChevronDown,
-  ChevronUp,
-  Shield,
-  ShieldCheck,
-  Copy,
-  Check,
-  Lock,
-  Binary,
-  Scaling,
-  RotateCw,
-  Square,
-  Archive,
-  ArrowDownToLine,
-  FileSpreadsheet,
-  ScanText,
-  Image as ImageIcon,
-  Globe,
-} from "lucide-react";
+import { Scissors, RefreshCw, Wand2, BookOpen, Crown, CheckCircle2, Loader2, FileText, FileImage, ArrowRight, Plus, Brain, ChevronUp, Check, Binary, Scaling, Archive, ArrowDownToLine, FileSpreadsheet, ScanText, Image as ImageIcon, Globe } from "lucide-react";
 import karudiKLogo from "@/assets/karudi-k-logo.png";
 import { SingleImageBgRemovalWidget } from "@/components/SingleImageBgRemovalWidget";
 import { KarudiAvatar } from "@/components/KarudiAvatar";
-import {
-  acceptedChatFiles,
-  karudiModels,
-  getStoredTier,
-  setStoredTier,
-  type KarudiTier,
-} from "@/lib/krishna";
+import { acceptedChatFiles, karudiModels, setStoredTier, type KarudiTier } from "@/lib/krishna";
 import { titleFrom, upsertThread, newId, type ChatThread } from "@/lib/chat-threads";
 import { notifyThreadsChanged } from "@/hooks/use-threads";
 import { TypewriterMessage } from "@/components/TypewriterMessage";
 import { MessageFeedbackToolbar } from "@/components/MessageFeedbackToolbar";
 import { AuthUser } from "@/lib/auth-user";
 import { Telemetry } from "@/lib/telemetry";
-import {
-  SUB_MODELS,
-  analyzeKarudiIntent,
-  executeRemoveBackground,
-  executeCompositeBackground,
-  executeImageToWord,
-  executeImageToExcel,
-  executeImageToPdf,
-  executePdfToImages,
-  executeConvertImageFormat,
-  executeImageToBinary,
-  executeAnalyzeImage,
-  executeResizeImage,
-  executeCompressImage,
-  executeRotateImage,
-  executeSquareImage,
-  type SubModelId,
-  type KarudiActionType,
-} from "@/lib/karudi-agent";
+import { analyzeKarudiIntent, executeRemoveBackground, executeCompositeBackground, executeImageToWord, executeImageToExcel, executeImageToPdf, executePdfToImages, executeConvertImageFormat, executeImageToBinary, executeAnalyzeImage, executeResizeImage, executeCompressImage, executeRotateImage, executeSquareImage, type SubModelId, type KarudiActionType } from "@/lib/karudi-agent";
 
 // ============================================================================
 // Interactive Task Types

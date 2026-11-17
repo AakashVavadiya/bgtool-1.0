@@ -1,22 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "@tanstack/react-router";
-import {
-  FileText,
-  Download,
-  Printer,
-  Coins,
-  Zap,
-  Search,
-  Filter,
-  ArrowUpRight,
-  ArrowDownLeft,
-  RotateCcw,
-  CheckCircle2,
-  Calendar,
-  Clock,
-  ChevronDown,
-  Sparkles,
-} from "lucide-react";
+import { FileText, Download, Printer, Search, ArrowUpRight, ArrowDownLeft, RotateCcw, CheckCircle2, Sparkles } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";

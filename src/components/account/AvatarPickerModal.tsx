@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  X,
-  Check,
-  Sparkles,
-  User,
-  Shield,
-  Trash2,
-} from "lucide-react";
+import { X, Check, Sparkles, Trash2 } from "lucide-react";
 import {
   BOY_AVATARS,
   GIRL_AVATARS,

@@ -1,6 +1,5 @@
 import { localAgent } from "./local-agent";
 import { localModelRuntime } from "./local-runtime";
-import { localInference } from "./local-inference";
 import type { ToolExecutionContext } from "../tool-registry";
 
 export interface NativeAgentRequest {

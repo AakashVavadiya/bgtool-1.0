@@ -1,10 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { tools } from "@/lib/tools";
-import {
-  AdminStore,
-  type SeoPageAudit,
-  type SeoSiteAuditReport,
-} from "@/admin/lib/admin-store";
+import { AdminStore, type SeoSiteAuditReport } from "@/admin/lib/admin-store";
 import {
   runBatchLiveSeoAudit,
   auditSinglePageLive,
@@ -12,37 +7,7 @@ import {
   generateRobotsTxt,
 } from "@/admin/lib/seo-auditor";
 import { toast } from "sonner";
-import {
-  Search,
-  Wand2,
-  Zap,
-  Globe,
-  FileCode,
-  CheckCircle2,
-  AlertTriangle,
-  Copy,
-  Check,
-  Download,
-  RefreshCw,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck,
-  TrendingUp,
-  Tag,
-  Gauge,
-  Laptop,
-  Smartphone,
-  Eye,
-  ArrowRight,
-  FileText,
-  Code2,
-  XCircle,
-  Square,
-  Play,
-  Layers,
-  AlertCircle,
-  Archive,
-} from "lucide-react";
+import { Search, Wand2, Zap, Globe, FileCode, CheckCircle2, Copy, Check, Download, RefreshCw, ShieldCheck, TrendingUp, Tag, Laptop, Smartphone, Eye, FileText, Code2, Square, AlertCircle, Archive } from "lucide-react";
 
 export function SeoOptimizationView() {
   const [auditReport, setAuditReport] = useState<SeoSiteAuditReport>(() => {

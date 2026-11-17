@@ -1,12 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Globe, Check, Search, RotateCcw, ChevronDown } from "lucide-react";
-import {
-  SUPPORTED_WEBSITE_LANGUAGES,
-  getCurrentWebsiteLanguage,
-  setWebsiteLanguage,
-  detectUserRegionLanguage,
-  type TranslationLanguage,
-} from "@/lib/translator";
+import { SUPPORTED_WEBSITE_LANGUAGES, getCurrentWebsiteLanguage, setWebsiteLanguage, detectUserRegionLanguage } from "@/lib/translator";
 import { toast } from "sonner";
 
 interface LanguageTranslatorProps {

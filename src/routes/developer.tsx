@@ -1,27 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BuyMeCoffeeDialog } from "@/components/BuyMeCoffeeDialog";
-import {
-  Code2,
-  Coffee,
-  Heart,
-  ShieldCheck,
-  Zap,
-  Cpu,
-  Layers,
-  ArrowRight,
-  CheckCircle2,
-  Globe2,
-  Award,
-  Terminal,
-  ExternalLink,
-  Mail,
-  Linkedin,
-  Github,
-  Compass,
-} from "lucide-react";
+import { Code2, Coffee, Heart, ShieldCheck, Zap, ArrowRight, CheckCircle2, Terminal, Compass } from "lucide-react";
 
 import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
 

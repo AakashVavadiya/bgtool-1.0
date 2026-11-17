@@ -1,4 +1,3 @@
-import React from "react";
 
 export type TokenType = "bronze" | "silver" | "gold" | "platinum";
 

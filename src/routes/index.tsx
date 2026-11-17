@@ -1,12 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useMemo } from "react";
 import shapeTwo from "@/assets/shape-2.png";
-import girlBefore from "@/assets/girl-before.jpg";
-import girlAfter from "@/assets/girl-after.png";
 import { TrendingToolsSection } from "@/components/TrendingToolsSection";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { BgModels } from "@/components/BgModels";
 import { Faq } from "@/components/Faq";
 import { ScrollBeforeAfter } from "@/components/ScrollBeforeAfter";
 import { ProductHuntBadge } from "@/components/ProductHuntBadge";

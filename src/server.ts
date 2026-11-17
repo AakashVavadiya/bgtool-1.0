@@ -2,57 +2,8 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import {
-  extractClientIp,
-  generalLimiter,
-  expensiveInferenceLimiter,
-  contactLimiter,
-  createRateLimitResponse,
-  validateBase64Payload,
-  SECURITY_CONFIG,
-  TOOL_PROFILES,
-  applySecurityHeaders,
-  createSafeErrorResponse,
-  isAuthorizedAdmin,
-  verifyAdminLogin,
-  createAdminSessionToken,
-  validateToolsConfigPayload,
-  validateContactSubmission,
-  validateAdminEnvironment,
-  sanitizeUser,
-  migrateUsersData,
-  atomicWriteJson,
-  handleSignup,
-  handleVerifyOtp,
-  handleResendOtp,
-  handleLogin,
-  handleForgotPassword,
-  handleResetPassword,
-  handleUpdateProfile,
-  handleChangePassword,
-  handleLogout,
-  handleMe,
-  handleDeductCredit,
-  getUserFromRequest,
-  enforceToolCreditsAndLimits,
-  handleCreatePaymentOrder,
-  handleVerifyPayment,
-  handleListPayments,
-  handleDeletePaymentOrder,
-} from "./lib/security";
-import {
-  usersRepo,
-  inquiriesRepo,
-  configRepo,
-  creditLedgerRepo,
-  toolUsageRepo,
-  rateLimitsRepo,
-  paymentsRepo,
-  telemetryRepo,
-  promoCodesRepo,
-  notificationsRepo,
-  toSafeUser,
-} from "./lib/db";
+import { extractClientIp, generalLimiter, expensiveInferenceLimiter, contactLimiter, createRateLimitResponse, validateBase64Payload, SECURITY_CONFIG, TOOL_PROFILES, applySecurityHeaders, createSafeErrorResponse, isAuthorizedAdmin, verifyAdminLogin, createAdminSessionToken, validateToolsConfigPayload, validateContactSubmission, validateAdminEnvironment, sanitizeUser, handleSignup, handleVerifyOtp, handleResendOtp, handleLogin, handleForgotPassword, handleResetPassword, handleUpdateProfile, handleChangePassword, handleLogout, handleMe, handleDeductCredit, getUserFromRequest, enforceToolCreditsAndLimits, handleCreatePaymentOrder, handleVerifyPayment, handleListPayments, handleDeletePaymentOrder } from "./lib/security";
+import { usersRepo, inquiriesRepo, configRepo, creditLedgerRepo, toolUsageRepo, paymentsRepo, telemetryRepo, promoCodesRepo, notificationsRepo, toSafeUser } from "./lib/db";
 import { handleApiV1 } from "./lib/api/handler";
 import {
   handleUserApiKeys,

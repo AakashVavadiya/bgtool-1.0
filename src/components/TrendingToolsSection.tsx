@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { tools, type Tool } from "@/lib/tools";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import { Flame, ArrowRight, Wrench, Layers, BookOpen } from "lucide-react";
+import { Flame, ArrowRight, Layers, BookOpen } from "lucide-react";
 
 // Curated list of top trending tool slugs
 const TRENDING_SLUGS: string[] = [

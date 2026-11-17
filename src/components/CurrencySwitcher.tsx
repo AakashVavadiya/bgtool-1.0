@@ -1,12 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  SUPPORTED_CURRENCIES,
-  getCurrentCurrency,
-  setCurrency,
-  CURRENCY_CHANGED_EVENT,
-  type CurrencyCode,
-  type CurrencyConfig,
-} from "@/lib/currency";
+import { SUPPORTED_CURRENCIES, getCurrentCurrency, setCurrency, CURRENCY_CHANGED_EVENT, type CurrencyCode } from "@/lib/currency";
 import { ChevronDown, Coins, Check, Search, X } from "lucide-react";
 
 interface CurrencySwitcherProps {

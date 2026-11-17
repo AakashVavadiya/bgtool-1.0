@@ -2,30 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminStore, type LoggedUser } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { toast } from "sonner";
-import {
-  Users,
-  Search,
-  Plus,
-  Minus,
-  Ban,
-  CheckCircle2,
-  Coins,
-  MapPin,
-  Clock,
-  Wand2,
-  Shield,
-  RefreshCw,
-  User,
-  X,
-  Zap,
-  Calendar,
-  BadgeCheck,
-  FileText,
-  Mail,
-  ExternalLink,
-  Bell,
-  Send,
-} from "lucide-react";
+import { Users, Search, Plus, Minus, Ban, Coins, MapPin, Clock, RefreshCw, User, X, Bell, Send } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
 export function UsersManagement() {

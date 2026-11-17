@@ -1,17 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import {
-  Pencil,
-  Download,
-  Info,
-  X,
-  RotateCw,
-  Sliders,
-  Check,
-  ExternalLink,
-  Loader2,
-  Undo2,
-} from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Pencil, Download, Info, X, Loader2 } from "lucide-react";
 import { CutoutBrushEditorModal } from "@/components/CutoutBrushEditorModal";
 
 export interface SingleImageBgRemovalWidgetProps {

@@ -1,19 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import {
-  FileText,
-  ShieldCheck,
-  Scale,
-  Coins,
-  CreditCard,
-  Ban,
-  Clock,
-  Sparkles,
-  HelpCircle,
-  Mail,
-  ExternalLink,
-} from "lucide-react";
+import { Scale, Coins, Clock, Sparkles, Mail } from "lucide-react";
 import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
 
 export const Route = createFileRoute("/terms")({

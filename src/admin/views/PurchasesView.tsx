@@ -2,34 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminStore, type PurchaseTransaction, type PurchasePlanConfig, type AdminPromoCode } from "@/admin/lib/admin-store";
 import { FestivalOffersDialog } from "@/components/FestivalOffersDialog";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import {
-  CreditCard,
-  Search,
-  CheckCircle2,
-  TrendingUp,
-  Receipt,
-  Download,
-  IndianRupee,
-  ShieldCheck,
-  Plus,
-  Wand2,
-  Flame,
-  Gift,
-  Zap,
-  Eye,
-  Edit2,
-  Trash2,
-  Check,
-  X,
-  Image as ImageIcon,
-  Clock,
-  Layers,
-  RefreshCw,
-  AlertCircle,
-  Tag,
-  Percent,
-  Calendar,
-} from "lucide-react";
+import { CreditCard, Search, CheckCircle2, Receipt, Download, ShieldCheck, Plus, Wand2, Gift, Zap, Eye, Edit2, Trash2, Check, X, Image as ImageIcon, Clock, RefreshCw, AlertCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 export function PurchasesView() {

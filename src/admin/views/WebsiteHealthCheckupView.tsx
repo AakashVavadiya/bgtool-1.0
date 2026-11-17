@@ -11,41 +11,7 @@ import {
   runFullSiteHealthAudit,
 } from "@/admin/lib/health-checker";
 import { toast } from "sonner";
-import {
-  HeartPulse,
-  Play,
-  Square,
-  RefreshCw,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Clock,
-  ExternalLink,
-  ShieldCheck,
-  Download,
-  Copy,
-  Check,
-  Filter,
-  Layers,
-  Zap,
-  Terminal,
-  FileText,
-  Globe,
-  Bot,
-  Wrench,
-  Shield,
-  Activity,
-  ChevronRight,
-  Eye,
-  X,
-  Bug,
-  Wand2,
-  CalendarClock,
-  Bell,
-  Settings2,
-  Archive,
-} from "lucide-react";
+import { HeartPulse, Play, Square, RefreshCw, Search, CheckCircle2, AlertTriangle, XCircle, Clock, ExternalLink, ShieldCheck, Download, Copy, Check, Zap, FileText, Globe, Bot, Wrench, Activity, Eye, X, Bug, CalendarClock, Archive } from "lucide-react";
 
 export function WebsiteHealthCheckupView() {
   const [routes, setRoutes] = useState<SiteHealthRouteItem[]>(() => {

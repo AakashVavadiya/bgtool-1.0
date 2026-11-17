@@ -2,24 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminStore, type CoffeeSupporter } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { toast } from "sonner";
-import {
-  Coffee,
-  Heart,
-  Gift,
-  Coins,
-  Search,
-  RefreshCw,
-  CheckCircle2,
-  Calendar,
-  Sparkles,
-  CreditCard,
-  User,
-  ExternalLink,
-  Send,
-  MessageSquare,
-  ShieldCheck,
-  X,
-} from "lucide-react";
+import { Coffee, Heart, Gift, Coins, Search, RefreshCw, CheckCircle2, CreditCard, Send, X } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 
 export function CoffeeSupportersView() {

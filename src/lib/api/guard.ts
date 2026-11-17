@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { apiKeysRepo, DbApiKey, SafeApiKey } from "../db/api-keys-repo";
+import { apiKeysRepo, DbApiKey } from "../db/api-keys-repo";
 import { usersRepo, DbUser } from "../db/users-repo";
 import { extractClientIp } from "../security/rate-limiter";
 import { rateLimitsRepo } from "../db/rate-limits-repo";

@@ -12,25 +12,7 @@ import {
   CURRENCY_CHANGED_EVENT,
   type CurrencyCode,
 } from "@/lib/currency";
-import {
-  ArrowLeft,
-  Check,
-  CreditCard,
-  Gift,
-  Lock,
-  Minus,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
-  Tag,
-  Wand2,
-  X,
-  Zap,
-  ChevronRight,
-  ArrowRight,
-  BadgePercent,
-  CheckCircle2,
-} from "lucide-react";
+import { ArrowLeft, Check, CreditCard, Gift, Lock, RefreshCw, ShieldCheck, Sparkles, Tag, X, Zap, BadgePercent, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { buildPageMeta } from "@/lib/seo";
 

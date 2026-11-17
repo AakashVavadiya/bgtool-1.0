@@ -11,46 +11,11 @@ import {
   type GuestLimitsConfig,
   CORE_PAGE_ROUTES,
 } from "@/admin/lib/admin-store";
-import { tools, TOOL_CATEGORIES, type ToolCategory } from "@/lib/tools";
+import { tools, TOOL_CATEGORIES } from "@/lib/tools";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { toast } from "sonner";
 import { GlobalSiteDialog } from "@/components/GlobalSiteDialog";
-import {
-  Sliders,
-  Power,
-  Bot,
-  Layers,
-  Search,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
-  Sparkles,
-  ExternalLink,
-  ChevronDown,
-  ChevronRight,
-  Shield,
-  Palette,
-  Megaphone,
-  Compass,
-  Check,
-  Zap,
-  BotOff,
-  Flame,
-  Sun,
-  Coins,
-  Link as LinkIcon,
-  LayoutTemplate,
-  Smartphone,
-  Monitor,
-  AlertCircle,
-  Info,
-  AlertTriangle,
-  Gift,
-  Copy,
-  Eye,
-  Settings2,
-  ArrowRight,
-} from "lucide-react";
+import { Sliders, Power, Bot, Layers, Search, CheckCircle2, RotateCcw, Sparkles, ChevronDown, ChevronRight, Shield, Palette, Megaphone, Compass, Check, Zap, BotOff, Flame, Sun, Coins, Link as LinkIcon, LayoutTemplate, Smartphone, Monitor, AlertCircle, Info, AlertTriangle, Gift, Copy, Eye } from "lucide-react";
 
 export function ProSettingsView() {
   const [settings, setSettings] = useState<UiEditSettings>(() => AdminStore.getUiSettings());

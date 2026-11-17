@@ -2,18 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminStore, type SupportTicket } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { toast } from "sonner";
-import {
-  Inbox,
-  Search,
-  CheckCircle2,
-  Send,
-  User,
-  Mail,
-  Clock,
-  MessageSquare,
-  HelpCircle,
-  RefreshCw,
-} from "lucide-react";
+import { Inbox, Search, Send, Clock, HelpCircle, RefreshCw } from "lucide-react";
 
 export function SupportDeskView() {
   const [tickets, setTickets] = useState<SupportTicket[]>(() => AdminStore.getTickets());

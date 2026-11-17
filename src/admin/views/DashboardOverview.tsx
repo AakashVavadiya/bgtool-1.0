@@ -1,27 +1,7 @@
 import { useState, useEffect } from "react";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import {
-  Users,
-  Activity,
-  CreditCard,
-  Zap,
-  TrendingUp,
-  BarChart3,
-  Globe,
-  Monitor,
-  AlertTriangle,
-  ArrowUpRight,
-  ShieldCheck,
-  Cpu,
-  HeartPulse,
-  ArrowRight,
-  CalendarClock,
-  Bug,
-  ChevronRight,
-  Wand2,
-  Archive,
-} from "lucide-react";
+import { Activity, CreditCard, Zap, TrendingUp, BarChart3, Globe, Monitor, AlertTriangle, ShieldCheck, Cpu, HeartPulse, ArrowRight, CalendarClock, ChevronRight, Wand2, Archive } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,

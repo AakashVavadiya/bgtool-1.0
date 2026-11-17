@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AdminStore, type PurchasePlanConfig } from "@/admin/lib/admin-store";
-import { AuthUser } from "@/lib/auth-user";
-import { initiateRazorpayCheckout } from "@/lib/razorpay";
 import { formatCurrency, getCurrentCurrency, CURRENCY_CHANGED_EVENT, type CurrencyCode } from "@/lib/currency";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import {

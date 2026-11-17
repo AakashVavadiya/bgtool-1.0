@@ -1,42 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { tools, type Tool } from "@/lib/tools";
+import { tools } from "@/lib/tools";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import {
-  FileText,
-  Search,
-  X,
-  ArrowRight,
-  Layers,
-  Zap,
-  ShieldCheck,
-  CheckCircle2,
-  Lock,
-  Unlock,
-  Merge,
-  SplitSquareVertical,
-  RotateCw,
-  FileDown,
-  FileOutput,
-  ScanText,
-  Stamp,
-  ArrowUpRight,
-  Sparkles,
-  Flame,
-  FileCheck2,
-  KeyRound,
-  FilePlus2,
-} from "lucide-react";
+import { FileText, Search, X, ArrowRight, Zap, ShieldCheck, CheckCircle2, Lock, Merge, SplitSquareVertical, ArrowUpRight, Flame } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { buildPageMeta, buildBreadcrumbsSchema, buildFaqSchema, SITE_URL } from "@/lib/seo";
+import { buildPageMeta, buildBreadcrumbsSchema, buildFaqSchema } from "@/lib/seo";
 import { useTypewriterPlaceholder } from "@/hooks/use-typewriter";
 
 const TYPEWRITER_PDF_SEARCH_PROMPTS = [

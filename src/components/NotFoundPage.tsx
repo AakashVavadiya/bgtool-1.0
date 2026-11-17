@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { Home, Wand2, ArrowRight, Search, RotateCw, Image as ImageIcon, Zap } from "lucide-react";
+import { Home, Wand2, ArrowRight, Zap } from "lucide-react";
 
 export function NotFoundPage() {
   return (

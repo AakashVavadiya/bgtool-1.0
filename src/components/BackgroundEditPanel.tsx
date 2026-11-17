@@ -1,23 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import {
-  Sparkles,
-  Image as ImageIcon,
-  Palette,
-  Upload,
-  X,
-  Check,
-  Sliders,
-  Pipette,
-  Copy,
-  CheckCheck,
-  RotateCcw,
-  Wand2,
-  RefreshCw,
-  SlidersHorizontal,
-  Layers,
-  Send,
-  Loader2,
-} from "lucide-react";
+import { Sparkles, Image as ImageIcon, Palette, Upload, X, Check, Sliders, Pipette, Copy, CheckCheck, Wand2, RefreshCw, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export type BgTab = "magic" | "photo" | "color";

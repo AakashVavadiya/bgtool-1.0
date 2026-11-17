@@ -1,19 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import {
-  Globe,
-  Search,
-  Check,
-  X,
-  Wand2,
-  Languages,
-  CheckCircle2,
-  ChevronRight,
-  SlidersHorizontal,
-  RotateCcw,
-  Zap,
-  Info,
-  Plus,
-} from "lucide-react";
+import { Search, Check, X, Wand2, Languages, CheckCircle2, SlidersHorizontal, RotateCcw, Info } from "lucide-react";
 import { toast } from "sonner";
 
 export interface OcrLanguageOption {

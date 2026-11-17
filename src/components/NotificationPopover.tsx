@@ -1,21 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  Bell,
-  Check,
-  CheckCheck,
-  Sparkles,
-  Gift,
-  Wand2,
-  Shield,
-  Download,
-  Coins,
-  ArrowRight,
-  X,
-  ExternalLink,
-  ShoppingBag,
-  UserCheck,
-} from "lucide-react";
+import { Bell, Check, CheckCheck, Sparkles, Gift, Wand2, Shield, Download, ArrowRight, ShoppingBag, UserCheck } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { AuthUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";

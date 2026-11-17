@@ -1,6 +1,6 @@
 // Spreadsheet (.xlsx) canvas table renderer and batch image rotation helpers.
 import { ROTATE_GRADIENT_PRESETS } from "./workspace-presets";
-import { buildZip, extractTextFromZip, renderTextToCanvas } from "./pdf-and-word-renderer";
+import { buildZip, extractTextFromZip } from "./pdf-and-word-renderer";
 
 export const getColIndexFromCellRef = (cellRef: string): number => {
   const match = cellRef.match(/^([A-Z]+)/i);
@@ -627,7 +627,7 @@ export const renderExcelSheetToImage = async (
 
       if (!textToRender.trim()) continue;
 
-      let cellX = tableStartX + colXOffsets[ci]!;
+      const cellX = tableStartX + colXOffsets[ci]!;
       let cellW = colPixelWidths[ci]!;
       let cellTop = y;
       let cellH = rh;

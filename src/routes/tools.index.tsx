@@ -5,18 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AdminStore } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import {
-  Search,
-  X,
-  ArrowRight,
-  Filter,
-  CheckCircle2,
-  Wrench,
-  Layers,
-  Cpu,
-  BookOpen,
-  TrendingUp,
-} from "lucide-react";
+import { Search, X, ArrowRight, CheckCircle2, BookOpen, TrendingUp } from "lucide-react";
 
 import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
 

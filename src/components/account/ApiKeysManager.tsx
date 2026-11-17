@@ -1,30 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import {
-  KeyRound,
-  Plus,
-  Copy,
-  Check,
-  RotateCw,
-  Trash2,
-  Shield,
-  ShieldAlert,
-  Zap,
-  Play,
-  Terminal,
-  Activity,
-  AlertTriangle,
-  Info,
-  Clock,
-  Globe,
-  UploadCloud,
-  Loader2,
-  ExternalLink,
-  ChevronRight,
-  Code,
-  Lock,
-} from "lucide-react";
+import { KeyRound, Plus, Copy, Check, RotateCw, Trash2, Play, Terminal, AlertTriangle, Loader2, ExternalLink, Code } from "lucide-react";
 import { SafeApiKey } from "@/lib/db/api-keys-repo";
 
 interface ApiUsageStats {

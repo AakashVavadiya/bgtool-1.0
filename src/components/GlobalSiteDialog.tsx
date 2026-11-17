@@ -2,19 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AdminStore, type SiteDialogSettings, type SiteDialogType } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
-import {
-  X,
-  Info,
-  AlertTriangle,
-  AlertCircle,
-  Gift,
-  Flame,
-  Check,
-  Copy,
-  ArrowRight,
-  Sparkles,
-  Megaphone,
-} from "lucide-react";
+import { X, Info, AlertTriangle, AlertCircle, Flame, Check, Copy, ArrowRight } from "lucide-react";
 
 const STORAGE_KEY_ONCE = "bg.site_dialog.dismissed_v1";
 const STORAGE_KEY_SESSION = "bg.site_dialog.session_dismissed_v1";

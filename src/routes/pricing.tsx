@@ -6,10 +6,9 @@ import { Faq } from "@/components/Faq";
 import { AdminStore, type PurchasePlanConfig } from "@/admin/lib/admin-store";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
-import { Wand2, Gift, Zap, ShieldCheck, Lock, Check, X, Sparkles, Minus, Tag, RefreshCw } from "lucide-react";
+import { Wand2, Gift, Zap, ShieldCheck, Lock, Check, Minus } from "lucide-react";
 import { TokenCoin } from "@/components/TokenCoins";
 import { ProductHuntBadge } from "@/components/ProductHuntBadge";
-import { initiateRazorpayCheckout } from "@/lib/razorpay";
 import {
   getCurrentCurrency,
   formatCurrency,
