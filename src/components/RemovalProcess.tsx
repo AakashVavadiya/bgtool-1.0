@@ -1,6 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Check, Download, Loader2, Upload, Wand2, RefreshCw, Image as ImageIcon, FolderUp, Pencil, Zap, ShieldCheck } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  Check,
+  Download,
+  Loader2,
+  Upload,
+  Wand2,
+  RefreshCw,
+  Eye,
+  Image as ImageIcon,
+  FolderUp,
+  Pencil,
+  Zap,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { CutoutBrushEditorModal } from "@/components/CutoutBrushEditorModal";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
@@ -192,7 +206,7 @@ export function RemovalProcess() {
     }
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
+    } catch { }
     isDraggingSliderRef.current = true;
     setIsDraggingSlider(true);
     updateSliderFromClientX(e.clientX);
@@ -206,7 +220,7 @@ export function RemovalProcess() {
   const handleSliderPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
+    } catch { }
     isDraggingSliderRef.current = false;
     setIsDraggingSlider(false);
   }, []);
@@ -540,7 +554,7 @@ export function RemovalProcess() {
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll, Header-Aware) */}
+      {/* ── TOP DYNAMIC ISLAND FLOATING BAR (Animated on Scroll, Header-Aware) ─────── */}
       {mounted && typeof document !== "undefined" && hasProcessed && !showCutoutEditor && createPortal(
         <div
           style={{ top: `${islandTopPx}px` }}
@@ -548,13 +562,12 @@ export function RemovalProcess() {
         >
           <aside
             aria-label="Quick download dynamic island"
-            className={`pointer-events-auto dynamic-island-box flex items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-black text-white p-1.5 sm:p-2 mx-auto ${
-              showDynamicIsland
-                ? "island-enter"
-                : hasScrolledOnce
+            className={`pointer-events-auto dynamic-island-box flex items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-black text-white p-1.5 sm:p-2 mx-auto ${showDynamicIsland
+              ? "island-enter"
+              : hasScrolledOnce
                 ? "island-exit"
                 : "opacity-0 -translate-y-12 scale-90 pointer-events-none"
-            }`}
+              }`}
           >
             {/* 1. Large Processed Image Thumbnail & Details */}
             <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
@@ -650,11 +663,10 @@ export function RemovalProcess() {
             if (dropped) handleSelectFile(dropped);
           }}
           onClick={() => fileInputRef.current?.click()}
-          className={`group cursor-pointer flex flex-col items-center justify-center text-center rounded-3xl border-3 border-dashed px-8 py-24 sm:py-32 w-full transition-all duration-300 ${
-            isDragging
-              ? "border-accent bg-accent/10 scale-[1.01] shadow-2xl"
-              : "border-border bg-card/60 hover:border-foreground hover:bg-card shadow-lg"
-          }`}
+          className={`group cursor-pointer flex flex-col items-center justify-center text-center rounded-3xl border-3 border-dashed px-8 py-24 sm:py-32 w-full transition-all duration-300 ${isDragging
+            ? "border-accent bg-accent/10 scale-[1.01] shadow-2xl"
+            : "border-border bg-card/60 hover:border-foreground hover:bg-card shadow-lg"
+            }`}
         >
           <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-foreground text-background shadow-xl transition-all group-hover:scale-110">
             <Upload className="h-10 w-10" />
@@ -707,27 +719,24 @@ export function RemovalProcess() {
                       <button
                         type="button"
                         onClick={() => setBgType("checker")}
-                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${
-                          bgType === "checker" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${bgType === "checker" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                          }`}
                       >
                         Checker
                       </button>
                       <button
                         type="button"
                         onClick={() => setBgType("white")}
-                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${
-                          bgType === "white" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${bgType === "white" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                          }`}
                       >
                         White
                       </button>
                       <button
                         type="button"
                         onClick={() => setBgType("black")}
-                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${
-                          bgType === "black" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className={`px-2 sm:px-2.5 py-1 rounded-md transition-all ${bgType === "black" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                          }`}
                       >
                         Black
                       </button>
@@ -825,9 +834,8 @@ export function RemovalProcess() {
                       <button
                         type="button"
                         aria-label="Drag before and after slider"
-                        className={`pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-foreground text-background shadow-2xl transition-transform hover:scale-110 active:scale-95 border-2 border-background/25 ${
-                          isDraggingSlider ? "cursor-grabbing scale-110" : "cursor-grab"
-                        }`}
+                        className={`pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-foreground text-background shadow-2xl transition-transform hover:scale-110 active:scale-95 border-2 border-background/25 ${isDraggingSlider ? "cursor-grabbing scale-110" : "cursor-grab"
+                          }`}
                       >
                         <svg
                           className="h-4 w-4 sm:h-5 sm:w-5 stroke-current pointer-events-none"
@@ -931,133 +939,131 @@ export function RemovalProcess() {
           {/* Right Column: Pipeline Status before processing */}
           {!hasProcessed && (
             <div className="rounded-3xl border-2 border-border bg-card p-5 sm:p-6 md:p-8 shadow-md flex flex-col justify-between min-h-0 sm:min-h-[620px] md:min-h-[680px] lg:min-h-[720px] lg:sticky lg:top-6">
-            <div>
-              <div className="flex items-center justify-between text-xs md:text-sm font-bold text-foreground">
-                <span>Pipeline Status</span>
-                <span className="text-accent-foreground font-mono text-sm">{progress}%</span>
-              </div>
-              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-secondary">
-                <div
-                  className="h-full rounded-full bg-foreground transition-all duration-500 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs md:text-sm font-bold text-foreground">
+                  <span>Pipeline Status</span>
+                  <span className="text-accent-foreground font-mono text-sm">{progress}%</span>
+                </div>
+                <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-foreground transition-all duration-500 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
 
-              <ol className="mt-7 space-y-4">
-                {steps.map((s, i) => {
-                  const isStepDone = hasProcessed || (processing && i < step);
-                  const isStepActive = processing && i === step;
-                  return (
-                    <li key={s.label} className="flex items-start gap-4">
-                      <span
-                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-extrabold transition-all duration-300 ${
-                          isStepDone
+                <ol className="mt-7 space-y-4">
+                  {steps.map((s, i) => {
+                    const isStepDone = hasProcessed || (processing && i < step);
+                    const isStepActive = processing && i === step;
+                    return (
+                      <li key={s.label} className="flex items-start gap-4">
+                        <span
+                          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-extrabold transition-all duration-300 ${isStepDone
                             ? "border-emerald-500 bg-emerald-500 text-white shadow-sm"
                             : isStepActive
                               ? "border-accent bg-accent text-accent-foreground animate-pulse scale-110 shadow-md"
                               : "border-border text-muted-foreground bg-secondary/40"
-                        }`}
-                      >
-                        {isStepDone ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : i + 1}
-                      </span>
-                      <div>
-                        <p
-                          className={`text-sm font-bold transition-colors ${
-                            isStepDone || isStepActive ? "text-foreground" : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
-                          {s.label}
-                          {isStepActive ? <span className="dot-ellipsis" /> : null}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{s.detail}</p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
+                          {isStepDone ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : i + 1}
+                        </span>
+                        <div>
+                          <p
+                            className={`text-sm font-bold transition-colors ${isStepDone || isStepActive ? "text-foreground" : "text-muted-foreground"
+                              }`}
+                          >
+                            {s.label}
+                            {isStepActive ? <span className="dot-ellipsis" /> : null}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{s.detail}</p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
 
-            <div className="mt-8 border-t border-border pt-6">
-              <div className="flex flex-col gap-3">
-                {/* Credit Cost Indicator (only for logged-in users) */}
-                {currentUser && (
-                  <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <Zap className="h-3.5 w-3.5 text-amber-500 fill-current" />
-                      <span>Cost: <strong className="text-foreground">1 credit</strong></span>
-                      <span className="text-[11px] text-muted-foreground ml-1">
-                        (Balance: <span className="font-mono font-bold text-amber-500">{AuthUser.getCredits()}</span>)
+              <div className="mt-8 border-t border-border pt-6">
+                <div className="flex flex-col gap-3">
+                  {/* Credit Cost Indicator (only for logged-in users) */}
+                  {currentUser && (
+                    <div className="flex items-center justify-between text-xs px-1 text-muted-foreground font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5 text-amber-500 fill-current" />
+                        <span>Cost: <strong className="text-foreground">1 credit</strong></span>
+                        <span className="text-[11px] text-muted-foreground ml-1">
+                          (Balance: <span className="font-mono font-bold text-amber-500">{AuthUser.getCredits()}</span>)
+                        </span>
                       </span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof window !== "undefined") {
-                          window.dispatchEvent(
-                            new CustomEvent("bg:show_add_credits_dialog", {
-                              detail: {
-                                toolName: "Background Remover",
-                                toolSlug: "remove-background",
-                                creditCost: 1,
-                                currentCredits: AuthUser.getCredits(),
-                              },
-                            })
-                          );
-                        }
-                      }}
-                      className="text-amber-600 dark:text-amber-400 hover:underline font-extrabold cursor-pointer text-xs"
-                    >
-                      + Add Credits
-                    </button>
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(
+                              new CustomEvent("bg:show_add_credits_dialog", {
+                                detail: {
+                                  toolName: "Background Remover",
+                                  toolSlug: "remove-background",
+                                  creditCost: 1,
+                                  currentCredits: AuthUser.getCredits(),
+                                },
+                              })
+                            );
+                          }
+                        }}
+                        className="text-amber-600 dark:text-amber-400 hover:underline font-extrabold cursor-pointer text-xs"
+                      >
+                        + Add Credits
+                      </button>
+                    </div>
+                  )}
 
-                {!hasProcessed && !processing ? (
-                  <button
-                    type="button"
-                    onClick={startRemovalProcess}
-                    className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-foreground px-8 py-4 text-sm md:text-base font-extrabold text-background shadow-xl transition-all hover:scale-105 hover:shadow-accent/30"
-                  >
-                    <Wand2 className="h-5 w-5 text-amber-400" /> Remove Background Now →
-                  </button>
-                ) : processing ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-secondary px-8 py-4 text-sm md:text-base font-extrabold text-muted-foreground cursor-not-allowed"
-                  >
-                    <Loader2 className="h-5 w-5 animate-spin text-amber-500" /> Processing AI Pipeline…
-                  </button>
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-2.5">
+                  {!hasProcessed && !processing ? (
                     <button
                       type="button"
-                      onClick={() => setShowCutoutEditor(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border-2 border-foreground bg-background px-4 py-4 text-xs md:text-sm font-extrabold text-foreground shadow-lg transition-all hover:scale-105 hover:bg-foreground hover:text-background cursor-pointer"
+                      onClick={startRemovalProcess}
+                      className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-foreground px-8 py-4 text-sm md:text-base font-extrabold text-background shadow-xl transition-all hover:scale-105 hover:shadow-accent/30"
                     >
-                      <Pencil className="h-4 w-4" /> Edit
+                      <Wand2 className="h-5 w-5 text-amber-400" /> Remove Background Now →
                     </button>
+                  ) : processing ? (
                     <button
                       type="button"
-                      onClick={() => handleDownload()}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-4 py-4 text-xs md:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer"
+                      disabled
+                      className="w-full inline-flex items-center justify-center gap-3 rounded-full bg-secondary px-8 py-4 text-sm md:text-base font-extrabold text-muted-foreground cursor-not-allowed"
                     >
-                      <Download className="h-4 w-4" /> Download
+                      <Loader2 className="h-5 w-5 animate-spin text-amber-500" /> Processing AI Pipeline…
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleReset}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-border bg-card px-4 py-4 text-xs font-bold text-muted-foreground hover:text-foreground transition-all hover:scale-105 cursor-pointer"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" /> Another
-                    </button>
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowCutoutEditor(true)}
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border-2 border-foreground bg-background px-4 py-4 text-xs md:text-sm font-extrabold text-foreground shadow-lg transition-all hover:scale-105 hover:bg-foreground hover:text-background cursor-pointer"
+                      >
+                        <Pencil className="h-4 w-4" /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownload()}
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-4 py-4 text-xs md:text-sm font-extrabold text-background shadow-xl transition-all hover:scale-105 cursor-pointer"
+                      >
+                        <Download className="h-4 w-4" /> Download
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleReset}
+                        className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-border bg-card px-4 py-4 text-xs font-bold text-muted-foreground hover:text-foreground transition-all hover:scale-105 cursor-pointer"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" /> Another
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* Interactive Cutout Editor Modal (Remove Brush, Restore Brush, Magic Brush) */}
