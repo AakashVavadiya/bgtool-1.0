@@ -710,3 +710,50 @@ export function encodeBinaryStreamPayload(
     `Displaying first 60,000 characters of ${totalBytes.toLocaleString()} bytes (${fullResult.length.toLocaleString()} total characters). Click "Copy Output" or "Download" for 100% full dataset`
   );
 }
+
+// Render a single batch item with the configured text or logo watermark overlay
+export async function renderWatermarkedImageToBlob(
+  item: { name: string; dataUrl: string; width: number; height: number },
+  wmOpts: WatermarkCompositeOptions
+): Promise<{ blob: Blob; dataUrl: string; width: number; height: number; ext: string }> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    if (item.dataUrl.startsWith("http://") || item.dataUrl.startsWith("https://")) {
+      el.crossOrigin = "anonymous";
+    }
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error(`Failed to load ${item.name}`));
+    el.src = item.dataUrl;
+  });
+
+  const w = img.naturalWidth || img.width || item.width || 800;
+  const h = img.naturalHeight || img.height || item.height || 600;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, w, h);
+
+  await drawWatermarkOverlayOnCanvas(ctx, canvas, wmOpts);
+
+  const isJpg = /\.(jpe?g|jfif)$/i.test(item.name);
+  const isWebp = /\.webp$/i.test(item.name);
+  const mime = isJpg ? "image/jpeg" : isWebp ? "image/webp" : "image/png";
+  const ext = isJpg ? "jpg" : isWebp ? "webp" : "png";
+  const quality = isJpg || isWebp ? 0.94 : undefined;
+
+  const dataUrl = canvas.toDataURL(mime, quality);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Failed to encode watermarked image"))),
+      mime,
+      quality
+    );
+  });
+
+  return { blob, dataUrl, width: w, height: h, ext };
+}

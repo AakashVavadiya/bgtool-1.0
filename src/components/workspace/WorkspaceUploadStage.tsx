@@ -732,7 +732,7 @@ export function WorkspaceUploadStage(props: any) {
                                   ? "Select Excel Spreadsheet (.xlsx) or Drag & Drop Here"
                                   : tool.slug === "powerpoint-to-image"
                                     ? "Select PowerPoint (.pptx) or Drag & Drop Here"
-                                    : tool.slug === "rotate-image"
+                                    : tool.slug === "rotate-image" || tool.slug === "watermark-image"
                                       ? "Select Image(s) or Drag & Drop Multiple Images Here"
                                       : "Select File or Drag & Drop Image Here"}
             </h2>
@@ -767,7 +767,7 @@ export function WorkspaceUploadStage(props: any) {
                               ? "Select Excel Spreadsheet"
                               : tool.slug === "powerpoint-to-image"
                                 ? "Select PowerPoint Presentation"
-                                : tool.slug === "rotate-image"
+                                : tool.slug === "rotate-image" || tool.slug === "watermark-image"
                                   ? "Select Images (Batch Supported)"
                                   : "Select Image File"}{" "}
                 <span aria-hidden>→</span>

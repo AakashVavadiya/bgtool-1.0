@@ -63,9 +63,9 @@ export function WorkspaceFullscreenModals(props: any) {
   return (
     <>
       {/* Fullscreen Enlarge Image Preview Modal with Multi-Image Batch Switcher */}
-      {typeof document !== "undefined" && isFullscreenPreview && (imageSrc || processedSrc || (tool.slug === "rotate-image" && rotateBatch.length > 0)) && createPortal(
+      {typeof document !== "undefined" && isFullscreenPreview && (imageSrc || processedSrc || ((tool.slug === "rotate-image" || tool.slug === "watermark-image") && rotateBatch.length > 0)) && createPortal(
         (() => {
-          const isRotateBatchActive = tool.slug === "rotate-image" && rotateBatch.length > 1;
+          const isRotateBatchActive = (tool.slug === "rotate-image" || tool.slug === "watermark-image") && rotateBatch.length > 1;
           const activeBatchItem = isRotateBatchActive
             ? rotateBatch[fullscreenActiveIndex] || rotateBatch[0]
             : null;
@@ -90,7 +90,7 @@ export function WorkspaceFullscreenModals(props: any) {
             ? (activeBatchItem.processedSize || activeBatchItem.size)
             : (hasProcessed && newSize ? newSize : origSize);
 
-          const currentRotation = isRotateBatchActive && activeBatchItem
+          const currentRotation = isRotateBatchActive && tool.slug === "rotate-image" && activeBatchItem
             ? ((activeBatchItem.rotation % 360) + 360) % 360
             : null;
 
@@ -276,9 +276,11 @@ export function WorkspaceFullscreenModals(props: any) {
                             >
                               {idx + 1}
                             </span>
-                            <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 text-[8px] font-mono font-bold text-white/80">
-                              {((item.rotation % 360) + 360) % 360}°
-                            </span>
+                            {tool.slug === "rotate-image" && (
+                              <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 text-[8px] font-mono font-bold text-white/80">
+                                {((item.rotation % 360) + 360) % 360}°
+                              </span>
+                            )}
                           </button>
                         );
                       })}

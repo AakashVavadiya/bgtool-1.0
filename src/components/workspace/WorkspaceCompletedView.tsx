@@ -290,7 +290,7 @@ export function WorkspaceCompletedView(props: any) {
           {/* Processed Output Preview Stage */}
           <div className="relative rounded-3xl border-2 border-border/80 bg-card/85 backdrop-blur-sm overflow-hidden shadow-xl flex flex-col p-4 md:p-6 min-h-[480px]">
             {/* Top Preview Controls Bar (Dedicated Header Row - Never Overlaps Canvas Border) */}
-            {!isOcrTool && !(tool.slug === "rotate-image" && rotateBatch.length > 1) && (
+            {!isOcrTool && !((tool.slug === "rotate-image" || tool.slug === "watermark-image") && rotateBatch.length > 1) && (
               <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3.5 mb-3 border-b border-border/60 z-10">
                 <span className="inline-flex items-center gap-2 rounded-full bg-secondary/70 border border-border px-3.5 py-1 text-xs font-bold text-foreground truncate max-w-[220px] sm:max-w-md">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
@@ -899,7 +899,7 @@ export function WorkspaceCompletedView(props: any) {
                   </button>
                 </div>
               </div>
-            ) : tool.slug === "rotate-image" && rotateBatch.length > 1 ? (
+            ) : (tool.slug === "rotate-image" || tool.slug === "watermark-image") && rotateBatch.length > 1 ? (
               /* Processed Batch Grid with Clean Unified Header */
               <div className="w-full flex flex-col gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-muted/40 border border-border shadow-xs">
@@ -910,10 +910,12 @@ export function WorkspaceCompletedView(props: any) {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs sm:text-sm font-bold text-foreground">
-                          All {rotateBatch.length} Images Rotated
+                          {tool.slug === "watermark-image"
+                            ? `All ${rotateBatch.length} Images Watermarked`
+                            : `All ${rotateBatch.length} Images Rotated`}
                         </span>
                         <span className="rounded-full bg-accent/15 border border-accent/30 text-accent px-2 py-0.5 text-[10px] font-mono font-bold">
-                          {rotateBatchOutputFormat} format
+                          {tool.slug === "watermark-image" ? "Bulk ZIP" : `${rotateBatchOutputFormat} format`}
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium">
@@ -943,9 +945,15 @@ export function WorkspaceCompletedView(props: any) {
                     >
                       <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/50 text-xs font-bold truncate">
                         <span className="truncate">{idx + 1}. {item.name}</span>
-                        <span className="text-[10px] text-muted-foreground font-mono shrink-0 bg-muted/60 px-1.5 py-0.5 rounded-md">
-                          {((item.rotation % 360) + 360) % 360}°
-                        </span>
+                        {tool.slug === "rotate-image" ? (
+                          <span className="text-[10px] text-muted-foreground font-mono shrink-0 bg-muted/60 px-1.5 py-0.5 rounded-md">
+                            {((item.rotation % 360) + 360) % 360}°
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                            Watermarked
+                          </span>
+                        )}
                       </div>
                       <div
                         onClick={() => {
@@ -1061,6 +1069,10 @@ export function WorkspaceCompletedView(props: any) {
                               ? rotateBatch.length > 1
                                 ? `Download All ${rotateBatch.length} Rotated Images (ZIP)`
                                 : "Download Rotated Image"
+                              : tool.slug === "watermark-image"
+                                ? rotateBatch.length > 1
+                                  ? `Download All ${rotateBatch.length} Watermarked Images (ZIP)`
+                                  : "Download Watermarked Image"
                               : tool.slug === "convert-to-jpg"
                                 ? "Download JPG File"
                                 : tool.slug === "convert-from-jpg"

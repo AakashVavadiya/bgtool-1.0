@@ -34,7 +34,7 @@ import { rgbToHsl, SAMPLE_OG_CARD, type BinaryThemeKey, BINARY_THEMES, ROTATE_GR
 import { buildPdfFromImageDataUrl, buildZip, renderPdfToImage, renderAllPdfPagesToZip, renderWordPageToImage, renderAllWordPagesToZip } from "@/lib/workspace/pdf-and-word-renderer";
 import { getExcelSheetsMetadata, renderExcelSheetToImage, renderAllExcelSheetsToZip, type RotateBatchItem, renderRotatedImageToBlob } from "@/lib/workspace/excel-and-rotate-renderer";
 import { type WatermarkRemovalOptions, removeWatermarkAdvanced, decodeBinaryStringToImageUrl, tryDecodeAsciiToOriginalImage, renderAsciiToImage, type DetectedCodeItem, detectBarcodesAndQRs, OCR_SUPPORTED_LANGUAGES, assembleOcrOutputText, renderHtmlToImage, applyHDResizingEnhancement, type SuperResolutionOptions, performSuperResolutionUpscale } from "@/lib/workspace/pixel-and-barcode-engines";
-import { renderSquareFrameDataUrl, drawWatermarkOverlayOnCanvas, drawMemeCaptionsOnCanvas, encodeBinaryStreamPayload } from "@/lib/workspace/canvas-compositor";
+import { renderSquareFrameDataUrl, drawWatermarkOverlayOnCanvas, renderWatermarkedImageToBlob, drawMemeCaptionsOnCanvas, encodeBinaryStreamPayload } from "@/lib/workspace/canvas-compositor";
 import { WorkspaceFullscreenModals } from "@/components/workspace/WorkspaceFullscreenModals";
 import { WorkspaceCompletedView } from "@/components/workspace/WorkspaceCompletedView";
 import { WorkspaceUploadStage } from "@/components/workspace/WorkspaceUploadStage";
@@ -610,7 +610,7 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
       if (e.key === "Escape") {
         setIsFullscreenPreview(false);
         setIsCodeEditorOpen(false);
-      } else if (isFullscreenPreview && tool.slug === "rotate-image" && rotateBatch.length > 1) {
+      } else if (isFullscreenPreview && (tool.slug === "rotate-image" || tool.slug === "watermark-image") && rotateBatch.length > 1) {
         if (e.key === "ArrowLeft") {
           e.preventDefault();
           setFullscreenActiveIndex((prev) => (prev > 0 ? prev - 1 : rotateBatch.length - 1));
@@ -1393,8 +1393,8 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
         setTargetHeight(img.height);
         setCropBox({ x: 10, y: 10, w: 80, h: 80 });
 
-        // Initialize rotateBatch if on rotate-image tool
-        if (tool.slug === "rotate-image") {
+        // Initialize batch queue for multi-image tools (rotate-image & watermark-image)
+        if (tool.slug === "rotate-image" || tool.slug === "watermark-image") {
           setRotateBatch([
             {
               id: `${Date.now()}-0`,
@@ -1511,7 +1511,11 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
       setIsEditingSettings(false);
       setProcessedSrc(null);
       setProcessing(false);
-      toast.success(`Loaded ${items.length} images for batch rotation!`);
+      toast.success(
+        tool.slug === "watermark-image"
+          ? `Loaded ${items.length} images for bulk watermarking!`
+          : `Loaded ${items.length} images for batch rotation!`
+      );
     } catch (err) {
       console.error("Failed to load multiple rotate images:", err);
       setProcessing(false);
@@ -2970,6 +2974,78 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
       }
     }
 
+    // 0f. Handle Multi-Image Bulk Watermarking
+    if (tool.slug === "watermark-image" && rotateBatch.length > 1) {
+      setProcessing(true);
+      try {
+        const wmOpts = {
+          wmMargin,
+          wmPosition,
+          wmCustomCoord,
+          wmMode,
+          wmLogoSrc,
+          wmLogoScale,
+          wmOpacity,
+          wmRotation,
+          wmText,
+          wmFontSize,
+          wmItalic,
+          wmBold,
+          wmFontFamily,
+          wmStroke,
+          wmColor,
+          wmBgBadge,
+        };
+
+        const processedResults = await Promise.all(
+          rotateBatch.map((item) => renderWatermarkedImageToBlob(item, wmOpts))
+        );
+
+        const updatedBatch = rotateBatch.map((item, idx) => ({
+          ...item,
+          processedDataUrl: processedResults[idx]?.dataUrl,
+          processedBlob: processedResults[idx]?.blob,
+          processedSize: processedResults[idx]?.blob.size,
+          processedWidth: processedResults[idx]?.width,
+          processedHeight: processedResults[idx]?.height,
+        }));
+        setRotateBatch(updatedBatch);
+
+        const zipEntries = await Promise.all(
+          updatedBatch.map(async (item, idx) => {
+            const ext = processedResults[idx]?.ext || "png";
+            const cleanName = item.name.replace(/\.[^.]+$/, "") + `_watermarked.${ext}`;
+            const buffer = await item.processedBlob!.arrayBuffer();
+            return { name: cleanName, data: new Uint8Array(buffer) };
+          })
+        );
+        const zipUint8 = buildZip(zipEntries);
+        const zipBlob = new Blob([zipUint8 as BlobPart], { type: "application/zip" });
+        setRotateBatchZipBlob(zipBlob);
+        setDocumentBlob(zipBlob);
+        setDocumentExt("zip");
+        setNewSize(zipBlob.size);
+
+        if (processedResults[0]) {
+          setProcessedSrc(processedResults[0].dataUrl);
+          setImageSrc(processedResults[0].dataUrl);
+          setDimensions({ width: processedResults[0].width, height: processedResults[0].height });
+        }
+
+        setHasProcessed(true);
+        setIsEditingSettings(false);
+        setProcessing(false);
+        recordToolExecution();
+        toast.success(`Successfully watermarked all ${rotateBatch.length} images!`);
+        return;
+      } catch (e) {
+        console.error("Bulk watermarking failed:", e);
+        setProcessing(false);
+        toast.error("Failed to watermark batch images.");
+        return;
+      }
+    }
+
     if (!imageSrc) return;
     setProcessing(true);
 
@@ -3888,7 +3964,7 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      if (tool.slug === "rotate-image") {
+      if (tool.slug === "rotate-image" || tool.slug === "watermark-image") {
         if (files.length > 1) {
           processMultipleRotateFiles(Array.from(files));
         } else if (rotateBatch.length > 0) {
@@ -3922,7 +3998,7 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      if (tool.slug === "rotate-image") {
+      if (tool.slug === "rotate-image" || tool.slug === "watermark-image") {
         if (files.length > 1) {
           processMultipleRotateFiles(Array.from(files));
         } else if (rotateBatch.length > 0) {
@@ -3939,7 +4015,34 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
   const handleDownloadSingleRotatedItem = async (item: RotateBatchItem) => {
     try {
       let url = item.processedDataUrl;
-      if (!url) {
+      let ext = rotateBatchOutputFormat.toLowerCase();
+      if (tool.slug === "watermark-image") {
+        const isJpg = /\.(jpe?g|jfif)$/i.test(item.name);
+        const isWebp = /\.webp$/i.test(item.name);
+        ext = isJpg ? "jpg" : isWebp ? "webp" : "png";
+        if (!url) {
+          const res = await renderWatermarkedImageToBlob(item, {
+            wmMargin,
+            wmPosition,
+            wmCustomCoord,
+            wmMode,
+            wmLogoSrc,
+            wmLogoScale,
+            wmOpacity,
+            wmRotation,
+            wmText,
+            wmFontSize,
+            wmItalic,
+            wmBold,
+            wmFontFamily,
+            wmStroke,
+            wmColor,
+            wmBgBadge,
+          });
+          url = res.dataUrl;
+          ext = res.ext;
+        }
+      } else if (!url) {
         const res = await renderRotatedImageToBlob(
           item,
           rotateBgMode,
@@ -3949,8 +4052,8 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
         );
         url = res.dataUrl;
       }
-      const ext = rotateBatchOutputFormat.toLowerCase();
-      const cleanName = item.name.replace(/\.[^.]+$/, "") + `_rotated.${ext}`;
+      const suffix = tool.slug === "watermark-image" ? "_watermarked" : "_rotated";
+      const cleanName = item.name.replace(/\.[^.]+$/, "") + `${suffix}.${ext}`;
       const a = document.createElement("a");
       a.href = url;
       a.download = cleanName;
@@ -3959,8 +4062,8 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
       document.body.removeChild(a);
       toast.success(`Downloaded ${cleanName}!`);
     } catch (e) {
-      console.error("Individual rotate download error:", e);
-      toast.error("Failed to download rotated image.");
+      console.error("Individual batch download error:", e);
+      toast.error("Failed to download image.");
     }
   };
 
@@ -4135,20 +4238,22 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
       return;
     }
 
-    // Rotate Image tool with multi-image ZIP bundle
-    if (tool.slug === "rotate-image" && rotateBatch.length > 1 && (rotateBatchZipBlob || documentBlob)) {
+    // Multi-image ZIP bundle download (Rotate Image & Watermark Image)
+    if ((tool.slug === "rotate-image" || tool.slug === "watermark-image") && rotateBatch.length > 1 && (rotateBatchZipBlob || documentBlob)) {
       const blobToUse = rotateBatchZipBlob || documentBlob;
       if (blobToUse) {
         const docUrl = URL.createObjectURL(blobToUse);
         const a = document.createElement("a");
         a.href = docUrl;
         const baseName = file?.name ? file.name.replace(/\.[^.]+$/, "") : "batch";
-        a.download = `${baseName}_all_rotated_images.zip`;
+        const zipSuffix = tool.slug === "watermark-image" ? "_all_watermarked_images.zip" : "_all_rotated_images.zip";
+        const actionWord = tool.slug === "watermark-image" ? "watermarked" : "rotated";
+        a.download = `${baseName}${zipSuffix}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(docUrl), 5000);
-        toast.success(`Downloaded all ${rotateBatch.length} rotated images in ZIP archive (${formatBytes(blobToUse.size)})!`);
+        toast.success(`Downloaded all ${rotateBatch.length} ${actionWord} images in ZIP archive (${formatBytes(blobToUse.size)})!`);
         return;
       }
     }
@@ -4989,7 +5094,7 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
       <input
         ref={fileInputRef}
         type="file"
-        multiple={tool.slug === "rotate-image"}
+        multiple={tool.slug === "rotate-image" || tool.slug === "watermark-image"}
         accept={
           tool.slug === "base64-to-image" ? ".txt,.b64,.base64,.text,text/plain,text/*" :
             tool.slug === "html-to-image" ? ".html,.htm,.txt,text/html" :
@@ -5272,7 +5377,9 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
                                                     ? `Re-convert All ${pptTotalSlides} Slides (ZIP)`
                                                     : `Re-convert Slide ${pptDocSlide} to ${pptDocOutputFormat}`
                                                   : tool.slug === "watermark-image"
-                                                    ? "Update Watermarked Image"
+                                                    ? rotateBatch.length > 1
+                                                      ? `Update All ${rotateBatch.length} Watermarked Images (ZIP)`
+                                                      : "Update Watermarked Image"
                                                     : tool.slug === "square-your-image"
                                                       ? "Update 1:1 Square Image"
                                                       : tool.slug === "rotate-image"
@@ -5319,7 +5426,9 @@ function ImageToolWorkspaceInner({ tool }: { tool: Tool }) {
                                                     ? `Convert All ${pptTotalSlides} Slides to ${pptDocOutputFormat} (ZIP)`
                                                     : `Convert Slide ${pptDocSlide} to ${pptDocOutputFormat}`
                                                   : tool.slug === "watermark-image"
-                                                    ? "Apply Watermark & View Output"
+                                                    ? rotateBatch.length > 1
+                                                      ? `Watermark All ${rotateBatch.length} Images (ZIP)`
+                                                      : "Apply Watermark & View Output"
                                                     : tool.slug === "square-your-image"
                                                       ? "Square Image & View Output"
                                                       : tool.slug === "rotate-image"

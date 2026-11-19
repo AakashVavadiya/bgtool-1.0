@@ -1,5 +1,5 @@
 // Interactive canvas preview stage with crop handles, color loupe, and batch switcher.
-import { Download, Check, Loader2, RotateCw, RotateCcw, FlipHorizontal, FlipVertical, Wand2, Image as ImageIcon, Eye, EyeOff, Maximize2, Move, Sparkle, Plus, Trash2 } from "lucide-react";
+import { Download, Check, Loader2, RotateCw, RotateCcw, FlipHorizontal, FlipVertical, Wand2, Image as ImageIcon, Eye, EyeOff, Maximize2, Move, Sparkle, Plus, Trash2, Layers, Upload, X } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 
@@ -202,7 +202,7 @@ export function WorkspaceCanvasPreview(props: any) {
                   onClick={() => fileInputRef.current?.click()}
                   className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold hover:bg-foreground hover:text-background transition-all shadow-sm cursor-pointer"
                 >
-                  Change File
+                  {tool.slug === "watermark-image" ? "+ Add Images" : "Change File"}
                 </button>
               </div>
             </div>
@@ -1374,11 +1374,92 @@ export function WorkspaceCanvasPreview(props: any) {
                 <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-20">
                   <div className="flex items-center gap-3 rounded-full bg-card px-6 py-3 shadow-2xl border border-border font-bold">
                     <Loader2 className="h-5 w-5 animate-spin text-accent" />
-                    <span>Processing Image…</span>
+                    <span>{tool.slug === "watermark-image" && rotateBatch.length > 1 ? `Watermarking ${rotateBatch.length} Images…` : "Processing Image…"}</span>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Bulk Watermark Multi-Image Queue Strip */}
+            {tool.slug === "watermark-image" && rotateBatch.length > 0 && (
+              <div className="border-t border-border bg-muted/35 px-4 py-2.5 flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/30 px-2.5 py-0.5 text-[11px] font-extrabold text-accent">
+                    <Layers className="h-3 w-3" />
+                    <span>{rotateBatch.length} {rotateBatch.length === 1 ? "Image" : "Images"}</span>
+                  </span>
+                </div>
+
+                <div className="flex-1 flex items-center gap-2 overflow-x-auto py-0.5 no-scrollbar">
+                  {rotateBatch.map((item: any, idx: number) => {
+                    const isSelected = imageSrc === item.dataUrl || file?.name === item.name;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`relative group/wmthumb shrink-0 rounded-xl border-2 overflow-hidden transition-all ${
+                          isSelected
+                            ? "border-accent ring-2 ring-accent/40 scale-[1.03] shadow-sm"
+                            : "border-border/80 opacity-75 hover:opacity-100 hover:border-foreground/50"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFile(item.file);
+                            setImageSrc(item.dataUrl);
+                            setOrigSize(item.size);
+                            setDimensions({ width: item.width, height: item.height });
+                          }}
+                          className="block h-11 w-14 bg-background cursor-pointer"
+                          title={`Preview watermark on ${item.name}`}
+                        >
+                          <img
+                            src={item.dataUrl}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </button>
+                        <span className="pointer-events-none absolute bottom-0.5 left-0.5 rounded bg-black/75 px-1 text-[9px] font-mono font-bold text-white">
+                          {idx + 1}
+                        </span>
+                        {rotateBatch.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e: any) => {
+                              e.stopPropagation();
+                              setRotateBatch((prev: any) => {
+                                const next = prev.filter((x: any) => x.id !== item.id);
+                                if (isSelected && next[0]) {
+                                  setFile(next[0].file);
+                                  setImageSrc(next[0].dataUrl);
+                                  setOrigSize(next[0].size);
+                                  setDimensions({ width: next[0].width, height: next[0].height });
+                                }
+                                return next;
+                              });
+                            }}
+                            className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/80 text-white opacity-0 group-hover/wmthumb:opacity-100 hover:bg-rose-600 transition-all cursor-pointer"
+                            title="Remove from batch"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-11 px-3 shrink-0 rounded-xl border-2 border-dashed border-border hover:border-accent hover:text-accent text-[11px] font-bold text-muted-foreground flex items-center gap-1 transition-colors cursor-pointer bg-background/60"
+                    title="Add more images to watermark in bulk"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
   );
 }
