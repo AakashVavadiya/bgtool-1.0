@@ -1362,7 +1362,9 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
     documentTitle: "Tax Invoice",
     documentSubtitle: "",
-    themeColor: "#5b21b6",
+    themeColor: "#ff5500",
+    invoiceTemplate: "executive-orange",
+    invoiceFont: "sans",
     taxMode: "gst_intra",
     invoiceNumber: "A00001",
     issueDate: new Date().toISOString().slice(0, 10),

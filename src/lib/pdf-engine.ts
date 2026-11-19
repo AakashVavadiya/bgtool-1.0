@@ -18,10 +18,24 @@ export interface InvoiceCustomField {
   value: string;
 }
 
+export type InvoiceThemeId =
+  | "executive-orange"
+  | "modern-banner"
+  | "minimal-swiss"
+  | "corporate-split"
+  | "luxury-editorial"
+  | "tech-mono"
+  | "bold-sidebar"
+  | "gst-pro-ledger"
+  | "agency-studio"
+  | "compact-enterprise";
+
 export interface InvoiceData {
   documentTitle?: string;
   documentSubtitle?: string;
   themeColor?: string;
+  invoiceTemplate?: InvoiceThemeId;
+  invoiceFont?: "sans" | "serif" | "mono";
   taxMode?: "gst_intra" | "gst_inter" | "standard" | "none";
   invoiceNumber: string;
   issueDate: string;
@@ -783,16 +797,43 @@ export async function generateInvoicePdf(
 ): Promise<{ pdfBytes: Uint8Array; pageCount: number }> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([595.28, 841.89]); // A4
-  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const fontRegular = await doc.embedFont(StandardFonts.Helvetica);
+  const template: InvoiceThemeId = data.invoiceTemplate || "executive-orange";
+  const fontChoice =
+    data.invoiceFont ||
+    (template === "luxury-editorial" ? "serif" : template === "tech-mono" ? "mono" : "sans");
+
+  const fontBold = await doc.embedFont(
+    fontChoice === "serif"
+      ? StandardFonts.TimesRomanBold
+      : fontChoice === "mono"
+        ? StandardFonts.CourierBold
+        : StandardFonts.HelveticaBold
+  );
+  const fontRegular = await doc.embedFont(
+    fontChoice === "serif"
+      ? StandardFonts.TimesRoman
+      : fontChoice === "mono"
+        ? StandardFonts.Courier
+        : StandardFonts.Helvetica
+  );
 
   const { width, height } = page.getSize();
-  const margin = 36;
+  const margin = template === "bold-sidebar" ? 44 : 36;
   const contentW = width - margin * 2;
 
-  const [tr, tg, tb] = parseHexToRgb(data.themeColor || "#5b21b6", [0.357, 0.129, 0.714]);
+  const [tr, tg, tb] = parseHexToRgb(data.themeColor || "#ff5500", [1, 0.333, 0]);
   const themeColor = rgb(tr, tg, tb);
-  const lightBoxColor = rgb(0.965, 0.968, 0.985);
+  const softThemeTint = rgb(
+    Math.min(1, tr * 0.1 + 0.9),
+    Math.min(1, tg * 0.1 + 0.9),
+    Math.min(1, tb * 0.1 + 0.9)
+  );
+  const lightBoxColor =
+    template === "luxury-editorial"
+      ? rgb(0.985, 0.98, 0.965)
+      : template === "agency-studio"
+        ? softThemeTint
+        : rgb(0.965, 0.968, 0.985);
   const darkText = rgb(0.08, 0.09, 0.12);
   const mutedText = rgb(0.38, 0.42, 0.49);
 
@@ -800,41 +841,130 @@ export async function generateInvoicePdf(
   const pdfCurr = rawCurrency === "₹" ? "Rs. " : safePdfWinAnsi(rawCurrency);
   const taxMode = data.taxMode || "gst_intra";
 
-  // 1. Top Title & Subtitle (Center-aligned like Refrens)
+  // Template-specific page decorations
+  if (template === "bold-sidebar") {
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: 14,
+      height,
+      color: themeColor,
+    });
+  } else if (template === "corporate-split" || template === "compact-enterprise") {
+    page.drawRectangle({
+      x: 0,
+      y: height - 10,
+      width,
+      height: 10,
+      color: themeColor,
+    });
+  } else if (template === "gst-pro-ledger") {
+    page.drawRectangle({
+      x: 20,
+      y: 20,
+      width: width - 40,
+      height: height - 40,
+      borderColor: themeColor,
+      borderWidth: 1.5,
+    });
+  } else if (template === "agency-studio") {
+    page.drawRectangle({
+      x: 0,
+      y: height - 92,
+      width,
+      height: 92,
+      color: softThemeTint,
+    });
+  }
+
+  // 1. Top Title & Subtitle
   const titleStr = safePdfWinAnsi(data.documentTitle || "Tax Invoice");
   const titleSize = 20;
   const titleW = fontBold.widthOfTextAtSize(titleStr, titleSize);
-  page.drawText(titleStr, {
-    x: (width - titleW) / 2,
-    y: height - 46,
-    size: titleSize,
-    font: fontBold,
-    color: themeColor,
-  });
-
-  // Underline under Title
-  page.drawRectangle({
-    x: (width - titleW) / 2,
-    y: height - 51,
-    width: titleW,
-    height: 1.5,
-    color: themeColor,
-  });
 
   let cursorY = height - 68;
-  if (data.documentSubtitle?.trim()) {
-    const subStr = safePdfWinAnsi(data.documentSubtitle.trim());
-    const subW = fontRegular.widthOfTextAtSize(subStr, 9);
-    page.drawText(subStr, {
-      x: (width - subW) / 2,
-      y: cursorY,
-      size: 9,
-      font: fontRegular,
-      color: mutedText,
+
+  if (template === "modern-banner") {
+    page.drawRectangle({
+      x: 0,
+      y: height - 82,
+      width,
+      height: 82,
+      color: themeColor,
     });
-    cursorY -= 16;
+    page.drawText(titleStr, {
+      x: margin,
+      y: height - 48,
+      size: 22,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    if (data.documentSubtitle?.trim()) {
+      page.drawText(safePdfWinAnsi(data.documentSubtitle.trim()), {
+        x: margin,
+        y: height - 64,
+        size: 9,
+        font: fontRegular,
+        color: rgb(0.92, 0.92, 0.95),
+      });
+    }
+    const invBadge = safePdfWinAnsi(`#${data.invoiceNumber || "A00001"}`);
+    const badgeW = fontBold.widthOfTextAtSize(invBadge, 14);
+    page.drawText(invBadge, {
+      x: width - margin - badgeW,
+      y: height - 48,
+      size: 14,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    cursorY = height - 102;
+  } else if (template === "minimal-swiss" || template === "bold-sidebar" || template === "tech-mono") {
+    page.drawText(titleStr, {
+      x: margin,
+      y: height - 48,
+      size: 21,
+      font: fontBold,
+      color: themeColor,
+    });
+    page.drawRectangle({
+      x: margin,
+      y: height - 54,
+      width: contentW,
+      height: 1.2,
+      color: themeColor,
+    });
+    cursorY = height - 70;
   } else {
-    cursorY -= 6;
+    page.drawText(titleStr, {
+      x: (width - titleW) / 2,
+      y: height - 46,
+      size: titleSize,
+      font: fontBold,
+      color: themeColor,
+    });
+
+    page.drawRectangle({
+      x: (width - titleW) / 2,
+      y: height - 51,
+      width: titleW,
+      height: 1.5,
+      color: themeColor,
+    });
+
+    if (data.documentSubtitle?.trim()) {
+      const subStr = safePdfWinAnsi(data.documentSubtitle.trim());
+      const subW = fontRegular.widthOfTextAtSize(subStr, 9);
+      page.drawText(subStr, {
+        x: (width - subW) / 2,
+        y: cursorY,
+        size: 9,
+        font: fontRegular,
+        color: mutedText,
+      });
+      cursorY -= 16;
+    } else {
+      cursorY -= 6;
+    }
   }
 
   // 2. Invoice Metadata (Left) & Business Logo (Right)
