@@ -1,5 +1,5 @@
 // Core PDF workspace tools (merge, split, compress, edit, sign, security, office exports).
-import { Minimize2, Crop, FileImage, ScanText, FileType2, FileText, Presentation, Code2, FileDown, Table2, FileSpreadsheet, MonitorPlay, Stamp, RotateCw, FileCode, Hash, Merge, SplitSquareVertical, FilePlus, FilePen, FileSignature, FileOutput, Images, Camera, Globe, ClipboardList, Briefcase, QrCode, Receipt, CreditCard, FileX, BookOpen, Layers, Lock, Unlock, ShieldOff, GitCompare, Wrench, Zap, Shield, BookMarked, FileSearch, ArrowLeftRight } from "lucide-react";
+import { Minimize2, Crop, FileImage, ScanText, FileType2, FileText, Presentation, Code2, FileDown, Table2, FileSpreadsheet, MonitorPlay, Stamp, RotateCw, FileCode, Hash, Merge, SplitSquareVertical, FilePlus, FilePen, FileSignature, FileOutput, Images, Camera, Globe, ClipboardList, Briefcase, QrCode, Receipt, FileX, BookOpen, Layers, Lock, Unlock, ShieldOff, GitCompare, Wrench, Zap, Shield, BookMarked, FileSearch, ArrowLeftRight } from "lucide-react";
 
 import type { Tool } from "./types";
 
@@ -456,36 +456,6 @@ export const pdfCoreTools: Tool[] = [
         faqs: [
           { q: "Can I save invoices for later?", a: "Yes, invoices can be saved locally or re-generated from your data." },
           { q: "Are multiple currencies supported?", a: "Yes, choose from all major world currencies." },
-        ],
-      },
-    },
-  },
-
-  // Create Electronic Invoice
-  {
-    slug: "create-electronic-invoice",
-    name: "Create Electronic Invoice",
-    category: "PDF Tools",
-    icon: CreditCard,
-    blurb: "Generate e-invoices compliant with XML and electronic billing standards.",
-    accepts: "Form input",
-    outputs: "E-Invoice XML / PDF",
-    seo: {
-      title: "Create Electronic Invoice Online Free — E-Invoice Generator",
-      description: "Create e-invoices online for free. Generate XML electronic invoices compliant with EU and international e-invoicing standards.",
-      keywords: ["electronic invoice", "e-invoice generator", "xml invoice", "digital invoice", "eu einvoice"],
-      article: {
-        intro: "Generate structured electronic invoices in XML format compliant with major e-invoicing standards. Ideal for B2B billing, EU compliance, and accounting system integration.",
-        howTo: ["Enter billing details.", "Add line items and VAT.", "Choose e-invoice standard.", "Download XML and PDF."],
-        benefits: [
-          { heading: "Standards Compliant", body: "Supports UBL, CII, and Factur-X formats." },
-          { heading: "Dual Output", body: "Download both human-readable PDF and machine-readable XML." },
-          { heading: "VAT Ready", body: "Automatic VAT calculation per line item." },
-          { heading: "Accounting Integration", body: "XML output imports directly into accounting software." },
-        ],
-        faqs: [
-          { q: "What e-invoice formats are supported?", a: "UBL 2.1, Cross Industry Invoice (CII), and Factur-X." },
-          { q: "Is it compliant with EU regulations?", a: "Yes, fully compliant with EN 16931." },
         ],
       },
     },
@@ -1364,7 +1334,7 @@ export const pdfCoreTools: Tool[] = [
     },
   },
 
-  // Remove PDF Metadata
+  //Remove PDF Metadata
   {
     slug: "remove-pdf-metadata",
     name: "Remove PDF Metadata",
@@ -1393,7 +1363,4 @@ export const pdfCoreTools: Tool[] = [
       },
     },
   },
-
-
-  // Create Invoice Visually
 ];

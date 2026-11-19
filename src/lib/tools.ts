@@ -26,6 +26,8 @@ export const LEGACY_TOOL_SLUG_ALIASES: Record<string, string> = {
   "face-blur": "blur-face",
   "convert-image": "convert-to-jpg",
   "batch-png": "convert-from-jpg",
+  "create-electronic-invoice": "create-invoice",
+  "create-invoice-visually": "create-invoice",
 };
 
 export const resolveCanonicalToolSlug = (slug: string): string =>

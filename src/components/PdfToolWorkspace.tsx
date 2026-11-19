@@ -1394,8 +1394,6 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
 
   const isInvoiceTool =
     tool.slug === "create-invoice" ||
-    tool.slug === "create-invoice-visually" ||
-    tool.slug === "create-electronic-invoice" ||
     tool.slug === "pdf-invoice-to-einvoice" ||
     tool.slug === "xml-einvoice-to-pdf";
 

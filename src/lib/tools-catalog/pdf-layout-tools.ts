@@ -1,56 +1,9 @@
 // Visual invoice builders, page sizing, metadata, and image-to-PDF tools.
-import { FileImage, FileType2, FileCode, Receipt, Layers, Eye, Settings2, LayoutGrid, Columns, Printer, KeyRound, Maximize2, FileInput, FileCheck, FileStack, FormInput } from "lucide-react";
+import { FileImage, FileType2, FileCode, Receipt, Layers, Eye, Settings2, LayoutGrid, Columns, Printer, KeyRound, Maximize2, FileInput, FileCheck, FileStack } from "lucide-react";
 
 import type { Tool } from "./types";
 
 export const pdfLayoutTools: Tool[] = [
-  {
-    slug: "create-invoice-visually",
-    name: "Create Invoice Visually",
-    category: "PDF Tools",
-    icon: FormInput,
-    blurb: "Design professional PDF invoices visually with live interactive fields and automatic tax/total calculations.",
-    accepts: "Visual Builder / Data",
-    outputs: "PDF Invoice",
-    seo: {
-      title: "Create Invoice Visually Online Free — Visual PDF Invoice Maker",
-      description: "Build clean, professional PDF invoices visually. Customize your company branding, add line items with tax calculations, and export instantly.",
-      keywords: ["create invoice visually","visual invoice maker","free online invoice generator","pdf invoice designer","custom invoice creator"],
-      article: {
-        intro: "Craft beautiful and compliant PDF invoices directly in your browser with our visual invoice builder. No design experience needed.",
-        howTo: ["Enter your business details and logo.","Add client information and invoice terms.","Insert line items, quantities, and tax rates.","Preview visually and download the finished PDF invoice."],
-        benefits: [
-          {
-                    "heading": "Visual Real-Time Preview",
-                    "body": "See changes update instantly on a pixel-perfect invoice canvas."
-          },
-          {
-                    "heading": "Automatic Calculations",
-                    "body": "Subtotals, discounts, taxes, and grand totals calculate on the fly."
-          },
-          {
-                    "heading": "Brand Customization",
-                    "body": "Add company logos, tailored accents, and notes easily."
-          },
-          {
-                    "heading": "Private & Free",
-                    "body": "No watermark, no registration, and data stays in your browser."
-          }
-],
-        faqs: [
-          {
-                    "q": "Can I save my invoice template?",
-                    "a": "Yes, you can export and re-open your invoice layout at any time."
-          },
-          {
-                    "q": "Are taxes and discounts supported?",
-                    "a": "Yes, multi-item taxes, percentage discounts, and shipping can be applied."
-          }
-],
-      },
-    },
-  },
-
   // PDF Invoice to E-Invoice
   {
     slug: "pdf-invoice-to-einvoice",

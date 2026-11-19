@@ -403,12 +403,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://bg.tools/tools/create-electronic-invoice</loc>
-    <lastmod>2026-11-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://bg.tools/tools/annotate-pdf</loc>
     <lastmod>2026-11-17</lastmod>
     <changefreq>weekly</changefreq>
@@ -584,12 +578,6 @@
   </url>
   <url>
     <loc>https://bg.tools/tools/remove-pdf-metadata</loc>
-    <lastmod>2026-11-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://bg.tools/tools/create-invoice-visually</loc>
     <lastmod>2026-11-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -1183,12 +1171,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://bg.tools/news/create-electronic-invoice</loc>
-    <lastmod>2026-10-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://bg.tools/news/annotate-pdf</loc>
     <lastmod>2026-10-20</lastmod>
     <changefreq>weekly</changefreq>
@@ -1364,12 +1346,6 @@
   </url>
   <url>
     <loc>https://bg.tools/news/remove-pdf-metadata</loc>
-    <lastmod>2026-10-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://bg.tools/news/create-invoice-visually</loc>
     <lastmod>2026-10-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
