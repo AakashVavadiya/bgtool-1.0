@@ -42,7 +42,7 @@ interface PdfToEInvoiceStudioProps {
   tool: Tool;
   files: UploadedPdfItem[];
   setFiles: React.Dispatch<React.SetStateAction<UploadedPdfItem[]>>;
-  activeFile: UploadedPdfItem | undefined;
+  activeFile: UploadedPdfItem | null | undefined;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   invoiceData: InvoiceData;
   setInvoiceData: React.Dispatch<React.SetStateAction<InvoiceData>>;
