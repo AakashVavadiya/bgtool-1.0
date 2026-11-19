@@ -1759,6 +1759,13 @@ export function RefrensInvoiceStudio({
                   {invoiceData.companyPan && (
                     <div className="font-mono text-slate-700 dark:text-zinc-300">PAN: {invoiceData.companyPan}</div>
                   )}
+                  {(invoiceData.companyCustomFields || []).map((cf) =>
+                    cf.label || cf.value ? (
+                      <div key={cf.id} className="text-slate-700 dark:text-zinc-300">
+                        <span className="font-bold">{cf.label || "Field"}:</span> {cf.value}
+                      </div>
+                    ) : null
+                  )}
                 </div>
 
                 <div
@@ -1788,6 +1795,13 @@ export function RefrensInvoiceStudio({
                   )}
                   {invoiceData.clientPan && (
                     <div className="font-mono text-slate-700 dark:text-zinc-300">PAN: {invoiceData.clientPan}</div>
+                  )}
+                  {(invoiceData.clientCustomFields || []).map((cf) =>
+                    cf.label || cf.value ? (
+                      <div key={cf.id} className="text-slate-700 dark:text-zinc-300">
+                        <span className="font-bold">{cf.label || "Field"}:</span> {cf.value}
+                      </div>
+                    ) : null
                   )}
                 </div>
               </div>
@@ -2326,6 +2340,47 @@ export function RefrensInvoiceStudio({
                   </div>
                 )}
 
+                {/* Dynamic Custom Fields for Billed By (Your Details) */}
+                {(invoiceData.companyCustomFields || []).map((cf, idx) => (
+                  <div key={cf.id} className="grid grid-cols-12 items-center gap-2">
+                    <input
+                      type="text"
+                      value={cf.label}
+                      onChange={(e) => {
+                        const next = [...(invoiceData.companyCustomFields || [])];
+                        next[idx] = { ...cf, label: e.target.value };
+                        updateField("companyCustomFields", next);
+                      }}
+                      placeholder="Field Name"
+                      className="col-span-4 border-b border-dashed border-slate-300 dark:border-zinc-700 bg-transparent py-1 text-[11px] font-extrabold text-slate-500 dark:text-zinc-400 focus:border-[#ff5500] focus:outline-none"
+                    />
+                    <div className="col-span-8 flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={cf.value}
+                        onChange={(e) => {
+                          const next = [...(invoiceData.companyCustomFields || [])];
+                          next[idx] = { ...cf, value: e.target.value };
+                          updateField("companyCustomFields", next);
+                        }}
+                        placeholder="Enter value"
+                        className="flex-1 border-b border-slate-200 dark:border-zinc-800 bg-transparent py-1 text-xs font-medium text-slate-800 dark:text-zinc-200 focus:border-[#ff5500] focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = (invoiceData.companyCustomFields || []).filter((_, i) => i !== idx);
+                          updateField("companyCustomFields", next);
+                        }}
+                        className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer"
+                        title="Remove custom field"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
                 <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] font-bold" style={{ color: themeColor }}>
                   {!showCompanyGstin && (
                     <button type="button" onClick={() => setShowCompanyGstin(true)} className="hover:underline cursor-pointer">
@@ -2347,6 +2402,20 @@ export function RefrensInvoiceStudio({
                       <Phone className="h-3 w-3" /> Add Phone
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [
+                        ...(invoiceData.companyCustomFields || []),
+                        { id: `comp_cf_${Date.now()}`, label: "Custom Field", value: "" },
+                      ];
+                      updateField("companyCustomFields", next);
+                    }}
+                    className="inline-flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Custom Field</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -2449,6 +2518,47 @@ export function RefrensInvoiceStudio({
                   </div>
                 )}
 
+                {/* Dynamic Custom Fields for Billed To (Client's Details) */}
+                {(invoiceData.clientCustomFields || []).map((cf, idx) => (
+                  <div key={cf.id} className="grid grid-cols-12 items-center gap-2">
+                    <input
+                      type="text"
+                      value={cf.label}
+                      onChange={(e) => {
+                        const next = [...(invoiceData.clientCustomFields || [])];
+                        next[idx] = { ...cf, label: e.target.value };
+                        updateField("clientCustomFields", next);
+                      }}
+                      placeholder="Field Name"
+                      className="col-span-4 border-b border-dashed border-slate-300 dark:border-zinc-700 bg-transparent py-1 text-[11px] font-extrabold text-slate-500 dark:text-zinc-400 focus:border-[#ff5500] focus:outline-none"
+                    />
+                    <div className="col-span-8 flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={cf.value}
+                        onChange={(e) => {
+                          const next = [...(invoiceData.clientCustomFields || [])];
+                          next[idx] = { ...cf, value: e.target.value };
+                          updateField("clientCustomFields", next);
+                        }}
+                        placeholder="Enter value"
+                        className="flex-1 border-b border-slate-200 dark:border-zinc-800 bg-transparent py-1 text-xs font-medium text-slate-800 dark:text-zinc-200 focus:border-[#ff5500] focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = (invoiceData.clientCustomFields || []).filter((_, i) => i !== idx);
+                          updateField("clientCustomFields", next);
+                        }}
+                        className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer"
+                        title="Remove custom field"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
                 <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] font-bold" style={{ color: themeColor }}>
                   {!showClientGstin && (
                     <button type="button" onClick={() => setShowClientGstin(true)} className="hover:underline cursor-pointer">
@@ -2470,6 +2580,20 @@ export function RefrensInvoiceStudio({
                       <Phone className="h-3 w-3" /> Add Phone
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [
+                        ...(invoiceData.clientCustomFields || []),
+                        { id: `client_cf_${Date.now()}`, label: "Custom Field", value: "" },
+                      ];
+                      updateField("clientCustomFields", next);
+                    }}
+                    className="inline-flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Custom Field</span>
+                  </button>
                 </div>
               </div>
             </div>

@@ -51,6 +51,7 @@ export interface InvoiceData {
   companyCityState?: string;
   companyEmail: string;
   companyPhone?: string;
+  companyCustomFields?: InvoiceCustomField[];
   clientName: string;
   clientCountry?: string;
   clientGstin?: string;
@@ -59,6 +60,7 @@ export interface InvoiceData {
   clientCityState?: string;
   clientEmail: string;
   clientPhone?: string;
+  clientCustomFields?: InvoiceCustomField[];
   items: InvoiceItem[];
   discountType?: "percent" | "flat";
   discountValue?: number;
@@ -1195,9 +1197,13 @@ export async function generateInvoicePdf(
   cursorY = Math.min(metaY, metaStartY - 56) - 10;
 
   // 3. Two-Column "Billed By" & "Billed To" Cards
+  const maxCustomRows = Math.max(
+    (data.companyCustomFields || []).length,
+    (data.clientCustomFields || []).length
+  );
   const cardGap = 12;
   const cardW = (contentW - cardGap) / 2;
-  const cardH = 104;
+  const cardH = 104 + Math.min(3, maxCustomRows) * 11;
   const cardBottomY = cursorY - cardH;
 
   // Left Card: Billed By
@@ -1233,7 +1239,8 @@ export async function generateInvoicePdf(
     gstin?: string,
     pan?: string,
     email?: string,
-    phone?: string
+    phone?: string,
+    extraFields?: InvoiceCustomField[]
   ) => {
     let py = cursorY - 16;
     page.drawText(safePdfWinAnsi(heading), {
@@ -1302,6 +1309,21 @@ export async function generateInvoicePdf(
         font: fontRegular,
         color: mutedText,
       });
+      py -= 11;
+    }
+    if (Array.isArray(extraFields)) {
+      extraFields.forEach((ef) => {
+        if ((ef.label.trim() || ef.value.trim()) && py >= cardBottomY + 6) {
+          page.drawText(safePdfWinAnsi(`${ef.label || "Field"}: ${ef.value || "-"}`).slice(0, 48), {
+            x: x + 10,
+            y: py,
+            size: 8,
+            font: fontRegular,
+            color: darkText,
+          });
+          py -= 11;
+        }
+      });
     }
   };
 
@@ -1315,7 +1337,8 @@ export async function generateInvoicePdf(
     data.companyGstin,
     data.companyPan,
     data.companyEmail,
-    data.companyPhone
+    data.companyPhone,
+    data.companyCustomFields
   );
 
   drawPartyCard(
@@ -1328,7 +1351,8 @@ export async function generateInvoicePdf(
     data.clientGstin,
     data.clientPan,
     data.clientEmail,
-    data.clientPhone
+    data.clientPhone,
+    data.clientCustomFields
   );
 
   // 4. Items Table (Refrens GST Columns)
