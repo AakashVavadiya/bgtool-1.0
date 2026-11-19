@@ -466,29 +466,46 @@ export function RefrensInvoiceStudio({
         </div>
 
         {/* Theme Swatches, Tax Mode & Currency */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Quick Color Swatches (Orange Default) */}
-          <div className="flex items-center gap-1.5 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/50 px-3 py-1.5">
-            <Palette className="h-3.5 w-3.5 text-slate-400 mr-0.5" />
-            {THEME_SWATCHES.slice(0, 6).map((sw) => (
-              <button
-                key={sw.hex}
-                type="button"
-                onClick={() => updateField("themeColor", sw.hex)}
-                title={sw.name}
-                className={`h-5 w-5 rounded-full transition-transform cursor-pointer ${
-                  themeColor === sw.hex ? "scale-125 ring-2 ring-offset-2 ring-slate-900 dark:ring-white" : "opacity-80 hover:opacity-100"
-                }`}
-                style={{ backgroundColor: sw.hex }}
-              />
-            ))}
-            <input
-              type="color"
-              value={themeColor}
-              onChange={(e) => updateField("themeColor", e.target.value)}
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 dark:border-zinc-800 bg-slate-50/90 dark:bg-zinc-800/60 px-3.5 py-2 shadow-2xs">
+            <Palette className="h-4 w-4 text-slate-400 shrink-0 mr-0.5" />
+            {THEME_SWATCHES.slice(0, 6).map((sw) => {
+              const isSelectedColor = themeColor.toLowerCase() === sw.hex.toLowerCase();
+              return (
+                <button
+                  key={sw.hex}
+                  type="button"
+                  onClick={() => updateField("themeColor", sw.hex)}
+                  title={sw.name}
+                  className={`relative h-6 w-6 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    isSelectedColor
+                      ? "ring-2 ring-slate-900 dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-sm"
+                      : "opacity-85 hover:opacity-100 hover:scale-105"
+                  }`}
+                  style={{ backgroundColor: sw.hex }}
+                >
+                  {isSelectedColor && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
+                </button>
+              );
+            })}
+            <div className="h-4 w-px bg-slate-200 dark:bg-zinc-700 mx-0.5" />
+            <label
               title="Custom brand color"
-              className="h-5 w-5 rounded cursor-pointer border-0 bg-transparent p-0"
-            />
+              className="relative inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 pl-1.5 pr-2.5 py-0.5 text-[11px] font-mono font-bold text-slate-700 dark:text-zinc-200 hover:border-[#ff5500] transition-colors cursor-pointer shrink-0"
+            >
+              <span
+                className="h-4 w-4 rounded-full border border-black/10 shrink-0"
+                style={{ backgroundColor: themeColor }}
+              />
+              <span className="uppercase">{themeColor}</span>
+              <input
+                type="color"
+                value={themeColor}
+                onChange={(e) => updateField("themeColor", e.target.value)}
+                className="sr-only"
+              />
+            </label>
           </div>
 
           {/* Configure Tax Mode */}
