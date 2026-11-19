@@ -1,5 +1,5 @@
 // Interactive Refrens-style GST & Tax Invoice Builder with 10 Premium Themes and Default Brand Orange (#ff5500).
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Plus,
   Copy,
@@ -23,6 +23,9 @@ import {
   LayoutTemplate,
   Type,
   Download,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   numberToInvoiceWords,
@@ -44,16 +47,16 @@ export interface PremiumThemeConfig {
   defaultColor: string;
   defaultFont: "sans" | "serif" | "mono";
   graphicStyle:
-    | "dual-wave"
-    | "bottom-swoosh"
-    | "angle-slash"
-    | "split-hero-banner"
-    | "sidebar-ribbon"
-    | "editorial-crest"
-    | "cyber-grid"
-    | "gst-seal-frame"
-    | "fluid-blobs"
-    | "chevron-header";
+  | "dual-wave"
+  | "bottom-swoosh"
+  | "angle-slash"
+  | "split-hero-banner"
+  | "sidebar-ribbon"
+  | "editorial-crest"
+  | "cyber-grid"
+  | "gst-seal-frame"
+  | "fluid-blobs"
+  | "chevron-header";
 }
 
 const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
@@ -182,6 +185,321 @@ const COUNTRIES = [
   "Singapore",
   "Germany",
 ];
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const WEEKDAY_SHORT = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+function parseIsoDateString(isoStr: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
+    const [y, m, d] = isoStr.split("-").map(Number);
+    const dt = new Date(y!, (m || 1) - 1, d || 1);
+    if (!isNaN(dt.getTime())) return dt;
+  }
+  return new Date();
+}
+
+function toIsoDateString(dt: Date): string {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const d = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatDisplayDate(isoStr: string): string {
+  if (!isoStr) return "Select date";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
+    const [y, m, d] = isoStr.split("-").map(Number);
+    const monthName = MONTH_NAMES[(m || 1) - 1]?.slice(0, 3) || "Jan";
+    return `${String(d).padStart(2, "0")} ${monthName} ${y} (${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y})`;
+  }
+  return isoStr;
+}
+
+interface CustomInvoiceDatePickerProps {
+  value: string;
+  onChange: (nextIso: string) => void;
+  accentColor: string;
+  showDuePresets?: boolean;
+  baseIssueDate?: string;
+}
+
+function CustomInvoiceDatePicker({
+  value,
+  onChange,
+  accentColor,
+  showDuePresets = false,
+  baseIssueDate,
+}: CustomInvoiceDatePickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const parsedCurrent = parseIsoDateString(value);
+  const [viewYear, setViewYear] = useState<number>(() => parsedCurrent.getFullYear());
+  const [viewMonth, setViewMonth] = useState<number>(() => parsedCurrent.getMonth());
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const dt = parseIsoDateString(value);
+    setViewYear(dt.getFullYear());
+    setViewMonth(dt.getMonth());
+  }, [value]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  // Build 42-day Monday-start calendar grid
+  const firstDayOfMonth = new Date(viewYear, viewMonth, 1);
+  // getDay() is 0 (Sun) - 6 (Sat); convert to 0 (Mon) - 6 (Sun)
+  const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+  const calendarCells: Array<{ day: number; monthOffset: -1 | 0 | 1; iso: string }> = [];
+  for (let i = startOffset - 1; i >= 0; i--) {
+    const d = daysInPrevMonth - i;
+    const dt = new Date(viewYear, viewMonth - 1, d);
+    calendarCells.push({ day: d, monthOffset: -1, iso: toIsoDateString(dt) });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(viewYear, viewMonth, d);
+    calendarCells.push({ day: d, monthOffset: 0, iso: toIsoDateString(dt) });
+  }
+  const remaining = 42 - calendarCells.length;
+  for (let d = 1; d <= remaining; d++) {
+    const dt = new Date(viewYear, viewMonth + 1, d);
+    calendarCells.push({ day: d, monthOffset: 1, iso: toIsoDateString(dt) });
+  }
+
+  const todayIso = toIsoDateString(new Date());
+
+  const stepMonth = (delta: number) => {
+    const next = new Date(viewYear, viewMonth + delta, 1);
+    setViewYear(next.getFullYear());
+    setViewMonth(next.getMonth());
+  };
+
+  const applyOffsetDays = (days: number) => {
+    const base = baseIssueDate ? parseIsoDateString(baseIssueDate) : new Date();
+    const target = new Date(base.getFullYear(), base.getMonth(), base.getDate() + days);
+    const iso = toIsoDateString(target);
+    onChange(iso);
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={containerRef} className="relative flex-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full flex items-center justify-between gap-2 border-b py-1.5 text-left text-sm font-bold transition-colors cursor-pointer ${
+          isOpen
+            ? "border-[#ff5500] text-slate-900 dark:text-white"
+            : "border-slate-300 dark:border-zinc-700 text-slate-900 dark:text-white hover:border-[#ff5500]"
+        }`}
+      >
+        <span className="truncate">{formatDisplayDate(value)}</span>
+        <Calendar className="h-4 w-4 shrink-0" style={{ color: accentColor }} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-full mt-2 z-50 w-76 sm:w-80 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          {/* Top Month & Year Selector Header */}
+          <div className="flex items-center justify-between gap-1.5 mb-3">
+            <div className="flex items-center gap-1.5">
+              <select
+                value={viewMonth}
+                onChange={(e) => setViewMonth(Number(e.target.value))}
+                className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2 py-1 text-xs font-extrabold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+              >
+                {MONTH_NAMES.map((m, idx) => (
+                  <option key={m} value={idx}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={viewYear}
+                onChange={(e) => setViewYear(Number(e.target.value))}
+                className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2 py-1 text-xs font-mono font-extrabold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+              >
+                {Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - 10 + i).map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => stepMonth(-1)}
+                className="h-7 w-7 rounded-lg border border-slate-200 dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer"
+                title="Previous Month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => stepMonth(1)}
+                className="h-7 w-7 rounded-lg border border-slate-200 dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer"
+                title="Next Month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Date Presets (Today / Net 7 / Net 15 / Net 30) */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-3 pb-2.5 border-b border-slate-100 dark:border-zinc-800">
+            <button
+              type="button"
+              onClick={() => {
+                onChange(todayIso);
+                setIsOpen(false);
+              }}
+              className="rounded-lg bg-slate-100 dark:bg-zinc-800 hover:bg-orange-500/15 hover:text-[#ff5500] px-2.5 py-1 text-[11px] font-extrabold text-slate-700 dark:text-zinc-300 transition-colors cursor-pointer"
+            >
+              Today
+            </button>
+            {showDuePresets ? (
+              <>
+                {[
+                  { label: "+7 Days", days: 7 },
+                  { label: "+15 Days", days: 15 },
+                  { label: "+30 Days", days: 30 },
+                  { label: "+45 Days", days: 45 },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => applyOffsetDays(p.days)}
+                    className="rounded-lg bg-slate-100 dark:bg-zinc-800 hover:bg-orange-500/15 hover:text-[#ff5500] px-2 py-1 text-[11px] font-bold text-slate-700 dark:text-zinc-300 transition-colors cursor-pointer"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => applyOffsetDays(-1)}
+                  className="rounded-lg bg-slate-100 dark:bg-zinc-800 hover:bg-orange-500/15 hover:text-[#ff5500] px-2.5 py-1 text-[11px] font-bold text-slate-700 dark:text-zinc-300 transition-colors cursor-pointer"
+                >
+                  Yesterday
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyOffsetDays(1)}
+                  className="rounded-lg bg-slate-100 dark:bg-zinc-800 hover:bg-orange-500/15 hover:text-[#ff5500] px-2.5 py-1 text-[11px] font-bold text-slate-700 dark:text-zinc-300 transition-colors cursor-pointer"
+                >
+                  Tomorrow
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Weekday Labels */}
+          <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
+            {WEEKDAY_SHORT.map((wd) => (
+              <div key={wd} className="text-[11px] font-extrabold text-slate-400 dark:text-zinc-500 py-0.5">
+                {wd}
+              </div>
+            ))}
+          </div>
+
+          {/* 42-Day Calendar Matrix */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarCells.map((cell) => {
+              const isSelected = cell.iso === value;
+              const isToday = cell.iso === todayIso;
+              return (
+                <button
+                  key={cell.iso}
+                  type="button"
+                  onClick={() => {
+                    onChange(cell.iso);
+                    setIsOpen(false);
+                  }}
+                  className={`h-8 w-full rounded-xl text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                    isSelected
+                      ? "text-white font-black shadow-md scale-105"
+                      : cell.monthOffset !== 0
+                        ? "text-slate-300 dark:text-zinc-600 hover:bg-slate-100 dark:hover:bg-zinc-800"
+                        : isToday
+                          ? "border-2 text-slate-900 dark:text-white font-black"
+                          : "text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800"
+                  }`}
+                  style={
+                    isSelected
+                      ? { backgroundColor: accentColor }
+                      : isToday
+                        ? { borderColor: accentColor }
+                        : undefined
+                  }
+                >
+                  {cell.day}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Direct Custom ISO / Manual Date Input & Footer Actions */}
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="YYYY-MM-DD"
+              className="w-28 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2.5 py-1 text-xs font-mono font-bold text-slate-800 dark:text-zinc-200 focus:outline-none focus:border-[#ff5500]"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(todayIso);
+                  setIsOpen(false);
+                }}
+                className="text-xs font-extrabold hover:underline cursor-pointer"
+                style={{ color: accentColor }}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="rounded-lg bg-slate-900 dark:bg-white text-white dark:text-zinc-900 px-2.5 py-1 text-[11px] font-bold cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface RefrensInvoiceStudioProps {
   tool: Tool;
@@ -411,17 +729,15 @@ export function RefrensInvoiceStudio({
           <button
             type="button"
             onClick={() => setActiveStep(1)}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
-              activeStep === 1
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold transition-all cursor-pointer shrink-0 ${activeStep === 1
                 ? "text-white shadow-md scale-[1.02]"
                 : "border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/60 text-slate-700 dark:text-zinc-300 hover:border-orange-500/50"
-            }`}
+              }`}
             style={activeStep === 1 ? { backgroundColor: themeColor } : undefined}
           >
             <span
-              className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black ${
-                activeStep === 1 ? "bg-white/25 text-white" : "bg-emerald-500 text-white"
-              }`}
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black ${activeStep === 1 ? "bg-white/25 text-white" : "bg-emerald-500 text-white"
+                }`}
             >
               {activeStep > 1 ? <Check className="h-3 w-3 stroke-[3]" /> : "1"}
             </span>
@@ -433,17 +749,15 @@ export function RefrensInvoiceStudio({
           <button
             type="button"
             onClick={() => setActiveStep(2)}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
-              activeStep === 2
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-extrabold transition-all cursor-pointer shrink-0 ${activeStep === 2
                 ? "text-white shadow-md scale-[1.02]"
                 : "border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/60 text-slate-700 dark:text-zinc-300 hover:border-orange-500/50"
-            }`}
+              }`}
             style={activeStep === 2 ? { backgroundColor: themeColor } : undefined}
           >
             <span
-              className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black ${
-                activeStep === 2 ? "bg-white/25 text-white" : "bg-slate-200 dark:bg-zinc-700"
-              }`}
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black ${activeStep === 2 ? "bg-white/25 text-white" : "bg-slate-200 dark:bg-zinc-700"
+                }`}
             >
               2
             </span>
@@ -478,11 +792,10 @@ export function RefrensInvoiceStudio({
                   type="button"
                   onClick={() => updateField("themeColor", sw.hex)}
                   title={sw.name}
-                  className={`relative h-6 w-6 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                    isSelectedColor
+                  className={`relative h-6 w-6 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${isSelectedColor
                       ? "ring-2 ring-slate-900 dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-sm"
                       : "opacity-85 hover:opacity-100 hover:scale-105"
-                  }`}
+                    }`}
                   style={{ backgroundColor: sw.hex }}
                 >
                   {isSelectedColor && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
@@ -586,11 +899,10 @@ export function RefrensInvoiceStudio({
                     key={theme.id}
                     type="button"
                     onClick={() => handleSelectPremiumTheme(theme)}
-                    className={`group relative text-left rounded-2xl border-2 p-3 transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
+                    className={`group relative text-left rounded-2xl border-2 p-3 transition-all cursor-pointer flex flex-col justify-between ${isSelected
                         ? "border-[#ff5500] bg-orange-50/40 dark:bg-orange-950/20 shadow-lg ring-2 ring-[#ff5500]/20"
                         : "border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/30 hover:border-slate-400 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-800/60"
-                    }`}
+                      }`}
                   >
                     {/* Portrait A4 Mini Sheet Container - 10 Distinct Structural Architectures */}
                     <div className="w-full rounded-xl bg-slate-200/70 dark:bg-zinc-950/70 p-3 mb-3 flex items-center justify-center">
@@ -1037,11 +1349,10 @@ export function RefrensInvoiceStudio({
                         type="button"
                         onClick={() => updateField("themeColor", sw.hex)}
                         title={sw.name}
-                        className={`h-7 w-7 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0 ${
-                          isSwActive
+                        className={`h-7 w-7 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0 ${isSwActive
                             ? "ring-2 ring-slate-900 dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 shadow-sm"
                             : "opacity-85 hover:opacity-100 hover:scale-105"
-                        }`}
+                          }`}
                         style={{ backgroundColor: sw.hex }}
                       >
                         {isSwActive && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
@@ -1080,11 +1391,10 @@ export function RefrensInvoiceStudio({
                       key={f.id}
                       type="button"
                       onClick={() => updateField("invoiceFont", f.id as "sans" | "serif" | "mono")}
-                      className={`rounded-xl border px-3 py-2 text-left transition-all cursor-pointer ${
-                        activeFont === f.id
+                      className={`rounded-xl border px-3 py-2 text-left transition-all cursor-pointer ${activeFont === f.id
                           ? "border-[#ff5500] bg-orange-50/50 dark:bg-orange-950/30 text-slate-900 dark:text-white font-bold shadow-xs"
                           : "border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/40 text-slate-600 dark:text-zinc-400"
-                      }`}
+                        }`}
                     >
                       <div className="text-xs font-extrabold">{f.label}</div>
                       <div className="text-[10px] opacity-75">{f.sub}</div>
@@ -1321,9 +1631,8 @@ export function RefrensInvoiceStudio({
             )}
 
             <div
-              className={`relative z-10 p-6 sm:p-10 md:p-12 space-y-6 ${fontClass} ${
-                activeThemeObj.graphicStyle === "gst-seal-frame" ? "m-4 sm:m-6 border-2 rounded-2xl" : ""
-              } ${activeThemeObj.graphicStyle === "sidebar-ribbon" ? "pl-16 sm:pl-24" : ""}`}
+              className={`relative z-10 p-6 sm:p-10 md:p-12 space-y-6 ${fontClass} ${activeThemeObj.graphicStyle === "gst-seal-frame" ? "m-4 sm:m-6 border-2 rounded-2xl" : ""
+                } ${activeThemeObj.graphicStyle === "sidebar-ribbon" ? "pl-16 sm:pl-24" : ""}`}
               style={activeThemeObj.graphicStyle === "gst-seal-frame" ? { borderColor: themeColor } : undefined}
             >
               {/* Corner Triangles for GST Seal Frame */}
@@ -1369,20 +1678,20 @@ export function RefrensInvoiceStudio({
               {(activeThemeObj.graphicStyle === "sidebar-ribbon" ||
                 activeThemeObj.graphicStyle === "gst-seal-frame" ||
                 activeThemeObj.graphicStyle === "chevron-header") && (
-                <div className="border-b-2 pb-3 flex items-end justify-between" style={{ borderColor: themeColor }}>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black uppercase" style={{ color: themeColor }}>
-                      {invoiceData.documentTitle || "Tax Invoice"}
-                    </h2>
-                    {invoiceData.documentSubtitle && (
-                      <p className="text-xs text-slate-500 mt-0.5">{invoiceData.documentSubtitle}</p>
-                    )}
+                  <div className="border-b-2 pb-3 flex items-end justify-between" style={{ borderColor: themeColor }}>
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-black uppercase" style={{ color: themeColor }}>
+                        {invoiceData.documentTitle || "Tax Invoice"}
+                      </h2>
+                      {invoiceData.documentSubtitle && (
+                        <p className="text-xs text-slate-500 mt-0.5">{invoiceData.documentSubtitle}</p>
+                      )}
+                    </div>
+                    <span className="text-sm font-mono font-black text-slate-700 dark:text-zinc-300">
+                      #{invoiceData.invoiceNumber}
+                    </span>
                   </div>
-                  <span className="text-sm font-mono font-black text-slate-700 dark:text-zinc-300">
-                    #{invoiceData.invoiceNumber}
-                  </span>
-                </div>
-              )}
+                )}
 
               {/* Metadata & Logo Row */}
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1423,9 +1732,8 @@ export function RefrensInvoiceStudio({
               {/* Billed By & Billed To Preview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
-                  className={`rounded-2xl p-4 space-y-1 text-xs ${
-                    activeThemeObj.graphicStyle === "bottom-swoosh" ? "border-0 px-0" : "border"
-                  }`}
+                  className={`rounded-2xl p-4 space-y-1 text-xs ${activeThemeObj.graphicStyle === "bottom-swoosh" ? "border-0 px-0" : "border"
+                    }`}
                   style={{
                     backgroundColor:
                       activeThemeObj.graphicStyle === "bottom-swoosh"
@@ -1454,9 +1762,8 @@ export function RefrensInvoiceStudio({
                 </div>
 
                 <div
-                  className={`rounded-2xl p-4 space-y-1 text-xs ${
-                    activeThemeObj.graphicStyle === "bottom-swoosh" ? "border-0 px-0" : "border"
-                  }`}
+                  className={`rounded-2xl p-4 space-y-1 text-xs ${activeThemeObj.graphicStyle === "bottom-swoosh" ? "border-0 px-0" : "border"
+                    }`}
                   style={{
                     backgroundColor:
                       activeThemeObj.graphicStyle === "bottom-swoosh"
@@ -1490,11 +1797,10 @@ export function RefrensInvoiceStudio({
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr
-                      className={`font-bold ${
-                        activeThemeObj.graphicStyle === "bottom-swoosh"
+                      className={`font-bold ${activeThemeObj.graphicStyle === "bottom-swoosh"
                           ? "bg-slate-200/80 dark:bg-zinc-800 text-slate-900 dark:text-white"
                           : "text-white"
-                      }`}
+                        }`}
                       style={
                         activeThemeObj.graphicStyle === "bottom-swoosh"
                           ? undefined
@@ -1761,12 +2067,11 @@ export function RefrensInvoiceStudio({
                 <label className="col-span-5 text-xs font-bold text-slate-600 dark:text-zinc-400 underline decoration-dotted underline-offset-4">
                   Invoice Date<span className="text-rose-500">*</span>
                 </label>
-                <div className="col-span-7">
-                  <input
-                    type="date"
+                <div className="col-span-7 flex items-center">
+                  <CustomInvoiceDatePicker
                     value={invoiceData.issueDate}
-                    onChange={(e) => updateField("issueDate", e.target.value)}
-                    className="w-full border-b border-slate-300 dark:border-zinc-700 bg-transparent py-1.5 text-sm font-bold text-slate-900 dark:text-white focus:border-[#ff5500] focus:outline-none"
+                    onChange={(nextIso) => updateField("issueDate", nextIso)}
+                    accentColor={themeColor}
                   />
                 </div>
               </div>
@@ -1777,11 +2082,12 @@ export function RefrensInvoiceStudio({
                     Due Date
                   </label>
                   <div className="col-span-7 flex items-center gap-1.5">
-                    <input
-                      type="date"
+                    <CustomInvoiceDatePicker
                       value={invoiceData.dueDate}
-                      onChange={(e) => updateField("dueDate", e.target.value)}
-                      className="flex-1 border-b border-slate-300 dark:border-zinc-700 bg-transparent py-1.5 text-sm font-bold text-slate-900 dark:text-white focus:border-[#ff5500] focus:outline-none"
+                      onChange={(nextIso) => updateField("dueDate", nextIso)}
+                      accentColor={themeColor}
+                      showDuePresets={true}
+                      baseIssueDate={invoiceData.issueDate}
                     />
                     <button
                       type="button"
