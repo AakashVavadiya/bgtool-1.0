@@ -2728,13 +2728,13 @@ export function parseXmlEInvoiceToInvoiceData(buffer: ArrayBuffer): InvoiceData 
         items:
           itemList.length > 0
             ? itemList.map((it: any, idx: number) => ({
-                id: String(idx + 1),
-                description: it.PrdDesc || it.description || "Item",
-                hsnSac: it.HsnCd || "",
-                quantity: Number(it.Qty || it.quantity) || 1,
-                rate: Number(it.UnitPrice || it.rate) || 0,
-                taxPercent: Number(it.GstRt || it.taxPercent) || 18,
-              }))
+              id: String(idx + 1),
+              description: it.PrdDesc || it.description || "Item",
+              hsnSac: it.HsnCd || "",
+              quantity: Number(it.Qty || it.quantity) || 1,
+              rate: Number(it.UnitPrice || it.rate) || 0,
+              taxPercent: Number(it.GstRt || it.taxPercent) || 18,
+            }))
             : [{ id: "1", description: "Electronic Invoice Item", quantity: 1, rate: 1000, taxPercent: 18 }],
         showTotalInWords: true,
       };

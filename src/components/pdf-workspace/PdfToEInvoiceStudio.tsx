@@ -1,5 +1,5 @@
 // PDF24-style EN 16931 / ZUGFeRD / XRechnung PDF Invoice to E-Invoice Studio.
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   FileText,
   UserCheck,
@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Eye,
   FileCode2,
+  Check,
 } from "lucide-react";
 import { type InvoiceData, type InvoiceItem } from "@/lib/pdf-engine";
 import { type Tool } from "@/lib/tools";
@@ -117,6 +118,108 @@ const BTBadge = ({ code }: { code: string }) => (
   </span>
 );
 
+export interface CustomSelectOption {
+  value: string;
+  label: string;
+  sublabel?: string;
+}
+
+interface CustomSelectDropdownProps {
+  value: string;
+  onChange: (nextVal: string) => void;
+  options: CustomSelectOption[];
+  highlighted?: boolean;
+  className?: string;
+  compact?: boolean;
+}
+
+function CustomSelectDropdown({
+  value,
+  onChange,
+  options,
+  highlighted = false,
+  className = "",
+  compact = false,
+}: CustomSelectDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isOpen]);
+
+  const selectedOpt = options.find((o) => o.value === value) || options[0];
+
+  return (
+    <div ref={containerRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full flex items-center justify-between gap-2 rounded-xl text-left transition-all cursor-pointer ${
+          compact ? "px-2.5 py-1.5 text-[11px]" : "px-3.5 py-2.5 text-xs"
+        } ${
+          highlighted
+            ? "border-2 border-[#ff5500]/70 bg-[#ff5500]/10 dark:bg-[#ff5500]/15 font-black text-slate-900 dark:text-white shadow-2xs"
+            : isOpen
+              ? "border border-[#ff5500] bg-white dark:bg-zinc-900 font-bold text-slate-900 dark:text-white shadow-xs"
+              : "border border-slate-200 dark:border-zinc-700/90 bg-slate-50/70 dark:bg-zinc-800/70 hover:border-slate-300 dark:hover:border-zinc-600 font-bold text-slate-900 dark:text-zinc-100"
+        }`}
+      >
+        <span className="truncate">{selectedOpt?.label || value}</span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform duration-150 ${
+            highlighted ? "text-[#ff5500]" : "text-slate-400"
+          } ${isOpen ? "rotate-180 text-[#ff5500]" : ""}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 min-w-[190px] max-h-64 overflow-y-auto rounded-2xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
+                  isSelected
+                    ? "bg-[#ff5500] text-white font-black shadow-2xs"
+                    : "text-slate-700 dark:text-zinc-200 font-semibold hover:bg-orange-500/10 hover:text-[#ff5500]"
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate">{opt.label}</div>
+                  {opt.sublabel && (
+                    <div
+                      className={`text-[10px] truncate ${
+                        isSelected ? "text-white/80" : "text-slate-400 dark:text-zinc-500"
+                      }`}
+                    >
+                      {opt.sublabel}
+                    </div>
+                  )}
+                </div>
+                {isSelected && <Check className="h-3.5 w-3.5 shrink-0 stroke-[3]" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PdfToEInvoiceStudio({
   files,
   setFiles,
@@ -131,6 +234,10 @@ export function PdfToEInvoiceStudio({
   const [activeNav, setActiveNav] = useState<string>("sec-invoice-data");
   const [showMoreInvoiceDetails, setShowMoreInvoiceDetails] = useState<boolean>(false);
   const [dueDaysOffset, setDueDaysOffset] = useState<string>("14");
+  const [quantityUnitPlacement, setQuantityUnitPlacement] = useState<string>("in_quantity_col");
+  const [showLineNumbers, setShowLineNumbers] = useState<string>("show");
+  const [showPaymentQr, setShowPaymentQr] = useState<string>("show");
+  const [pageNumbersPosition, setPageNumbersPosition] = useState<string>("bottom_center");
   const [attachments, setAttachments] = useState<Array<{ id: string; name: string; size: number }>>([]);
   const [validationResult, setValidationResult] = useState<{
     checked: boolean;
@@ -502,34 +609,24 @@ export function PdfToEInvoiceStudio({
             <label className={labelClass}>
               Invoice type <BTBadge code="BT-3" />
             </label>
-            <select
+            <CustomSelectDropdown
+              className="sm:col-span-8"
               value={invoiceData.invoiceTypeCode || "380"}
-              onChange={(e) => updateField("invoiceTypeCode", e.target.value)}
-              className={fieldClass}
-            >
-              {INVOICE_TYPE_CODES.map((t) => (
-                <option key={t.code} value={t.code}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => updateField("invoiceTypeCode", val)}
+              options={INVOICE_TYPE_CODES.map((t) => ({ value: t.code, label: t.label }))}
+            />
           </div>
 
           <div className={inputRowClass}>
             <label className={labelClass}>
               Currency <BTBadge code="BT-5" />
             </label>
-            <select
+            <CustomSelectDropdown
+              className="sm:col-span-8"
               value={invoiceData.currency || "₹"}
-              onChange={(e) => updateField("currency", e.target.value)}
-              className={fieldClass}
-            >
-              {CURRENCY_LIST.map((c) => (
-                <option key={c.code} value={c.symbol}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => updateField("currency", val)}
+              options={CURRENCY_LIST.map((c) => ({ value: c.symbol, label: c.label }))}
+            />
           </div>
 
           <div className={inputRowClass}>
@@ -734,15 +831,16 @@ export function PdfToEInvoiceStudio({
                 placeholder="Global ID (GLN / DUNS)"
                 className="col-span-7 rounded-xl border border-slate-200 dark:border-zinc-700/90 bg-slate-50/70 dark:bg-zinc-800/70 px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-zinc-100 focus:border-[#ff5500] focus:outline-none"
               />
-              <select
+              <CustomSelectDropdown
+                className="col-span-5"
                 value={invoiceData.companyGlobalIdScheme || "0088"}
-                onChange={(e) => updateField("companyGlobalIdScheme", e.target.value)}
-                className="col-span-5 rounded-xl border border-slate-200 dark:border-zinc-700/90 bg-slate-50/70 dark:bg-zinc-800/70 px-3 py-2 text-xs font-semibold text-slate-900 dark:text-zinc-100 focus:border-[#ff5500] focus:outline-none"
-              >
-                <option value="0088">0088 — EAN / GLN</option>
-                <option value="0060">0060 — DUNS</option>
-                <option value="0199">0199 — LEI</option>
-              </select>
+                onChange={(val) => updateField("companyGlobalIdScheme", val)}
+                options={[
+                  { value: "0088", label: "0088 — EAN / GLN" },
+                  { value: "0060", label: "0060 — DUNS" },
+                  { value: "0199", label: "0199 — LEI" },
+                ]}
+              />
             </div>
           </div>
 
@@ -814,17 +912,18 @@ export function PdfToEInvoiceStudio({
               <label className={labelClass}>
                 Country <BTBadge code="BT-40" />
               </label>
-              <select
+              <CustomSelectDropdown
+                className="sm:col-span-8"
                 value={invoiceData.companyCountry || "India"}
-                onChange={(e) => updateField("companyCountry", e.target.value)}
-                className={fieldClass}
-              >
-                <option value="India">IN — India</option>
-                <option value="Germany">DE — Germany</option>
-                <option value="United States">US — United States</option>
-                <option value="United Kingdom">GB — United Kingdom</option>
-                <option value="United Arab Emirates">AE — United Arab Emirates</option>
-              </select>
+                onChange={(val) => updateField("companyCountry", val)}
+                options={[
+                  { value: "India", label: "IN — India" },
+                  { value: "Germany", label: "DE — Germany" },
+                  { value: "United States", label: "US — United States" },
+                  { value: "United Kingdom", label: "GB — United Kingdom" },
+                  { value: "United Arab Emirates", label: "AE — United Arab Emirates" },
+                ]}
+              />
             </div>
           </div>
 
@@ -1000,17 +1099,18 @@ export function PdfToEInvoiceStudio({
               <label className={labelClass}>
                 Country <BTBadge code="BT-55" />
               </label>
-              <select
+              <CustomSelectDropdown
+                className="sm:col-span-8"
                 value={invoiceData.clientCountry || "India"}
-                onChange={(e) => updateField("clientCountry", e.target.value)}
-                className={fieldClass}
-              >
-                <option value="India">IN — India</option>
-                <option value="Germany">DE — Germany</option>
-                <option value="United States">US — United States</option>
-                <option value="United Kingdom">GB — United Kingdom</option>
-                <option value="United Arab Emirates">AE — United Arab Emirates</option>
-              </select>
+                onChange={(val) => updateField("clientCountry", val)}
+                options={[
+                  { value: "India", label: "IN — India" },
+                  { value: "Germany", label: "DE — Germany" },
+                  { value: "United States", label: "US — United States" },
+                  { value: "United Kingdom", label: "GB — United Kingdom" },
+                  { value: "United Arab Emirates", label: "AE — United Arab Emirates" },
+                ]}
+              />
             </div>
           </div>
 
@@ -1077,17 +1177,18 @@ export function PdfToEInvoiceStudio({
             <label className={labelClass}>
               Payment means <BTBadge code="BT-81" />
             </label>
-            <select
+            <CustomSelectDropdown
+              className="sm:col-span-8"
               value={invoiceData.paymentMeansCode || "30"}
-              onChange={(e) => updateField("paymentMeansCode", e.target.value)}
-              className={fieldClass}
-            >
-              <option value="30">30 — Credit transfer (Bank / NEFT / RTGS)</option>
-              <option value="58">58 — SEPA credit transfer</option>
-              <option value="48">48 — Bank card / Credit card</option>
-              <option value="59">59 — SEPA direct debit</option>
-              <option value="10">10 — In cash</option>
-            </select>
+              onChange={(val) => updateField("paymentMeansCode", val)}
+              options={[
+                { value: "30", label: "30 — Credit transfer (Bank / NEFT / RTGS)" },
+                { value: "58", label: "58 — SEPA credit transfer" },
+                { value: "48", label: "48 — Bank card / Credit card" },
+                { value: "59", label: "59 — SEPA direct debit" },
+                { value: "10", label: "10 — In cash" },
+              ]}
+            />
           </div>
 
           <div className={inputRowClass}>
@@ -1297,17 +1398,11 @@ export function PdfToEInvoiceStudio({
                       <label className="text-[11px] font-bold text-slate-500 block mb-1">
                         Unit (BT-130)
                       </label>
-                      <select
+                      <CustomSelectDropdown
                         value={item.unit || "EA"}
-                        onChange={(e) => updateItem(idx, { unit: e.target.value })}
-                        className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:border-[#ff5500] focus:outline-none"
-                      >
-                        {UNIT_CODES.map((u) => (
-                          <option key={u.code} value={u.code}>
-                            {u.label}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => updateItem(idx, { unit: val })}
+                        options={UNIT_CODES.map((u) => ({ value: u.code, label: u.label }))}
+                      />
                     </div>
 
                     <div className="md:col-span-1">
@@ -1381,14 +1476,15 @@ export function PdfToEInvoiceStudio({
               <span className="text-[10px] font-mono text-slate-400">BT-92</span>
             </div>
             <div className="grid grid-cols-12 gap-2 items-center">
-              <select
+              <CustomSelectDropdown
+                className="col-span-5"
                 value={invoiceData.discountType || "flat"}
-                onChange={(e) => updateField("discountType", e.target.value as "flat" | "percent")}
-                className="col-span-5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2 text-xs font-bold"
-              >
-                <option value="flat">Fixed Amount ({currSymbol})</option>
-                <option value="percent">Percentage (%)</option>
-              </select>
+                onChange={(val) => updateField("discountType", val as "flat" | "percent")}
+                options={[
+                  { value: "flat", label: `Fixed Amount (${currSymbol})` },
+                  { value: "percent", label: "Percentage (%)" },
+                ]}
+              />
               <input
                 type="number"
                 value={invoiceData.discountValue || 0}
@@ -1441,15 +1537,17 @@ export function PdfToEInvoiceStudio({
               <h3 className="font-display text-sm font-black text-slate-900 dark:text-white">
                 Taxes Breakdown (BG-23)
               </h3>
-              <select
+              <CustomSelectDropdown
+                compact={true}
+                className="w-40"
                 value={taxMode}
-                onChange={(e) => updateField("taxMode", e.target.value as any)}
-                className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2 py-1 text-[11px] font-bold"
-              >
-                <option value="gst_intra">GST (CGST+SGST)</option>
-                <option value="gst_inter">IGST / VAT</option>
-                <option value="none">Tax Exempt (Z)</option>
-              </select>
+                onChange={(val) => updateField("taxMode", val as any)}
+                options={[
+                  { value: "gst_intra", label: "GST (CGST+SGST)" },
+                  { value: "gst_inter", label: "IGST / VAT" },
+                  { value: "none", label: "Tax Exempt (Z)" },
+                ]}
+              />
             </div>
             <div className="space-y-2 text-xs">
               {Array.from(taxBreakdownMap.entries()).map(([ratePct, info]) => (
@@ -1590,121 +1688,155 @@ export function PdfToEInvoiceStudio({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Format (Highlighted like Screenshot 2) */}
+            {/* Format (Custom Brand-Themed Selector Dropdown) */}
             <div className="sm:col-span-2">
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Format
               </label>
-              <select
+              <CustomSelectDropdown
+                highlighted={true}
                 value={invoiceData.einvoiceOutputFormat || "zugferd-en16931"}
-                onChange={(e) => updateField("einvoiceOutputFormat", e.target.value as any)}
-                className="w-full rounded-xl border-2 border-[#ff5500]/60 bg-[#ff5500]/10 px-3.5 py-2.5 text-xs font-black text-slate-900 dark:text-white focus:border-[#ff5500] focus:outline-none cursor-pointer"
-              >
-                <option value="zugferd-en16931">PDF / ZUGFeRD / EN16931 (Hybrid PDF + XML)</option>
-                <option value="xrechnung-ubl">XML / XRechnung 3.0 (UBL 2.1)</option>
-                <option value="ubl-2.1">XML / OASIS UBL 2.1 Standard</option>
-                <option value="peppol-bis">XML / Peppol BIS Billing 3.0</option>
-              </select>
+                onChange={(val) => updateField("einvoiceOutputFormat", val as any)}
+                options={[
+                  {
+                    value: "zugferd-en16931",
+                    label: "PDF / ZUGFeRD / EN16931 (Hybrid PDF + XML)",
+                    sublabel: "PDF/A-3 document with embedded factur-x.xml",
+                  },
+                  {
+                    value: "xrechnung-ubl",
+                    label: "XML / XRechnung 3.0 (UBL 2.1)",
+                    sublabel: "German & EU public procurement EN 16931 standard",
+                  },
+                  {
+                    value: "ubl-2.1",
+                    label: "XML / OASIS UBL 2.1 Standard",
+                    sublabel: "Universal Business Language B2B XML",
+                  },
+                  {
+                    value: "peppol-bis",
+                    label: "XML / Peppol BIS Billing 3.0",
+                    sublabel: "International Peppol e-delivery network XML",
+                  },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Language
               </label>
-              <select
+              <CustomSelectDropdown
                 value={invoiceData.einvoiceLanguage || "EN"}
-                onChange={(e) => updateField("einvoiceLanguage", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold"
-              >
-                <option value="EN">EN - English</option>
-                <option value="DE">DE - Deutsch</option>
-                <option value="FR">FR - Français</option>
-              </select>
+                onChange={(val) => updateField("einvoiceLanguage", val)}
+                options={[
+                  { value: "EN", label: "EN - English" },
+                  { value: "DE", label: "DE - Deutsch" },
+                  { value: "FR", label: "FR - Français" },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Decimal separator
               </label>
-              <select
+              <CustomSelectDropdown
                 value={invoiceData.einvoiceDecimalSeparator || "point"}
-                onChange={(e) => updateField("einvoiceDecimalSeparator", e.target.value as any)}
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold"
-              >
-                <option value="point">Point (.)</option>
-                <option value="comma">Comma (,)</option>
-              </select>
+                onChange={(val) => updateField("einvoiceDecimalSeparator", val as any)}
+                options={[
+                  { value: "point", label: "Point (.)" },
+                  { value: "comma", label: "Comma (,)" },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Thousands separator
               </label>
-              <select
+              <CustomSelectDropdown
                 value={invoiceData.einvoiceThousandsSeparator || "comma"}
-                onChange={(e) => updateField("einvoiceThousandsSeparator", e.target.value as any)}
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold"
-              >
-                <option value="comma">comma (,)</option>
-                <option value="point">point (.)</option>
-                <option value="space">space</option>
-                <option value="none">none</option>
-              </select>
+                onChange={(val) => updateField("einvoiceThousandsSeparator", val as any)}
+                options={[
+                  { value: "comma", label: "comma (,)" },
+                  { value: "point", label: "point (.)" },
+                  { value: "space", label: "space" },
+                  { value: "none", label: "none" },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Date format
               </label>
-              <select
+              <CustomSelectDropdown
                 value={invoiceData.einvoiceDateFormat || "dd/mm/yyyy"}
-                onChange={(e) => updateField("einvoiceDateFormat", e.target.value as any)}
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold"
-              >
-                <option value="dd/mm/yyyy">dd/mm/yyyy</option>
-                <option value="yyyy-mm-dd">yyyy-mm-dd</option>
-                <option value="mm/dd/yyyy">mm/dd/yyyy</option>
-              </select>
+                onChange={(val) => updateField("einvoiceDateFormat", val as any)}
+                options={[
+                  { value: "dd/mm/yyyy", label: "dd/mm/yyyy" },
+                  { value: "yyyy-mm-dd", label: "yyyy-mm-dd" },
+                  { value: "mm/dd/yyyy", label: "mm/dd/yyyy" },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Quantity units
               </label>
-              <select className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold">
-                <option>In quantity column</option>
-                <option>Separate column</option>
-              </select>
+              <CustomSelectDropdown
+                value={quantityUnitPlacement}
+                onChange={setQuantityUnitPlacement}
+                options={[
+                  { value: "in_quantity_col", label: "In quantity column" },
+                  { value: "separate_col", label: "Separate column" },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Line numbers
               </label>
-              <select className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold">
-                <option>Show</option>
-                <option>Hide</option>
-              </select>
+              <CustomSelectDropdown
+                value={showLineNumbers}
+                onChange={setShowLineNumbers}
+                options={[
+                  { value: "show", label: "Show" },
+                  { value: "hide", label: "Hide" },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 QR code for payment
               </label>
-              <select className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold">
-                <option>Show</option>
-                <option>Do not show</option>
-              </select>
+              <CustomSelectDropdown
+                value={showPaymentQr}
+                onChange={setShowPaymentQr}
+                options={[
+                  { value: "show", label: "Show" },
+                  { value: "hide", label: "Do not show" },
+                ]}
+              />
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block mb-1">
                 Page numbers
               </label>
-              <select className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-2.5 text-xs font-bold">
-                <option>Bottom - Centered</option>
-                <option>Bottom - Right</option>
-              </select>
+              <CustomSelectDropdown
+                value={pageNumbersPosition}
+                onChange={setPageNumbersPosition}
+                options={[
+                  { value: "bottom_center", label: "Bottom - Centered" },
+                  { value: "bottom_right", label: "Bottom - Right" },
+                  { value: "none", label: "Do not show" },
+                ]}
+              />
             </div>
 
             {/* "Use the PDF" selector matching Screenshot 2 */}
