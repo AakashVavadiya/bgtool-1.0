@@ -21,13 +21,17 @@ export function WorkspaceUploadStage(props: any) {
     setTargetHeight,
     inputConvertText,
     setInputConvertText,
+    binaryLandingMode,
     setBinaryLandingMode,
     setBinaryInputTab,
     binaryPixelBlockSize,
+    base64LandingMode,
     setBase64LandingMode,
     base64InputText,
     setBase64InputText,
+    textDecoderLandingMode,
     setTextDecoderLandingMode,
+    htmlLandingMode,
     setHtmlLandingMode,
     setHtmlInputMode,
     htmlCodeText,
@@ -49,7 +53,6 @@ export function WorkspaceUploadStage(props: any) {
   const binaryTheme: BinaryThemeKey = props.binaryTheme;
 
   return (
-    <>
         tool.slug === "html-to-image" && htmlLandingMode === "plain_text" ? (
           /* Plain Text / HTML Code Direct Input Card with Next Button */
           <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 sm:p-10 w-full max-w-4xl mx-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -838,6 +841,5 @@ export function WorkspaceUploadStage(props: any) {
             </p>
           </div>
         )
-    </>
   );
 }
