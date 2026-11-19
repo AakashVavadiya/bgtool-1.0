@@ -5,7 +5,7 @@ import { fireConfetti } from "@/lib/confetti";
 import { type Tool } from "@/lib/tools";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
-import { mergePdfDocuments, splitPdfDocument, rotatePdfPages, addWatermarkToPdf, addPageNumbersToPdf, compressPdfDocument, protectPdfDocument, flattenPdfDocument, changePdfPageDimensions, generateInvoicePdf, extractInvoiceDataFromPdfBuffer, convertInvoiceDataToUblXml, parseXmlEInvoiceToInvoiceData, convertImagesToPdf, applyEditsToPdf, type PdfTextEditItem, type PdfStandardFontName, type PdfEditElementKind, type PdfImageShape, type InvoiceData } from "@/lib/pdf-engine";
+import { mergePdfDocuments, splitPdfDocument, rotatePdfPages, addWatermarkToPdf, addPageNumbersToPdf, compressPdfDocument, protectPdfDocument, flattenPdfDocument, changePdfPageDimensions, generateInvoicePdf, extractInvoiceDataFromPdfBuffer, convertInvoiceDataToUblXml, generateZugferdHybridPdf, parseXmlEInvoiceToInvoiceData, convertImagesToPdf, applyEditsToPdf, type PdfTextEditItem, type PdfStandardFontName, type PdfEditElementKind, type PdfImageShape, type InvoiceData } from "@/lib/pdf-engine";
 import { generateFileThumbnail, renderPdfPage, extractPdfPageElements, cropRegionFromPageDataUrl, type ExtractedPdfTextItem, type ExtractedPdfImageItem } from "@/lib/pdf-preview";
 import { PdfPreviewViewer } from "@/components/PdfPreviewViewer";
 import { Telemetry, REALTIME_EVENT_NAME } from "@/lib/telemetry";
@@ -15,6 +15,7 @@ import { PdfStudioPortal } from "@/components/pdf-workspace/PdfStudioPortal";
 import { PdfCompletedView } from "@/components/pdf-workspace/PdfCompletedView";
 import { PdfActiveWorkspaceGrid } from "@/components/pdf-workspace/PdfActiveWorkspaceGrid";
 import { RefrensInvoiceStudio } from "@/components/pdf-workspace/RefrensInvoiceStudio";
+import { PdfToEInvoiceStudio } from "@/components/pdf-workspace/PdfToEInvoiceStudio";
 
 interface UploadedPdfItem {
   id: string;
@@ -2069,14 +2070,22 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
         outName = `${baseName}_compiled.pdf`;
         pageCount = imgPdfRes.pageCount;
       }
-      // 12. PDF INVOICE TO E-INVOICE (XML / UBL 2.1 / Factur-X / Peppol BIS)
+      // 12. PDF INVOICE TO E-INVOICE (ZUGFeRD Hybrid PDF/A-3 + XML or standalone UBL / XRechnung / Peppol XML)
       else if (isPdfInvoiceToEInvoiceTool) {
-        if (!activeFile) throw new Error("Please upload a PDF invoice first.");
-        const { xmlString, xmlBytes } = convertInvoiceDataToUblXml(invoiceData, einvoiceStandard);
-        outputPdfBytes = xmlBytes;
-        outName = `${baseName}_${einvoiceStandard}_einvoice.xml`;
-        pageCount = 1;
-        setResultXmlText(xmlString);
+        const formatChoice = invoiceData.einvoiceOutputFormat || "zugferd-en16931";
+        if (formatChoice === "zugferd-en16931") {
+          const hybridRes = await generateZugferdHybridPdf(invoiceData, activeFile?.buffer);
+          outputPdfBytes = hybridRes.pdfBytes;
+          outName = `${baseName}_zugferd_en16931.pdf`;
+          pageCount = hybridRes.pageCount;
+          setResultXmlText(hybridRes.xmlString);
+        } else {
+          const { xmlString, xmlBytes } = convertInvoiceDataToUblXml(invoiceData, formatChoice);
+          outputPdfBytes = xmlBytes;
+          outName = `${baseName}_${formatChoice}_einvoice.xml`;
+          pageCount = 1;
+          setResultXmlText(xmlString);
+        }
       }
       // 13. XML E-INVOICE TO PDF (Render parsed UBL/Factur-X/ZUGFeRD XML into formatted A4 PDF Invoice)
       else if (isXmlEInvoiceToPdfTool) {
@@ -2097,12 +2106,13 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
       }
 
       // Convert to blob and buffer for preview
-      const isXmlOutput = isPdfInvoiceToEInvoiceTool;
+      const isPureXmlOutput =
+        isPdfInvoiceToEInvoiceTool && (invoiceData.einvoiceOutputFormat || "zugferd-en16931") !== "zugferd-en16931";
       const blob = new Blob([outputPdfBytes as unknown as BlobPart], {
-        type: isXmlOutput ? "application/xml;charset=utf-8" : "application/pdf",
+        type: isPureXmlOutput ? "application/xml;charset=utf-8" : "application/pdf",
       });
       const origSize = activeFile ? activeFile.size : (files.reduce((acc, f) => acc + f.size, 0) || 50000);
-      const outBuffer = isXmlOutput
+      const outBuffer = isPureXmlOutput
         ? null
         : (outputPdfBytes.buffer.slice(
             outputPdfBytes.byteOffset,
@@ -2752,6 +2762,19 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
             setInvoiceData={setInvoiceData}
             processing={processing}
             handleProcess={handleProcess}
+          />
+        ) : isPdfInvoiceToEInvoiceTool ? (
+          <PdfToEInvoiceStudio
+            tool={tool}
+            files={files}
+            setFiles={setFiles}
+            activeFile={activeFile}
+            fileInputRef={fileInputRef}
+            invoiceData={invoiceData}
+            setInvoiceData={setInvoiceData}
+            processing={processing}
+            handleProcess={handleProcess}
+            setPreviewModalItem={setPreviewModalItem}
           />
         ) : (
           <PdfActiveWorkspaceGrid {...pdfWorkspaceScope} />

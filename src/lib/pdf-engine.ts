@@ -76,6 +76,44 @@ export interface InvoiceData {
   signatureLabel?: string;
   notes?: string;
   terms?: string;
+  // EN 16931 / ZUGFeRD / XRechnung E-Invoice Extended BT Fields
+  invoiceTypeCode?: string; // BT-3 (380 Invoice, 381 Credit Note, 384 Corrected Invoice, 389 Self-billed)
+  buyerReference?: string; // BT-10 (Leitweg-ID / Buyer Reference)
+  deliveryDate?: string; // BT-72
+  billingPeriodStart?: string; // BT-73
+  billingPeriodEnd?: string; // BT-74
+  projectReference?: string; // BT-11
+  contractReference?: string; // BT-12
+  purchaseOrderReference?: string; // BT-13
+  salesOrderReference?: string; // BT-14
+  companyTradeName?: string; // BT-28
+  companySellerId?: string; // BT-29
+  companyGlobalId?: string; // BT-29-1
+  companyGlobalIdScheme?: string;
+  companyTaxRegId?: string; // BT-32
+  companyPostalCode?: string; // BT-38
+  companyContactName?: string; // BT-41
+  clientTradeName?: string; // BT-45
+  clientBuyerId?: string; // BT-46
+  clientPostalCode?: string; // BT-53
+  clientContactName?: string; // BT-56
+  paymentMeansCode?: string; // BT-81 (30 Credit transfer, 48 Card, 58 SEPA, 10 Cash)
+  paymentTermsText?: string; // BT-20
+  paymentReference?: string; // BT-83
+  bankBicSwift?: string; // BT-86
+  deliveryPartyName?: string; // BT-70
+  deliveryLocationId?: string; // BT-71
+  deliveryAddress?: string; // BT-75
+  deliveryCity?: string; // BT-77
+  deliveryPostalCode?: string; // BT-78
+  deliveryCountry?: string; // BT-80
+  prepaidAmount?: number; // BT-113
+  einvoiceOutputFormat?: "zugferd-en16931" | "xrechnung-ubl" | "xrechnung-cii" | "ubl-2.1" | "peppol-bis";
+  einvoiceLanguage?: string;
+  einvoiceDecimalSeparator?: "point" | "comma";
+  einvoiceThousandsSeparator?: "comma" | "point" | "space" | "none";
+  einvoiceDateFormat?: "dd/mm/yyyy" | "yyyy-mm-dd" | "mm/dd/yyyy";
+  einvoiceFileNamePattern?: string;
 }
 
 /**
@@ -2424,23 +2462,23 @@ export async function extractInvoiceDataFromPdfBuffer(buffer: ArrayBuffer): Prom
 }
 
 /**
- * Convert InvoiceData into OASIS UBL 2.1 / Peppol BIS 3.0 / Factur-X Electronic Invoice XML
+ * Convert InvoiceData into OASIS UBL 2.1 / Peppol BIS 3.0 / XRechnung / Factur-X / ZUGFeRD Electronic Invoice XML
  */
 export function convertInvoiceDataToUblXml(
   data: InvoiceData,
-  standard: "ubl-2.1" | "factur-x" | "peppol-bis" = "ubl-2.1"
+  standard: "ubl-2.1" | "factur-x" | "peppol-bis" | "zugferd-en16931" | "xrechnung-ubl" | "xrechnung-cii" = "ubl-2.1"
 ): { xmlString: string; xmlBytes: Uint8Array } {
   const currencyCode =
-    data.currency === "$"
+    data.currency === "$" || data.currency === "USD"
       ? "USD"
-      : data.currency === "€"
+      : data.currency === "€" || data.currency === "EUR"
         ? "EUR"
-        : data.currency === "£"
+        : data.currency === "£" || data.currency === "GBP"
           ? "GBP"
           : "INR";
 
   const taxMode = data.taxMode || "gst_intra";
-  let taxableSubtotal = 0;
+  let lineTotalNet = 0;
   let totalTax = 0;
 
   const items = data.items.length > 0 ? data.items : [
@@ -2450,17 +2488,31 @@ export function convertInvoiceDataToUblXml(
   items.forEach((it) => {
     const lineAmt = (Number(it.quantity) || 0) * (Number(it.rate) || 0);
     const lineTax = taxMode === "none" ? 0 : (lineAmt * (Number(it.taxPercent) || 0)) / 100;
-    taxableSubtotal += lineAmt;
+    lineTotalNet += lineAmt;
     totalTax += lineTax;
   });
 
-  const grandTotal = taxableSubtotal + totalTax;
+  const allowanceAmt =
+    data.discountType === "percent"
+      ? (lineTotalNet * Math.max(0, Number(data.discountValue) || 0)) / 100
+      : Math.max(0, Number(data.discountValue) || 0);
+  const chargeAmt = Math.max(0, Number(data.additionalChargesAmount) || 0);
+  const taxBasisTotal = Math.max(0, lineTotalNet - allowanceAmt + chargeAmt);
+  const grandTotal = taxBasisTotal + totalTax;
+  const prepaidAmt = Math.max(0, Number(data.prepaidAmount) || 0);
+  const payableAmt = Math.max(0, grandTotal - prepaidAmt);
+
   const profileId =
     standard === "peppol-bis"
       ? "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
-      : standard === "factur-x"
+      : standard === "factur-x" || standard === "zugferd-en16931"
         ? "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:extended"
-        : "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2";
+        : standard === "xrechnung-ubl" || standard === "xrechnung-cii"
+          ? "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
+          : "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2";
+
+  const invTypeCode = data.invoiceTypeCode || "380";
+  const buyerRef = data.buyerReference || "BUYER-REF-01";
 
   const linesXml = items
     .map((it, idx) => {
@@ -2468,9 +2520,10 @@ export function convertInvoiceDataToUblXml(
       const rate = Number(it.rate) || 0;
       const lineExt = (qty * rate).toFixed(2);
       const taxPct = taxMode === "none" ? 0 : Number(it.taxPercent) || 0;
+      const unitCode = it.unit || "EA";
       return `  <cac:InvoiceLine>
     <cbc:ID>${idx + 1}</cbc:ID>
-    <cbc:InvoicedQuantity unitCode="EA">${qty}</cbc:InvoicedQuantity>
+    <cbc:InvoicedQuantity unitCode="${escapeXmlStr(unitCode)}">${qty}</cbc:InvoicedQuantity>
     <cbc:LineExtensionAmount currencyID="${currencyCode}">${lineExt}</cbc:LineExtensionAmount>
     <cac:Item>
       <cbc:Description>${escapeXmlStr(it.subDescription || it.description)}</cbc:Description>
@@ -2500,58 +2553,142 @@ export function convertInvoiceDataToUblXml(
   <cbc:ID>${escapeXmlStr(data.invoiceNumber || "INV-001")}</cbc:ID>
   <cbc:IssueDate>${escapeXmlStr(data.issueDate || new Date().toISOString().slice(0, 10))}</cbc:IssueDate>
   <cbc:DueDate>${escapeXmlStr(data.dueDate || data.issueDate || new Date().toISOString().slice(0, 10))}</cbc:DueDate>
-  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+  <cbc:InvoiceTypeCode>${escapeXmlStr(invTypeCode)}</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>${currencyCode}</cbc:DocumentCurrencyCode>
+  <cbc:BuyerReference>${escapeXmlStr(buyerRef)}</cbc:BuyerReference>
+  ${data.billingPeriodStart || data.billingPeriodEnd ? `<cac:InvoicePeriod><cbc:StartDate>${escapeXmlStr(data.billingPeriodStart || data.issueDate)}</cbc:StartDate><cbc:EndDate>${escapeXmlStr(data.billingPeriodEnd || data.dueDate)}</cbc:EndDate></cac:InvoicePeriod>` : ""}
+  ${data.purchaseOrderReference ? `<cac:OrderReference><cbc:ID>${escapeXmlStr(data.purchaseOrderReference)}</cbc:ID></cac:OrderReference>` : ""}
+  ${data.contractReference ? `<cac:ContractDocumentReference><cbc:ID>${escapeXmlStr(data.contractReference)}</cbc:ID></cac:ContractDocumentReference>` : ""}
+  ${data.projectReference ? `<cac:ProjectReference><cbc:ID>${escapeXmlStr(data.projectReference)}</cbc:ID></cac:ProjectReference>` : ""}
   <cac:AccountingSupplierParty>
     <cac:Party>
+      ${data.companyGlobalId ? `<cbc:EndpointID schemeID="${escapeXmlStr(data.companyGlobalIdScheme || "0088")}">${escapeXmlStr(data.companyGlobalId)}</cbc:EndpointID>` : ""}
+      ${data.companySellerId ? `<cac:PartyIdentification><cbc:ID>${escapeXmlStr(data.companySellerId)}</cbc:ID></cac:PartyIdentification>` : ""}
       <cac:PartyName>
-        <cbc:Name>${escapeXmlStr(data.companyName)}</cbc:Name>
+        <cbc:Name>${escapeXmlStr(data.companyTradeName || data.companyName)}</cbc:Name>
       </cac:PartyName>
       <cac:PostalAddress>
         <cbc:StreetName>${escapeXmlStr(data.companyAddress)}</cbc:StreetName>
         <cbc:CityName>${escapeXmlStr(data.companyCityState || "")}</cbc:CityName>
+        ${data.companyPostalCode ? `<cbc:PostalZone>${escapeXmlStr(data.companyPostalCode)}</cbc:PostalZone>` : ""}
         <cac:Country>
-          <cbc:IdentificationCode>${data.companyCountry === "United States" ? "US" : data.companyCountry === "United Kingdom" ? "GB" : "IN"}</cbc:IdentificationCode>
+          <cbc:IdentificationCode>${data.companyCountry === "United States" ? "US" : data.companyCountry === "United Kingdom" ? "GB" : data.companyCountry === "Germany" ? "DE" : "IN"}</cbc:IdentificationCode>
         </cac:Country>
       </cac:PostalAddress>
       ${data.companyGstin ? `<cac:PartyTaxScheme><cbc:CompanyID>${escapeXmlStr(data.companyGstin)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>GST</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>${escapeXmlStr(data.companyName)}</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
       <cac:Contact>
+        ${data.companyContactName ? `<cbc:Name>${escapeXmlStr(data.companyContactName)}</cbc:Name>` : ""}
+        ${data.companyPhone ? `<cbc:Telephone>${escapeXmlStr(data.companyPhone)}</cbc:Telephone>` : ""}
         <cbc:ElectronicMail>${escapeXmlStr(data.companyEmail)}</cbc:ElectronicMail>
       </cac:Contact>
     </cac:Party>
   </cac:AccountingSupplierParty>
   <cac:AccountingCustomerParty>
     <cac:Party>
+      ${data.clientBuyerId ? `<cac:PartyIdentification><cbc:ID>${escapeXmlStr(data.clientBuyerId)}</cbc:ID></cac:PartyIdentification>` : ""}
       <cac:PartyName>
-        <cbc:Name>${escapeXmlStr(data.clientName)}</cbc:Name>
+        <cbc:Name>${escapeXmlStr(data.clientTradeName || data.clientName)}</cbc:Name>
       </cac:PartyName>
       <cac:PostalAddress>
         <cbc:StreetName>${escapeXmlStr(data.clientAddress)}</cbc:StreetName>
         <cbc:CityName>${escapeXmlStr(data.clientCityState || "")}</cbc:CityName>
+        ${data.clientPostalCode ? `<cbc:PostalZone>${escapeXmlStr(data.clientPostalCode)}</cbc:PostalZone>` : ""}
         <cac:Country>
-          <cbc:IdentificationCode>${data.clientCountry === "United States" ? "US" : data.clientCountry === "United Kingdom" ? "GB" : "IN"}</cbc:IdentificationCode>
+          <cbc:IdentificationCode>${data.clientCountry === "United States" ? "US" : data.clientCountry === "United Kingdom" ? "GB" : data.clientCountry === "Germany" ? "DE" : "IN"}</cbc:IdentificationCode>
         </cac:Country>
       </cac:PostalAddress>
       ${data.clientGstin ? `<cac:PartyTaxScheme><cbc:CompanyID>${escapeXmlStr(data.clientGstin)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>GST</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>${escapeXmlStr(data.clientName)}</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
       <cac:Contact>
+        ${data.clientContactName ? `<cbc:Name>${escapeXmlStr(data.clientContactName)}</cbc:Name>` : ""}
+        ${data.clientPhone ? `<cbc:Telephone>${escapeXmlStr(data.clientPhone)}</cbc:Telephone>` : ""}
         <cbc:ElectronicMail>${escapeXmlStr(data.clientEmail)}</cbc:ElectronicMail>
       </cac:Contact>
     </cac:Party>
   </cac:AccountingCustomerParty>
+  ${data.deliveryDate || data.deliveryPartyName || data.deliveryAddress ? `<cac:Delivery>
+    ${data.deliveryDate ? `<cbc:ActualDeliveryDate>${escapeXmlStr(data.deliveryDate)}</cbc:ActualDeliveryDate>` : ""}
+    <cac:DeliveryLocation>
+      ${data.deliveryLocationId ? `<cbc:ID>${escapeXmlStr(data.deliveryLocationId)}</cbc:ID>` : ""}
+      <cac:Address>
+        <cbc:StreetName>${escapeXmlStr(data.deliveryAddress || data.clientAddress)}</cbc:StreetName>
+        <cbc:CityName>${escapeXmlStr(data.deliveryCity || data.clientCityState || "")}</cbc:CityName>
+        ${data.deliveryPostalCode ? `<cbc:PostalZone>${escapeXmlStr(data.deliveryPostalCode)}</cbc:PostalZone>` : ""}
+      </cac:Address>
+    </cac:DeliveryLocation>
+    ${data.deliveryPartyName ? `<cac:DeliveryParty><cac:PartyName><cbc:Name>${escapeXmlStr(data.deliveryPartyName)}</cbc:Name></cac:PartyName></cac:DeliveryParty>` : ""}
+  </cac:Delivery>` : ""}
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>${escapeXmlStr(data.paymentMeansCode || "30")}</cbc:PaymentMeansCode>
+    ${data.paymentReference ? `<cbc:PaymentID>${escapeXmlStr(data.paymentReference)}</cbc:PaymentID>` : ""}
+    ${data.bankAccountNumber ? `<cac:PayeeFinancialAccount>
+      <cbc:ID>${escapeXmlStr(data.bankAccountNumber)}</cbc:ID>
+      ${data.bankAccountHolder ? `<cbc:Name>${escapeXmlStr(data.bankAccountHolder)}</cbc:Name>` : ""}
+      ${data.bankBicSwift || data.bankIfscCode ? `<cac:FinancialInstitutionBranch><cbc:ID>${escapeXmlStr(data.bankBicSwift || data.bankIfscCode || "")}</cbc:ID></cac:FinancialInstitutionBranch>` : ""}
+    </cac:PayeeFinancialAccount>` : ""}
+  </cac:PaymentMeans>
+  ${data.paymentTermsText || data.terms ? `<cac:PaymentTerms><cbc:Note>${escapeXmlStr(data.paymentTermsText || data.terms || "")}</cbc:Note></cac:PaymentTerms>` : ""}
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="${currencyCode}">${totalTax.toFixed(2)}</cbc:TaxAmount>
   </cac:TaxTotal>
   <cac:LegalMonetaryTotal>
-    <cbc:LineExtensionAmount currencyID="${currencyCode}">${taxableSubtotal.toFixed(2)}</cbc:LineExtensionAmount>
-    <cbc:TaxExclusiveAmount currencyID="${currencyCode}">${taxableSubtotal.toFixed(2)}</cbc:TaxExclusiveAmount>
+    <cbc:LineExtensionAmount currencyID="${currencyCode}">${lineTotalNet.toFixed(2)}</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="${currencyCode}">${taxBasisTotal.toFixed(2)}</cbc:TaxExclusiveAmount>
     <cbc:TaxInclusiveAmount currencyID="${currencyCode}">${grandTotal.toFixed(2)}</cbc:TaxInclusiveAmount>
-    <cbc:PayableAmount currencyID="${currencyCode}">${grandTotal.toFixed(2)}</cbc:PayableAmount>
+    ${allowanceAmt > 0 ? `<cbc:AllowanceTotalAmount currencyID="${currencyCode}">${allowanceAmt.toFixed(2)}</cbc:AllowanceTotalAmount>` : ""}
+    ${chargeAmt > 0 ? `<cbc:ChargeTotalAmount currencyID="${currencyCode}">${chargeAmt.toFixed(2)}</cbc:ChargeTotalAmount>` : ""}
+    ${prepaidAmt > 0 ? `<cbc:PrepaidAmount currencyID="${currencyCode}">${prepaidAmt.toFixed(2)}</cbc:PrepaidAmount>` : ""}
+    <cbc:PayableAmount currencyID="${currencyCode}">${payableAmt.toFixed(2)}</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
 ${linesXml}
 </Invoice>`;
 
   const xmlBytes = new TextEncoder().encode(xmlString);
   return { xmlString, xmlBytes };
+}
+
+/**
+ * Generate a Hybrid PDF/A-3 (ZUGFeRD / Factur-X EN 16931) E-Invoice by embedding the structured XML
+ * attachment directly inside the source PDF (or a freshly generated visual invoice PDF).
+ */
+export async function generateZugferdHybridPdf(
+  data: InvoiceData,
+  sourcePdfBuffer?: ArrayBuffer | null
+): Promise<{ pdfBytes: Uint8Array; xmlString: string; pageCount: number }> {
+  const { xmlString, xmlBytes } = convertInvoiceDataToUblXml(data, "zugferd-en16931");
+
+  let doc: PDFDocument;
+  if (sourcePdfBuffer && sourcePdfBuffer.byteLength > 0) {
+    try {
+      doc = await PDFDocument.load(sourcePdfBuffer, { ignoreEncryption: true });
+    } catch {
+      const generated = await generateInvoicePdf(data);
+      doc = await PDFDocument.load(generated.pdfBytes);
+    }
+  } else {
+    const generated = await generateInvoicePdf(data);
+    doc = await PDFDocument.load(generated.pdfBytes);
+  }
+
+  // Embed EN 16931 XML attachment as factur-x.xml inside the PDF container
+  await doc.attach(xmlBytes, "factur-x.xml", {
+    mimeType: "text/xml",
+    description: "Factur-X / ZUGFeRD EN 16931 Electronic Invoice XML",
+    creationDate: new Date(),
+    modificationDate: new Date(),
+  });
+
+  doc.setTitle(`${data.documentTitle || "Invoice"} ${data.invoiceNumber || ""}`.trim());
+  doc.setSubject("ZUGFeRD / Factur-X EN 16931 Hybrid E-Invoice");
+  doc.setProducer("bg.tools EN 16931 E-Invoice Engine");
+
+  const pdfBytes = await doc.save({ useObjectStreams: true });
+  return { pdfBytes, xmlString, pageCount: doc.getPageCount() };
 }
 
 /**

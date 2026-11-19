@@ -82,7 +82,7 @@ export function PdfCompletedView(props: any) {
                 </div>
               </div>
 
-              {resultBuffer ? (
+              {resultBuffer && (
                 <PdfPreviewViewer
                   buffer={resultBuffer}
                   fileName={resultFileName}
@@ -90,7 +90,9 @@ export function PdfCompletedView(props: any) {
                   compact={false}
                   className="w-full shadow-xl"
                 />
-              ) : resultXmlText ? (
+              )}
+
+              {resultXmlText && (
                 <div className="rounded-3xl border border-slate-800 bg-slate-950 text-slate-100 p-6 shadow-2xl space-y-3 overflow-hidden">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <div className="flex items-center gap-2">
@@ -98,25 +100,43 @@ export function PdfCompletedView(props: any) {
                       <span className="h-3 w-3 rounded-full bg-amber-400" />
                       <span className="h-3 w-3 rounded-full bg-emerald-400" />
                       <span className="ml-2 font-mono text-xs font-bold text-emerald-400">
-                        {resultFileName}
+                        {resultBuffer ? "Embedded factur-x.xml (ZUGFeRD / EN 16931 Payload)" : resultFileName}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(resultXmlText);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 cursor-pointer"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                      <span>Copy XML</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(resultXmlText);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 cursor-pointer"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        <span>Copy XML</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const xmlBlob = new Blob([resultXmlText], { type: "application/xml;charset=utf-8" });
+                          const url = URL.createObjectURL(xmlBlob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "factur-x.xml";
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#ff5500] hover:bg-[#e04b00] px-3 py-1.5 text-xs font-bold text-white cursor-pointer"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Download XML</span>
+                      </button>
+                    </div>
                   </div>
-                  <pre className="max-h-[540px] overflow-auto font-mono text-xs leading-relaxed text-emerald-300/95 custom-scrollbar">
+                  <pre className="max-h-[380px] overflow-auto font-mono text-xs leading-relaxed text-emerald-300/95 custom-scrollbar">
                     {resultXmlText}
                   </pre>
                 </div>
-              ) : null}
+              )}
             </div>
 
             {/* Right 4 Columns: Command Panel & Smart Next Actions */}
@@ -167,7 +187,13 @@ export function PdfCompletedView(props: any) {
                   >
                     <div className="flex items-center gap-2.5">
                       <Download className="h-4 w-4" />
-                      <span>{isPdfInvoiceToEInvoiceTool ? "Download E-Invoice XML" : "Download PDF"}</span>
+                      <span>
+                        {isPdfInvoiceToEInvoiceTool
+                          ? resultBuffer
+                            ? "Download ZUGFeRD Hybrid PDF"
+                            : "Download E-Invoice XML"
+                          : "Download PDF"}
+                      </span>
                     </div>
                     <span className="font-mono text-xs opacity-90">{formatBytes(resultSize)}</span>
                   </button>
