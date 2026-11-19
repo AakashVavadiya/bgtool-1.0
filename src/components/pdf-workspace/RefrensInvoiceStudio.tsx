@@ -387,7 +387,7 @@ export function RefrensInvoiceStudio({
     activeFont === "serif" ? "font-serif" : activeFont === "mono" ? "font-mono" : "font-sans";
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 animate-in fade-in duration-200">
+    <div className="w-full space-y-6 animate-in fade-in duration-200">
       {/* Hidden File Inputs for Logo & Signature */}
       <input
         ref={logoInputRef}
@@ -405,9 +405,9 @@ export function RefrensInvoiceStudio({
       />
 
       {/* Top Interactive Stepper & Quick Configuration Bar */}
-      <div className="rounded-3xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 shadow-md flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="rounded-3xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 shadow-md flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         {/* Interactive Clickable Stepper Pills */}
-        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 lg:pb-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setActiveStep(1)}
