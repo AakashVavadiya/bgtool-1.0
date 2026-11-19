@@ -85,7 +85,7 @@ const QUICK_PAGES: QuickNavPage[] = [
   {
     title: "API Keys Console",
     description: "Generate and manage secure production API keys",
-    to: "/account?tab=api-keys",
+    to: "/account/api-keys",
     icon: Key,
     category: "Developer",
     badge: "v1",

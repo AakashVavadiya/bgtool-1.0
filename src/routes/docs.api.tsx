@@ -161,7 +161,7 @@ export function ApiDocsPage() {
                   <strong>Create an Account & Sign In:</strong> Register on <Link to="/signup" className="text-orange-600 hover:underline">bg.tools</Link> (includes 10 free credits daily).
                 </li>
                 <li>
-                  <strong>Generate an API Key:</strong> Visit your <Link to="/account" search={{ tab: "api-keys" }} className="text-orange-600 hover:underline">Account Dashboard</Link> and generate a secret key (e.g. <code>bgt_live_...</code>).
+                  <strong>Generate an API Key:</strong> Visit your <Link to="/account/api-keys" className="text-orange-600 hover:underline">API Keys &amp; Console</Link> and generate a secret key (e.g. <code>bgt_live_...</code>).
                 </li>
                 <li>
                   <strong>Make your first request:</strong> Copy and run the cURL snippet below:

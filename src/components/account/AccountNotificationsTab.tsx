@@ -19,7 +19,7 @@ export interface AccountNotificationItem {
 
 interface AccountNotificationsTabProps {
   currentUser: CurrentUser;
-  onSwitchTab?: (tab: "workspace" | "api-keys" | "notifications" | "purchases" | "statement") => void;
+  onSwitchTab?: (tab: "workspace" | "notifications" | "purchases" | "statement") => void;
 }
 
 const STORAGE_READ_NOTIFS_KEY = "bg_user_read_notifications_v1";

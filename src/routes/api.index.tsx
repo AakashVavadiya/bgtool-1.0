@@ -176,8 +176,7 @@ export function ApiMarketingPage() {
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
-              to="/account"
-              search={{ tab: "api-keys" }}
+              to="/account/api-keys"
               className="inline-flex items-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 text-sm font-extrabold shadow-md shadow-orange-500/20 hover:scale-102 active:scale-98 transition-all cursor-pointer"
             >
               <span>Get Your API Key</span>
@@ -438,8 +437,7 @@ export function ApiMarketingPage() {
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              to="/account"
-              search={{ tab: "api-keys" }}
+              to="/account/api-keys"
               className="inline-flex items-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 text-xs font-extrabold shadow-lg shadow-orange-500/30 transition-all cursor-pointer"
             >
               <span>Get API Key Now</span>

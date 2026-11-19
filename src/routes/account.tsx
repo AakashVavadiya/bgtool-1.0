@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { AuthUser, type CurrentUser } from "@/lib/auth-user";
 import { REALTIME_EVENT_NAME } from "@/lib/telemetry";
@@ -6,12 +6,11 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ApiKeysManager } from "@/components/account/ApiKeysManager";
 import { AccountNotificationsTab } from "@/components/account/AccountNotificationsTab";
 import { AccountPurchasesTab } from "@/components/account/AccountPurchasesTab";
 import { AccountStatementTab } from "@/components/account/AccountStatementTab";
 import { NotificationPopover } from "@/components/NotificationPopover";
-import { User, Mail, ShieldCheck, Lock, LogOut, Sparkles, ArrowRight, CheckCircle2, Coins, Zap, KeyRound, Calendar as CalendarIcon, Search, Plus, Edit3, Trash2, Download, FileText, BadgeCheck, Bold, Italic, List, Link2, Layers, MapPin, ChevronLeft, ChevronRight, X, Bell, Receipt, Play, Camera } from "lucide-react";
+import { User, Mail, ShieldCheck, Lock, LogOut, Sparkles, ArrowRight, CheckCircle2, Coins, Zap, Calendar as CalendarIcon, Search, Plus, Edit3, Trash2, Download, FileText, BadgeCheck, Bold, Italic, List, Link2, Layers, MapPin, ChevronLeft, ChevronRight, X, Bell, Receipt, Play, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { getAvatarUrl } from "@/lib/profile-avatars";
 import { AvatarPickerModal } from "@/components/account/AvatarPickerModal";
@@ -24,8 +23,29 @@ export const Route = createFileRoute("/account")({
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: AccountPage,
+  component: AccountRouteShell,
 });
+
+function AccountRouteShell() {
+  const matchRoute = useMatchRoute();
+  const navigate = useNavigate();
+  const isApiKeysPage = Boolean(matchRoute({ to: "/account/api-keys" }));
+
+  useEffect(() => {
+    if (!isApiKeysPage && typeof window !== "undefined") {
+      const param = new URLSearchParams(window.location.search).get("tab");
+      if (param === "api-keys" || param === "api") {
+        navigate({ to: "/account/api-keys", replace: true });
+      }
+    }
+  }, [isApiKeysPage, navigate]);
+
+  if (isApiKeysPage) {
+    return <Outlet />;
+  }
+
+  return <AccountPage />;
+}
 
 interface AccountNote {
   id: string;
@@ -52,11 +72,10 @@ export function AccountPage() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => AuthUser.getCurrentUser());
   const [activeMainTab, setActiveMainTab] = useState<
-    "workspace" | "api-keys" | "notifications" | "purchases" | "statement"
+    "workspace" | "notifications" | "purchases" | "statement"
   >(() => {
     if (typeof window !== "undefined") {
       const param = new URLSearchParams(window.location.search).get("tab");
-      if (param === "api-keys" || param === "api" || window.location.pathname.includes("api-keys")) return "api-keys";
       if (param === "notifications" || param === "notifs") return "notifications";
       if (param === "purchases" || param === "slips" || param === "orders" || param === "invoices") return "purchases";
       if (param === "statement" || param === "ledger" || param === "history") return "statement";
@@ -489,23 +508,6 @@ export function AccountPage() {
             <span>Overview & Activity</span>
           </button>
 
-          {/* Tab 2: Developer API Keys */}
-          <button
-            type="button"
-            onClick={() => setActiveMainTab("api-keys")}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeMainTab === "api-keys"
-                ? "bg-orange-500 text-white shadow-xs"
-                : "text-slate-600 dark:text-zinc-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30"
-            }`}
-          >
-            <KeyRound className="h-4 w-4" />
-            <span>Developer API Keys</span>
-            <span className="rounded-full bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 px-1.5 py-0.2 text-[10px] font-extrabold uppercase">
-              v1
-            </span>
-          </button>
-
           {/* Tab 3: Notifications */}
           <button
             type="button"
@@ -554,9 +556,7 @@ export function AccountPage() {
           </button>
         </div>
 
-        {activeMainTab === "api-keys" ? (
-          <ApiKeysManager />
-        ) : activeMainTab === "notifications" ? (
+        {activeMainTab === "notifications" ? (
           <AccountNotificationsTab currentUser={currentUser} onSwitchTab={setActiveMainTab} />
         ) : activeMainTab === "purchases" ? (
           <AccountPurchasesTab currentUser={currentUser} />
