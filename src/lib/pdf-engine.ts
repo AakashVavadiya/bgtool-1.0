@@ -4,23 +4,60 @@ import { getPdfJs } from "./pdf-preview";
 export interface InvoiceItem {
   id: string;
   description: string;
+  subDescription?: string;
+  hsnSac?: string;
+  unit?: string;
   quantity: number;
   rate: number;
   taxPercent: number;
 }
 
+export interface InvoiceCustomField {
+  id: string;
+  label: string;
+  value: string;
+}
+
 export interface InvoiceData {
+  documentTitle?: string;
+  documentSubtitle?: string;
+  themeColor?: string;
+  taxMode?: "gst_intra" | "gst_inter" | "standard" | "none";
   invoiceNumber: string;
   issueDate: string;
   dueDate: string;
+  customFields?: InvoiceCustomField[];
+  logoDataUrl?: string;
   currency: string;
   companyName: string;
+  companyCountry?: string;
+  companyGstin?: string;
+  companyPan?: string;
   companyAddress: string;
+  companyCityState?: string;
   companyEmail: string;
+  companyPhone?: string;
   clientName: string;
+  clientCountry?: string;
+  clientGstin?: string;
+  clientPan?: string;
   clientAddress: string;
+  clientCityState?: string;
   clientEmail: string;
+  clientPhone?: string;
   items: InvoiceItem[];
+  discountType?: "percent" | "flat";
+  discountValue?: number;
+  additionalChargesLabel?: string;
+  additionalChargesAmount?: number;
+  showTotalInWords?: boolean;
+  bankAccountHolder?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankName?: string;
+  upiId?: string;
+  signatureDataUrl?: string;
+  signatureLabel?: string;
   notes?: string;
   terms?: string;
 }
@@ -657,8 +694,89 @@ export async function changePdfPageDimensions(
   return { pdfBytes, pageCount: pages.length };
 }
 
+export function numberToInvoiceWords(amount: number, currencySymbol: string = "₹"): string {
+  if (!isFinite(amount) || amount < 0) return "Zero Only";
+  const rounded = Math.round(amount);
+  if (rounded === 0) return "Zero Only";
+
+  const ones = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+    "Seventeen", "Eighteen", "Nineteen",
+  ];
+  const tens = [
+    "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
+  ];
+
+  const twoDigits = (n: number): string => {
+    if (n === 0) return "";
+    if (n < 20) return ones[n]!;
+    const t = Math.floor(n / 10);
+    const o = n % 10;
+    return `${tens[t]}${o ? " " + ones[o] : ""}`;
+  };
+
+  const threeDigits = (n: number): string => {
+    if (n === 0) return "";
+    const h = Math.floor(n / 100);
+    const rem = n % 100;
+    return `${h ? ones[h] + " Hundred" : ""}${h && rem ? " " : ""}${twoDigits(rem)}`;
+  };
+
+  const isInr = currencySymbol === "₹" || currencySymbol === "INR" || currencySymbol === "Rs.";
+  const prefix = isInr
+    ? "Indian Rupees "
+    : currencySymbol === "$"
+      ? "US Dollars "
+      : currencySymbol === "€"
+        ? "Euros "
+        : currencySymbol === "£"
+          ? "British Pounds "
+          : "";
+
+  if (isInr) {
+    let n = rounded;
+    const parts: string[] = [];
+    const crore = Math.floor(n / 10000000);
+    n %= 10000000;
+    const lakh = Math.floor(n / 100000);
+    n %= 100000;
+    const thousand = Math.floor(n / 1000);
+    n %= 1000;
+    const hundredRem = n;
+
+    if (crore > 0) parts.push(`${threeDigits(crore)} Crore`);
+    if (lakh > 0) parts.push(`${twoDigits(lakh)} Lakh`);
+    if (thousand > 0) parts.push(`${twoDigits(thousand)} Thousand`);
+    if (hundredRem > 0) parts.push(threeDigits(hundredRem));
+
+    return `${prefix}${parts.join(" ")} Only`;
+  }
+
+  let n = rounded;
+  const parts: string[] = [];
+  const million = Math.floor(n / 1000000);
+  n %= 1000000;
+  const thousand = Math.floor(n / 1000);
+  n %= 1000;
+  if (million > 0) parts.push(`${threeDigits(million)} Million`);
+  if (thousand > 0) parts.push(`${threeDigits(thousand)} Thousand`);
+  if (n > 0) parts.push(threeDigits(n));
+  return `${prefix}${parts.join(" ")} Only`;
+}
+
+function safePdfWinAnsi(text: string): string {
+  const mapped = (text || "")
+    .replace(/₹/g, "Rs. ")
+    .replace(/✓|✔/g, "Yes")
+    .replace(/✗|✘/g, "No");
+  return Array.from(mapped)
+    .filter((ch) => ch.charCodeAt(0) >= 0x20 && ch.charCodeAt(0) <= 0xff)
+    .join("");
+}
+
 /**
- * Generate a professional invoice PDF
+ * Generate a professional Refrens-style GST / Tax Invoice PDF
  */
 export async function generateInvoicePdf(
   data: InvoiceData
@@ -669,226 +787,585 @@ export async function generateInvoicePdf(
   const fontRegular = await doc.embedFont(StandardFonts.Helvetica);
 
   const { width, height } = page.getSize();
-  const margin = 45;
+  const margin = 36;
+  const contentW = width - margin * 2;
 
-  // Header Banner
+  const [tr, tg, tb] = parseHexToRgb(data.themeColor || "#5b21b6", [0.357, 0.129, 0.714]);
+  const themeColor = rgb(tr, tg, tb);
+  const lightBoxColor = rgb(0.965, 0.968, 0.985);
+  const darkText = rgb(0.08, 0.09, 0.12);
+  const mutedText = rgb(0.38, 0.42, 0.49);
+
+  const rawCurrency = data.currency || "₹";
+  const pdfCurr = rawCurrency === "₹" ? "Rs. " : safePdfWinAnsi(rawCurrency);
+  const taxMode = data.taxMode || "gst_intra";
+
+  // 1. Top Title & Subtitle (Center-aligned like Refrens)
+  const titleStr = safePdfWinAnsi(data.documentTitle || "Tax Invoice");
+  const titleSize = 20;
+  const titleW = fontBold.widthOfTextAtSize(titleStr, titleSize);
+  page.drawText(titleStr, {
+    x: (width - titleW) / 2,
+    y: height - 46,
+    size: titleSize,
+    font: fontBold,
+    color: themeColor,
+  });
+
+  // Underline under Title
   page.drawRectangle({
-    x: 0,
-    y: height - 100,
-    width,
-    height: 100,
-    color: rgb(0.06, 0.09, 0.16),
+    x: (width - titleW) / 2,
+    y: height - 51,
+    width: titleW,
+    height: 1.5,
+    color: themeColor,
   });
 
-  page.drawText("INVOICE", {
-    x: margin,
-    y: height - 62,
-    size: 26,
-    font: fontBold,
-    color: rgb(1, 1, 1),
+  let cursorY = height - 68;
+  if (data.documentSubtitle?.trim()) {
+    const subStr = safePdfWinAnsi(data.documentSubtitle.trim());
+    const subW = fontRegular.widthOfTextAtSize(subStr, 9);
+    page.drawText(subStr, {
+      x: (width - subW) / 2,
+      y: cursorY,
+      size: 9,
+      font: fontRegular,
+      color: mutedText,
+    });
+    cursorY -= 16;
+  } else {
+    cursorY -= 6;
+  }
+
+  // 2. Invoice Metadata (Left) & Business Logo (Right)
+  const metaStartY = cursorY;
+  const metaRows: Array<{ label: string; value: string }> = [
+    { label: "Invoice No #", value: data.invoiceNumber || "INV-001" },
+    { label: "Invoice Date", value: data.issueDate || new Date().toISOString().slice(0, 10) },
+  ];
+  if (data.dueDate?.trim()) {
+    metaRows.push({ label: "Due Date", value: data.dueDate });
+  }
+  if (Array.isArray(data.customFields)) {
+    data.customFields.forEach((cf) => {
+      if (cf.label.trim() || cf.value.trim()) {
+        metaRows.push({ label: cf.label || "Field", value: cf.value || "-" });
+      }
+    });
+  }
+
+  let metaY = metaStartY;
+  metaRows.forEach((row) => {
+    page.drawText(safePdfWinAnsi(`${row.label}:`), {
+      x: margin,
+      y: metaY,
+      size: 9,
+      font: fontBold,
+      color: mutedText,
+    });
+    page.drawText(safePdfWinAnsi(row.value), {
+      x: margin + 88,
+      y: metaY,
+      size: 9.5,
+      font: fontBold,
+      color: darkText,
+    });
+    metaY -= 15;
   });
 
-  page.drawText(`#${data.invoiceNumber || "INV-001"}`, {
-    x: width - margin - fontBold.widthOfTextAtSize(`#${data.invoiceNumber || "INV-001"}`, 16),
-    y: height - 58,
-    size: 16,
-    font: fontBold,
-    color: rgb(0.23, 0.51, 0.96),
-  });
+  // Optional Business Logo on Right
+  if (data.logoDataUrl && data.logoDataUrl.startsWith("data:image/")) {
+    try {
+      const base64 = data.logoDataUrl.split(",")[1] || "";
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const embeddedLogo = data.logoDataUrl.includes("image/png")
+        ? await doc.embedPng(bytes)
+        : await doc.embedJpg(bytes);
+      const maxLogoW = 120;
+      const maxLogoH = 52;
+      const scale = Math.min(maxLogoW / (embeddedLogo.width || 1), maxLogoH / (embeddedLogo.height || 1), 1);
+      const lw = embeddedLogo.width * scale;
+      const lh = embeddedLogo.height * scale;
+      page.drawImage(embeddedLogo, {
+        x: width - margin - lw,
+        y: metaStartY - lh + 10,
+        width: lw,
+        height: lh,
+      });
+    } catch {
+      // ignore corrupted logo
+    }
+  }
 
-  // Company & Client Info
-  const infoTop = height - 135;
+  cursorY = Math.min(metaY, metaStartY - 56) - 10;
 
-  // From (Company)
-  page.drawText("ISSUED BY:", {
-    x: margin,
-    y: infoTop,
-    size: 10,
-    font: fontBold,
-    color: rgb(0.4, 0.45, 0.55),
-  });
-  page.drawText(data.companyName || "Your Company Name", {
-    x: margin,
-    y: infoTop - 18,
-    size: 13,
-    font: fontBold,
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  page.drawText(data.companyEmail || "billing@company.com", {
-    x: margin,
-    y: infoTop - 34,
-    size: 9,
-    font: fontRegular,
-    color: rgb(0.3, 0.3, 0.3),
-  });
-  page.drawText(data.companyAddress || "123 Business Street, Suite 100", {
-    x: margin,
-    y: infoTop - 48,
-    size: 9,
-    font: fontRegular,
-    color: rgb(0.3, 0.3, 0.3),
-  });
+  // 3. Two-Column "Billed By" & "Billed To" Cards
+  const cardGap = 12;
+  const cardW = (contentW - cardGap) / 2;
+  const cardH = 104;
+  const cardBottomY = cursorY - cardH;
 
-  // Bill To (Client)
-  const clientX = width / 2 + 20;
-  page.drawText("BILLED TO:", {
-    x: clientX,
-    y: infoTop,
-    size: 10,
-    font: fontBold,
-    color: rgb(0.4, 0.45, 0.55),
-  });
-  page.drawText(data.clientName || "Valued Client", {
-    x: clientX,
-    y: infoTop - 18,
-    size: 13,
-    font: fontBold,
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  page.drawText(data.clientEmail || "client@email.com", {
-    x: clientX,
-    y: infoTop - 34,
-    size: 9,
-    font: fontRegular,
-    color: rgb(0.3, 0.3, 0.3),
-  });
-  page.drawText(data.clientAddress || "Client Address", {
-    x: clientX,
-    y: infoTop - 48,
-    size: 9,
-    font: fontRegular,
-    color: rgb(0.3, 0.3, 0.3),
-  });
-
-  // Invoice Dates Bar
-  const dateBarY = infoTop - 85;
+  // Left Card: Billed By
   page.drawRectangle({
     x: margin,
-    y: dateBarY,
-    width: width - margin * 2,
-    height: 32,
-    color: rgb(0.95, 0.96, 0.98),
+    y: cardBottomY,
+    width: cardW,
+    height: cardH,
+    color: lightBoxColor,
+    borderColor: rgb(0.88, 0.89, 0.93),
+    borderWidth: 0.8,
   });
 
-  page.drawText(`Issue Date: ${data.issueDate || new Date().toISOString().slice(0, 10)}`, {
-    x: margin + 14,
-    y: dateBarY + 11,
-    size: 10,
-    font: fontBold,
-    color: rgb(0.2, 0.25, 0.35),
+  // Right Card: Billed To
+  const rightCardX = margin + cardW + cardGap;
+  page.drawRectangle({
+    x: rightCardX,
+    y: cardBottomY,
+    width: cardW,
+    height: cardH,
+    color: lightBoxColor,
+    borderColor: rgb(0.88, 0.89, 0.93),
+    borderWidth: 0.8,
   });
 
-  page.drawText(`Due Date: ${data.dueDate || "Upon Receipt"}`, {
-    x: width / 2 + 20,
-    y: dateBarY + 11,
-    size: 10,
-    font: fontBold,
-    color: rgb(0.2, 0.25, 0.35),
-  });
+  const drawPartyCard = (
+    x: number,
+    heading: string,
+    name: string,
+    address: string,
+    cityState?: string,
+    country?: string,
+    gstin?: string,
+    pan?: string,
+    email?: string,
+    phone?: string
+  ) => {
+    let py = cursorY - 16;
+    page.drawText(safePdfWinAnsi(heading), {
+      x: x + 10,
+      y: py,
+      size: 10,
+      font: fontBold,
+      color: themeColor,
+    });
+    py -= 15;
+    page.drawText(safePdfWinAnsi(name || "Business Name").slice(0, 42), {
+      x: x + 10,
+      y: py,
+      size: 10.5,
+      font: fontBold,
+      color: darkText,
+    });
+    py -= 13;
+    if (address) {
+      page.drawText(safePdfWinAnsi(address).slice(0, 48), {
+        x: x + 10,
+        y: py,
+        size: 8.5,
+        font: fontRegular,
+        color: mutedText,
+      });
+      py -= 12;
+    }
+    const locLine = [cityState, country].filter(Boolean).join(", ");
+    if (locLine) {
+      page.drawText(safePdfWinAnsi(locLine).slice(0, 48), {
+        x: x + 10,
+        y: py,
+        size: 8.5,
+        font: fontRegular,
+        color: mutedText,
+      });
+      py -= 12;
+    }
+    if (gstin) {
+      page.drawText(safePdfWinAnsi(`GSTIN: ${gstin}`), {
+        x: x + 10,
+        y: py,
+        size: 8.5,
+        font: fontBold,
+        color: darkText,
+      });
+      py -= 11;
+    }
+    if (pan) {
+      page.drawText(safePdfWinAnsi(`PAN: ${pan}`), {
+        x: x + 10,
+        y: py,
+        size: 8,
+        font: fontRegular,
+        color: darkText,
+      });
+      py -= 11;
+    }
+    const contactLine = [email, phone].filter(Boolean).join(" | ");
+    if (contactLine && py >= cardBottomY + 6) {
+      page.drawText(safePdfWinAnsi(contactLine).slice(0, 48), {
+        x: x + 10,
+        y: py,
+        size: 8,
+        font: fontRegular,
+        color: mutedText,
+      });
+    }
+  };
 
-  // Items Table Header
-  const tableTop = dateBarY - 30;
+  drawPartyCard(
+    margin,
+    "Billed By",
+    data.companyName,
+    data.companyAddress,
+    data.companyCityState,
+    data.companyCountry,
+    data.companyGstin,
+    data.companyPan,
+    data.companyEmail,
+    data.companyPhone
+  );
+
+  drawPartyCard(
+    rightCardX,
+    "Billed To",
+    data.clientName,
+    data.clientAddress,
+    data.clientCityState,
+    data.clientCountry,
+    data.clientGstin,
+    data.clientPan,
+    data.clientEmail,
+    data.clientPhone
+  );
+
+  // 4. Items Table (Refrens GST Columns)
+  const tableTop = cardBottomY - 22;
+  const headerH = 24;
   page.drawRectangle({
     x: margin,
-    y: tableTop,
-    width: width - margin * 2,
-    height: 26,
-    color: rgb(0.15, 0.2, 0.3),
+    y: tableTop - headerH,
+    width: contentW,
+    height: headerH,
+    color: themeColor,
   });
 
-  page.drawText("Description", { x: margin + 12, y: tableTop + 8, size: 9, font: fontBold, color: rgb(1, 1, 1) });
-  page.drawText("Qty", { x: width - margin - 220, y: tableTop + 8, size: 9, font: fontBold, color: rgb(1, 1, 1) });
-  page.drawText("Rate", { x: width - margin - 150, y: tableTop + 8, size: 9, font: fontBold, color: rgb(1, 1, 1) });
-  page.drawText("Total", { x: width - margin - 60, y: tableTop + 8, size: 9, font: fontBold, color: rgb(1, 1, 1) });
+  const colItemX = margin + 8;
+  const colHsnX = margin + 175;
+  const colGstX = margin + 225;
+  const colQtyX = margin + 262;
+  const colRateX = margin + 298;
+  const colAmtX = margin + 358;
+  const colTaxX = margin + 418;
+  const colTotX = margin + 468;
 
-  let rowY = tableTop - 24;
+  const hy = tableTop - 15;
+  page.drawText("Item", { x: colItemX, y: hy, size: 8.5, font: fontBold, color: rgb(1, 1, 1) });
+  if (taxMode !== "none") {
+    page.drawText("HSN/SAC", { x: colHsnX, y: hy, size: 8, font: fontBold, color: rgb(1, 1, 1) });
+    page.drawText(taxMode.startsWith("gst") ? "GST %" : "Tax %", { x: colGstX, y: hy, size: 8, font: fontBold, color: rgb(1, 1, 1) });
+  }
+  page.drawText("Qty", { x: colQtyX, y: hy, size: 8.5, font: fontBold, color: rgb(1, 1, 1) });
+  page.drawText("Rate", { x: colRateX, y: hy, size: 8.5, font: fontBold, color: rgb(1, 1, 1) });
+  page.drawText("Amount", { x: colAmtX, y: hy, size: 8.5, font: fontBold, color: rgb(1, 1, 1) });
+  if (taxMode !== "none") {
+    page.drawText(
+      taxMode === "gst_intra" ? "CGST+SGST" : taxMode === "gst_inter" ? "IGST" : "Tax",
+      { x: colTaxX, y: hy, size: 8, font: fontBold, color: rgb(1, 1, 1) }
+    );
+  }
+  page.drawText("Total", { x: colTotX, y: hy, size: 8.5, font: fontBold, color: rgb(1, 1, 1) });
+
+  let rowY = tableTop - headerH - 16;
   let subtotal = 0;
   let totalTax = 0;
-  const currencySymbol = data.currency || "$";
 
   const items = data.items.length > 0 ? data.items : [
-    { id: "1", description: "Design & Consultation Services", quantity: 1, rate: 500, taxPercent: 0 }
+    { id: "1", description: "Consultation & Design Services", quantity: 1, rate: 1000, taxPercent: 18 },
   ];
 
   items.forEach((item, idx) => {
-    const itemTotal = item.quantity * item.rate;
-    const itemTax = (itemTotal * (item.taxPercent || 0)) / 100;
-    subtotal += itemTotal;
-    totalTax += itemTax;
+    const qty = Number(item.quantity) || 0;
+    const rate = Number(item.rate) || 0;
+    const gstPct = taxMode === "none" ? 0 : Number(item.taxPercent) || 0;
+    const taxable = qty * rate;
+    const taxAmt = (taxable * gstPct) / 100;
+    const lineTotal = taxable + taxAmt;
+
+    subtotal += taxable;
+    totalTax += taxAmt;
+
+    const hasSub = Boolean(item.subDescription?.trim());
+    const rowH = hasSub ? 30 : 20;
 
     if (idx % 2 === 1) {
       page.drawRectangle({
         x: margin,
-        y: rowY - 6,
-        width: width - margin * 2,
-        height: 24,
-        color: rgb(0.97, 0.98, 0.99),
+        y: rowY - (hasSub ? 14 : 5),
+        width: contentW,
+        height: rowH,
+        color: rgb(0.975, 0.978, 0.99),
       });
     }
 
-    page.drawText(item.description || "Line Item", {
-      x: margin + 12,
+    page.drawText(safePdfWinAnsi(`${idx + 1}. ${item.description || "Item"}`).slice(0, 32), {
+      x: colItemX,
       y: rowY,
-      size: 9,
-      font: fontRegular,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-    page.drawText(String(item.quantity), {
-      x: width - margin - 215,
-      y: rowY,
-      size: 9,
-      font: fontRegular,
-      color: rgb(0.2, 0.2, 0.2),
-    });
-    page.drawText(`${currencySymbol}${item.rate.toFixed(2)}`, {
-      x: width - margin - 150,
-      y: rowY,
-      size: 9,
-      font: fontRegular,
-      color: rgb(0.2, 0.2, 0.2),
-    });
-    page.drawText(`${currencySymbol}${itemTotal.toFixed(2)}`, {
-      x: width - margin - 60,
-      y: rowY,
-      size: 9,
+      size: 8.5,
       font: fontBold,
-      color: rgb(0.1, 0.1, 0.1),
+      color: darkText,
     });
 
-    rowY -= 26;
+    if (hasSub) {
+      page.drawText(safePdfWinAnsi(item.subDescription!.trim()).slice(0, 38), {
+        x: colItemX + 10,
+        y: rowY - 10,
+        size: 7.5,
+        font: fontRegular,
+        color: mutedText,
+      });
+    }
+
+    if (taxMode !== "none") {
+      page.drawText(safePdfWinAnsi(item.hsnSac || "-").slice(0, 10), {
+        x: colHsnX,
+        y: rowY,
+        size: 8,
+        font: fontRegular,
+        color: mutedText,
+      });
+      page.drawText(`${gstPct}%`, {
+        x: colGstX,
+        y: rowY,
+        size: 8,
+        font: fontRegular,
+        color: darkText,
+      });
+    }
+
+    page.drawText(`${qty}`, { x: colQtyX, y: rowY, size: 8.5, font: fontRegular, color: darkText });
+    page.drawText(`${pdfCurr}${rate.toFixed(2)}`, { x: colRateX, y: rowY, size: 8, font: fontRegular, color: darkText });
+    page.drawText(`${pdfCurr}${taxable.toFixed(2)}`, { x: colAmtX, y: rowY, size: 8, font: fontRegular, color: darkText });
+    if (taxMode !== "none") {
+      page.drawText(`${pdfCurr}${taxAmt.toFixed(2)}`, { x: colTaxX, y: rowY, size: 8, font: fontRegular, color: darkText });
+    }
+    page.drawText(`${pdfCurr}${lineTotal.toFixed(2)}`, { x: colTotX, y: rowY, size: 8.5, font: fontBold, color: darkText });
+
+    rowY -= rowH + 2;
   });
 
-  // Totals Box
-  const totalsTop = rowY - 10;
-  const grandTotal = subtotal + totalTax;
-
-  page.drawText(`Subtotal:`, { x: width - margin - 180, y: totalsTop, size: 10, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
-  page.drawText(`${currencySymbol}${subtotal.toFixed(2)}`, { x: width - margin - 80, y: totalsTop, size: 10, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
-
-  page.drawText(`Tax:`, { x: width - margin - 180, y: totalsTop - 18, size: 10, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
-  page.drawText(`${currencySymbol}${totalTax.toFixed(2)}`, { x: width - margin - 80, y: totalsTop - 18, size: 10, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
-
+  // Divider line after items
   page.drawRectangle({
-    x: width - margin - 195,
-    y: totalsTop - 52,
-    width: 195,
-    height: 28,
-    color: rgb(0.06, 0.09, 0.16),
+    x: margin,
+    y: rowY + 6,
+    width: contentW,
+    height: 0.8,
+    color: rgb(0.86, 0.88, 0.92),
   });
 
-  page.drawText(`TOTAL DUE:`, { x: width - margin - 180, y: totalsTop - 42, size: 11, font: fontBold, color: rgb(1, 1, 1) });
-  page.drawText(`${currencySymbol}${grandTotal.toFixed(2)}`, { x: width - margin - 80, y: totalsTop - 42, size: 12, font: fontBold, color: rgb(0.23, 0.51, 0.96) });
+  // 5. Totals Calculation (Discounts, Additional Charges, CGST/SGST/IGST)
+  const rawDiscVal = Number(data.discountValue) || 0;
+  const discountAmt =
+    data.discountType === "percent"
+      ? (subtotal * Math.min(100, Math.max(0, rawDiscVal))) / 100
+      : Math.max(0, rawDiscVal);
+  const extraCharges = Number(data.additionalChargesAmount) || 0;
+  const grandTotal = Math.max(0, subtotal - discountAmt + totalTax + extraCharges);
 
-  // Footer notes & terms
-  if (data.notes || data.terms) {
-    const footerY = 80;
-    page.drawText("Notes & Payment Terms:", { x: margin, y: footerY, size: 9, font: fontBold, color: rgb(0.4, 0.4, 0.4) });
-    page.drawText(data.notes || "Thank you for your business. Please remit payment by the due date.", {
+  const bottomSectionTop = rowY - 10;
+
+  // Left Bottom: Bank Details, Terms & Notes
+  let leftY = bottomSectionTop;
+  if (data.bankAccountNumber || data.bankName || data.upiId) {
+    page.drawText("Bank & Payment Details", {
       x: margin,
-      y: footerY - 16,
+      y: leftY,
+      size: 9.5,
+      font: fontBold,
+      color: themeColor,
+    });
+    leftY -= 13;
+    const bankLines = [
+      data.bankAccountHolder ? `Account Holder: ${data.bankAccountHolder}` : "",
+      data.bankAccountNumber ? `A/C No: ${data.bankAccountNumber}` : "",
+      data.bankIfscCode ? `IFSC / SWIFT: ${data.bankIfscCode}` : "",
+      data.bankName ? `Bank: ${data.bankName}` : "",
+      data.upiId ? `UPI ID: ${data.upiId}` : "",
+    ].filter(Boolean);
+    bankLines.forEach((bl) => {
+      page.drawText(safePdfWinAnsi(bl).slice(0, 50), {
+        x: margin,
+        y: leftY,
+        size: 8,
+        font: fontRegular,
+        color: darkText,
+      });
+      leftY -= 11;
+    });
+    leftY -= 6;
+  }
+
+  if (data.terms?.trim()) {
+    page.drawText("Terms and Conditions", {
+      x: margin,
+      y: leftY,
+      size: 9.5,
+      font: fontBold,
+      color: themeColor,
+    });
+    leftY -= 12;
+    data.terms
+      .split(/\r?\n/)
+      .slice(0, 4)
+      .forEach((tLine) => {
+        page.drawText(safePdfWinAnsi(tLine).slice(0, 55), {
+          x: margin,
+          y: leftY,
+          size: 7.8,
+          font: fontRegular,
+          color: mutedText,
+        });
+        leftY -= 10.5;
+      });
+    leftY -= 5;
+  }
+
+  if (data.notes?.trim()) {
+    page.drawText("Additional Notes", {
+      x: margin,
+      y: leftY,
+      size: 9.5,
+      font: fontBold,
+      color: themeColor,
+    });
+    leftY -= 12;
+    data.notes
+      .split(/\r?\n/)
+      .slice(0, 3)
+      .forEach((nLine) => {
+        page.drawText(safePdfWinAnsi(nLine).slice(0, 55), {
+          x: margin,
+          y: leftY,
+          size: 7.8,
+          font: fontRegular,
+          color: mutedText,
+        });
+        leftY -= 10.5;
+      });
+  }
+
+  // Right Bottom: Summary Rows & Grand Total
+  const sumLabelX = width - margin - 205;
+  const sumValX = width - margin - 85;
+  let sumY = bottomSectionTop;
+
+  const drawSumRow = (label: string, val: string, bold = false) => {
+    page.drawText(safePdfWinAnsi(label), {
+      x: sumLabelX,
+      y: sumY,
+      size: 9,
+      font: bold ? fontBold : fontRegular,
+      color: bold ? darkText : mutedText,
+    });
+    page.drawText(safePdfWinAnsi(val), {
+      x: sumValX,
+      y: sumY,
+      size: 9,
+      font: bold ? fontBold : fontRegular,
+      color: darkText,
+    });
+    sumY -= 15;
+  };
+
+  drawSumRow("Taxable Amount", `${pdfCurr}${subtotal.toFixed(2)}`);
+  if (discountAmt > 0) {
+    drawSumRow(
+      data.discountType === "percent" ? `Discount (${rawDiscVal}%)` : "Discount",
+      `-${pdfCurr}${discountAmt.toFixed(2)}`
+    );
+  }
+  if (taxMode === "gst_intra") {
+    drawSumRow("CGST", `${pdfCurr}${(totalTax / 2).toFixed(2)}`);
+    drawSumRow("SGST", `${pdfCurr}${(totalTax / 2).toFixed(2)}`);
+  } else if (taxMode === "gst_inter") {
+    drawSumRow("IGST", `${pdfCurr}${totalTax.toFixed(2)}`);
+  } else if (taxMode === "standard") {
+    drawSumRow("Tax / VAT", `${pdfCurr}${totalTax.toFixed(2)}`);
+  }
+  if (extraCharges > 0) {
+    drawSumRow(data.additionalChargesLabel || "Additional Charges", `${pdfCurr}${extraCharges.toFixed(2)}`);
+  }
+
+  // Grand Total Bar
+  sumY -= 6;
+  page.drawRectangle({
+    x: sumLabelX - 8,
+    y: sumY - 7,
+    width: 213,
+    height: 24,
+    color: themeColor,
+  });
+  page.drawText("Total", {
+    x: sumLabelX,
+    y: sumY + 1,
+    size: 11,
+    font: fontBold,
+    color: rgb(1, 1, 1),
+  });
+  page.drawText(safePdfWinAnsi(`${pdfCurr}${grandTotal.toFixed(2)}`), {
+    x: sumValX - 10,
+    y: sumY + 1,
+    size: 11,
+    font: fontBold,
+    color: rgb(1, 1, 1),
+  });
+
+  sumY -= 22;
+
+  // Total in Words
+  if (data.showTotalInWords !== false) {
+    const words = numberToInvoiceWords(grandTotal, rawCurrency);
+    page.drawText("Total (in words):", {
+      x: sumLabelX - 8,
+      y: sumY,
+      size: 7.5,
+      font: fontBold,
+      color: mutedText,
+    });
+    sumY -= 10;
+    page.drawText(safePdfWinAnsi(words).slice(0, 46), {
+      x: sumLabelX - 8,
+      y: sumY,
       size: 8,
-      font: fontRegular,
-      color: rgb(0.45, 0.45, 0.45),
+      font: fontBold,
+      color: darkText,
+    });
+    sumY -= 18;
+  }
+
+  // Embedded Signature Image (if present)
+  if (data.signatureDataUrl && data.signatureDataUrl.startsWith("data:image/")) {
+    try {
+      const base64 = data.signatureDataUrl.split(",")[1] || "";
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const sigImg = data.signatureDataUrl.includes("image/png")
+        ? await doc.embedPng(bytes)
+        : await doc.embedJpg(bytes);
+      const sw = 100;
+      const sh = Math.min(42, (sigImg.height / (sigImg.width || 1)) * sw);
+      page.drawImage(sigImg, {
+        x: width - margin - sw - 10,
+        y: sumY - sh,
+        width: sw,
+        height: sh,
+      });
+      sumY -= sh + 12;
+    } catch {
+      // ignore invalid sig
+    }
+    page.drawText(safePdfWinAnsi(data.signatureLabel || "Authorized Signatory"), {
+      x: width - margin - 115,
+      y: sumY,
+      size: 8.5,
+      font: fontBold,
+      color: mutedText,
     });
   }
 

@@ -14,6 +14,7 @@ import { AuthUser } from "@/lib/auth-user";
 import { PdfStudioPortal } from "@/components/pdf-workspace/PdfStudioPortal";
 import { PdfCompletedView } from "@/components/pdf-workspace/PdfCompletedView";
 import { PdfActiveWorkspaceGrid } from "@/components/pdf-workspace/PdfActiveWorkspaceGrid";
+import { RefrensInvoiceStudio } from "@/components/pdf-workspace/RefrensInvoiceStudio";
 
 interface UploadedPdfItem {
   id: string;
@@ -1359,22 +1360,34 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
 
   // Invoice state
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
-    invoiceNumber: "INV-" + Math.floor(1000 + Math.random() * 9000),
+    documentTitle: "Tax Invoice",
+    documentSubtitle: "",
+    themeColor: "#5b21b6",
+    taxMode: "gst_intra",
+    invoiceNumber: "A00001",
     issueDate: new Date().toISOString().slice(0, 10),
     dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-    currency: "$",
+    currency: "₹",
     companyName: "Acme Creative Studio",
+    companyCountry: "India",
+    companyGstin: "",
     companyAddress: "100 Innovation Way, Suite 400",
+    companyCityState: "Mumbai, Maharashtra - 400001",
     companyEmail: "billing@acmecreative.com",
     clientName: "Enterprise Client Corp",
+    clientCountry: "India",
+    clientGstin: "",
     clientAddress: "500 Market Boulevard",
+    clientCityState: "Bengaluru, Karnataka - 560001",
     clientEmail: "accounts@clientcorp.com",
     items: [
-      { id: "1", description: "UI/UX System Design & Prototyping", quantity: 1, rate: 1200, taxPercent: 10 },
-      { id: "2", description: "Technical Documentation & Export Suite", quantity: 2, rate: 450, taxPercent: 10 },
+      { id: "1", description: "UI/UX System Design & Prototyping", hsnSac: "998314", quantity: 1, rate: 12000, taxPercent: 18 },
+      { id: "2", description: "Technical Documentation & Export Suite", hsnSac: "998313", quantity: 2, rate: 4500, taxPercent: 18 },
     ],
-    notes: "Payment due within 14 days of issue date. Wire transfer or online card accepted.",
-    terms: "Late payments are subject to a 1.5% fee per month.",
+    showTotalInWords: true,
+    signatureLabel: "Authorized Signatory",
+    notes: "Thank you for your business. Wire transfer, UPI, or online card accepted.",
+    terms: "1. Please pay within 15 days from the date of invoice, overdue interest @ 14% will be charged on delayed payments.\n2. Please quote invoice number when remitting funds.",
   });
 
   const isInvoiceTool =
@@ -2669,6 +2682,14 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
             {/* FULL-SCREEN DEDICATED PDF EDITOR STUDIO PORTAL (WHITE, ORANGE & BLACK THEME) */}
             <PdfStudioPortal {...pdfWorkspaceScope} />
           </>
+        ) : isInvoiceTool ? (
+          <RefrensInvoiceStudio
+            tool={tool}
+            invoiceData={invoiceData}
+            setInvoiceData={setInvoiceData}
+            processing={processing}
+            handleProcess={handleProcess}
+          />
         ) : (
           <PdfActiveWorkspaceGrid {...pdfWorkspaceScope} />
         )
