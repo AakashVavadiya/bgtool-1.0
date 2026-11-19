@@ -47,7 +47,7 @@ export interface PremiumThemeConfig {
     | "dual-wave"
     | "bottom-swoosh"
     | "angle-slash"
-    | "corner-polygons"
+    | "split-hero-banner"
     | "sidebar-ribbon"
     | "editorial-crest"
     | "cyber-grid"
@@ -60,7 +60,7 @@ const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   {
     id: "executive-orange",
     name: "1. Dual Wave Graphic Pro",
-    subtitle: "Sculpted top & bottom layered curves with signature hero arc",
+    subtitle: "Sculpted top-left & bottom-right S-curves with segmented table header",
     badge: "Default",
     defaultColor: "#ff5500",
     defaultFont: "sans",
@@ -69,16 +69,16 @@ const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   {
     id: "modern-banner",
     name: "2. Dynamic Diagonal Slash",
-    subtitle: "Bold angled polygon top banner with geometric bottom corner wedge",
+    subtitle: "Full-width angled polygon banner with floating summary card",
     badge: "Popular",
-    defaultColor: "#ff5500",
+    defaultColor: "#ea580c",
     defaultFont: "sans",
     graphicStyle: "angle-slash",
   },
   {
     id: "minimal-swiss",
     name: "3. Minimal Bottom Wave",
-    subtitle: "Oversized editorial header & overlapping dual-tone bottom swoosh",
+    subtitle: "Giant editorial INVOICE display with overlapping dual-tone bottom waves",
     badge: "Minimal",
     defaultColor: "#18181b",
     defaultFont: "sans",
@@ -86,17 +86,17 @@ const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   },
   {
     id: "corporate-split",
-    name: "4. Teal & Navy Dual Curve",
-    subtitle: "Executive dark-teal layered S-curve header & signature wave footer",
+    name: "4. Corporate Split Hero",
+    subtitle: "Asymmetric two-column colored top block with 3-stat invoice bar",
     badge: "Corporate",
     defaultColor: "#042f40",
     defaultFont: "sans",
-    graphicStyle: "dual-wave",
+    graphicStyle: "split-hero-banner",
   },
   {
     id: "luxury-editorial",
     name: "5. Luxury Gold Crest & Arch",
-    subtitle: "Ornamental curved top arch, gold corner accents & classic serif",
+    subtitle: "Centered dome arch crest, gold double-lines & classic serif typography",
     badge: "Luxury",
     defaultColor: "#9a3412",
     defaultFont: "serif",
@@ -104,8 +104,8 @@ const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   },
   {
     id: "tech-mono",
-    name: "6. SaaS Geometric Prism",
-    subtitle: "Angular tech polygons, precision monospace grid & pill badges",
+    name: "6. SaaS Terminal Dark Grid",
+    subtitle: "Dark-mode terminal top card, 4-metric KPI strip & monospace grid",
     badge: "SaaS / Tech",
     defaultColor: "#2563eb",
     defaultFont: "mono",
@@ -113,17 +113,17 @@ const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   },
   {
     id: "bold-sidebar",
-    name: "7. Vertical Ribbon & Wave",
-    subtitle: "Left geometric spine with sculpted bottom corner wave accent",
+    name: "7. Vertical Spine Studio",
+    subtitle: "Full-height left colored sidebar column with rotated watermark title",
     badge: "Creative",
-    defaultColor: "#ea580c",
+    defaultColor: "#d97706",
     defaultFont: "sans",
     graphicStyle: "sidebar-ribbon",
   },
   {
     id: "gst-pro-ledger",
-    name: "8. Royal GST Seal & Frame",
-    subtitle: "Double ornamental border frame with corner ribbons for GST tax",
+    name: "8. Indian GST Ledger Grid",
+    subtitle: "Full outer ornamental seal frame with boxed tax ledger table cells",
     badge: "GST Official",
     defaultColor: "#5b21b6",
     defaultFont: "sans",
@@ -131,8 +131,8 @@ const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   },
   {
     id: "agency-studio",
-    name: "9. Abstract Studio Curves",
-    subtitle: "Soft layered organic wave clouds top & bottom for creative studios",
+    name: "9. Creative Circle & Clouds",
+    subtitle: "Layered organic corner circles & wave clouds with pill item cards",
     badge: "Studio",
     defaultColor: "#e11d48",
     defaultFont: "sans",
@@ -140,8 +140,8 @@ const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   },
   {
     id: "compact-enterprise",
-    name: "10. Emerald Chevron Pro",
-    subtitle: "Sharp architectural V-chevron header & angled footer bar",
+    name: "10. Emerald V-Chevron Pro",
+    subtitle: "Architectural V-chevron header & footer with center badge & striped grid",
     badge: "Enterprise",
     defaultColor: "#059669",
     defaultFont: "sans",
@@ -592,196 +592,401 @@ export function RefrensInvoiceStudio({
                         : "border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/30 hover:border-slate-400 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-800/60"
                     }`}
                   >
-                    {/* Portrait A4 Mini Sheet Container */}
+                    {/* Portrait A4 Mini Sheet Container - 10 Distinct Structural Architectures */}
                     <div className="w-full rounded-xl bg-slate-200/70 dark:bg-zinc-950/70 p-3 mb-3 flex items-center justify-center">
-                      <div className="w-full max-w-[165px] aspect-[1/1.36] rounded-lg bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-md overflow-hidden relative p-3 flex flex-col justify-between transition-transform group-hover:scale-[1.02]">
-                        {/* Top Graphical SVG Overlay */}
+                      <div className="w-full max-w-[165px] aspect-[1/1.36] rounded-lg bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-md overflow-hidden relative flex flex-col justify-between transition-transform group-hover:scale-[1.02]">
+                        {/* 1. DUAL WAVE GRAPHIC PRO (Top-Left S-Wave + Segmented Table Header + Bottom-Right S-Wave) */}
                         {theme.graphicStyle === "dual-wave" && (
-                          <svg viewBox="0 0 200 65" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-11 pointer-events-none">
-                            <path d="M 0,0 L 150,0 C 115,32 65,58 0,48 Z" fill={previewColor} fillOpacity="0.22" />
-                            <path d="M 0,0 L 135,0 C 102,26 55,48 0,38 Z" fill={previewColor} />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "angle-slash" && (
-                          <svg viewBox="0 0 200 65" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-10 pointer-events-none">
-                            <polygon points="0,0 200,0 135,54 0,34" fill={previewColor} fillOpacity="0.22" />
-                            <polygon points="0,0 185,0 115,44 0,28" fill={previewColor} />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "editorial-crest" && (
-                          <svg viewBox="0 0 200 55" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-9 pointer-events-none">
-                            <path d="M 0,0 L 200,0 L 200,22 Q 100,54 0,22 Z" fill={previewColor} fillOpacity="0.2" />
-                            <path d="M 0,0 L 200,0 L 200,15 Q 100,44 0,15 Z" fill={previewColor} />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "cyber-grid" && (
-                          <svg viewBox="0 0 200 55" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-9 pointer-events-none">
-                            <polygon points="0,0 132,0 106,42 0,42" fill={previewColor} />
-                            <polygon points="138,0 200,0 200,28 118,28" fill={previewColor} fillOpacity="0.25" />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "sidebar-ribbon" && (
-                          <>
-                            <div className="absolute left-0 top-0 bottom-0 w-2.5" style={{ backgroundColor: previewColor }} />
-                            <svg viewBox="0 0 200 60" preserveAspectRatio="none" className="absolute bottom-0 right-0 w-28 h-9 pointer-events-none">
-                              <path d="M 200,60 L 25,60 C 75,32 135,12 200,16 Z" fill={previewColor} fillOpacity="0.24" />
-                              <path d="M 200,60 L 50,60 C 90,38 145,20 200,24 Z" fill={previewColor} />
+                          <div className="relative h-full w-full p-2.5 flex flex-col justify-between">
+                            <svg viewBox="0 0 200 70" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-11 pointer-events-none">
+                              <path d="M 0,0 L 155,0 C 118,34 65,64 0,52 Z" fill={previewColor} fillOpacity="0.22" />
+                              <path d="M 0,0 L 138,0 C 104,28 55,52 0,42 Z" fill={previewColor} />
                             </svg>
-                          </>
+                            <svg viewBox="0 0 200 70" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-11 pointer-events-none">
+                              <path d="M 0,32 C 45,20 90,38 135,70 L 0,70 Z" fill={previewColor} fillOpacity="0.24" />
+                              <path d="M 35,70 C 95,28 155,16 200,10 L 200,70 Z" fill={previewColor} />
+                            </svg>
+                            <div className="relative z-10 flex items-start justify-between pt-0.5">
+                              <div className="space-y-0.5">
+                                <span className="block h-2 w-11 rounded-xs bg-white" />
+                                <span className="block h-1 w-7 rounded-xs bg-white/70" />
+                              </div>
+                              <span className="text-[8px] font-black tracking-wider" style={{ color: previewColor }}>INVOICE</span>
+                            </div>
+                            <div className="relative z-10 space-y-1.5 my-auto">
+                              <div className="flex justify-between items-end px-0.5">
+                                <div className="space-y-0.5">
+                                  <div className="h-1 w-7 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                  <div className="h-1 w-11 rounded-xs bg-slate-300 dark:bg-zinc-600" />
+                                </div>
+                                <div className="space-y-0.5 text-right">
+                                  <div className="h-1 w-8 rounded-xs bg-slate-300 dark:bg-zinc-600 ml-auto" />
+                                  <div className="h-1 w-6 rounded-xs bg-slate-200 dark:bg-zinc-700 ml-auto" />
+                                </div>
+                              </div>
+                              {/* Segmented 5-column table header like Uploaded Image 2 */}
+                              <div className="grid grid-cols-12 gap-0.5">
+                                <div className="col-span-2 h-2.5 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                <div className="col-span-5 h-2.5 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                <div className="col-span-2 h-2.5 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                <div className="col-span-3 h-2.5 rounded-xs" style={{ backgroundColor: previewColor }} />
+                              </div>
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-50 dark:bg-zinc-800/40" />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                            </div>
+                            <div className="relative z-10 flex items-end justify-between pb-2.5">
+                              <div className="space-y-0.5">
+                                <div className="h-1 w-8 rounded-xs bg-slate-300" />
+                                <div className="h-1 w-6 rounded-xs bg-slate-200" />
+                              </div>
+                              <div className="h-3.5 w-12 rounded-full shadow-xs" style={{ backgroundColor: previewColor }} />
+                            </div>
+                          </div>
                         )}
+
+                        {/* 2. DYNAMIC DIAGONAL SLASH (Full Angled Banner + Floating White Badge + Corner Wedge) */}
+                        {theme.graphicStyle === "angle-slash" && (
+                          <div className="relative h-full w-full p-2.5 flex flex-col justify-between">
+                            <svg viewBox="0 0 200 75" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-12 pointer-events-none">
+                              <polygon points="0,0 200,0 200,28 0,72" fill={previewColor} fillOpacity="0.22" />
+                              <polygon points="0,0 200,0 200,18 0,60" fill={previewColor} />
+                            </svg>
+                            <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-8 pointer-events-none">
+                              <polygon points="40,50 200,10 200,50" fill={previewColor} fillOpacity="0.24" />
+                              <polygon points="85,50 200,20 200,50" fill={previewColor} />
+                            </svg>
+                            <div className="relative z-10 flex items-start justify-between">
+                              <span className="text-[8px] font-black text-white tracking-wider">TAX INVOICE</span>
+                              <div className="rounded bg-white px-1.5 py-0.5 shadow-xs border border-slate-100">
+                                <div className="h-1.5 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
+                              </div>
+                            </div>
+                            <div className="relative z-10 space-y-1.5 my-auto pt-2">
+                              <div className="grid grid-cols-2 gap-1">
+                                <div className="rounded bg-slate-50 dark:bg-zinc-800 p-1 border-l-2" style={{ borderColor: previewColor }}>
+                                  <div className="h-1 w-7 rounded-xs bg-slate-400" />
+                                  <div className="h-1 w-5 rounded-xs bg-slate-200 mt-0.5" />
+                                </div>
+                                <div className="rounded bg-slate-50 dark:bg-zinc-800 p-1 border-l-2" style={{ borderColor: previewColor }}>
+                                  <div className="h-1 w-7 rounded-xs bg-slate-400" />
+                                  <div className="h-1 w-5 rounded-xs bg-slate-200 mt-0.5" />
+                                </div>
+                              </div>
+                              <div className="h-2 w-full rounded-xs" style={{ backgroundColor: previewColor }} />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                            </div>
+                            <div className="relative z-10 flex justify-end pb-2">
+                              <div className="h-4 w-14 rounded-md shadow-xs" style={{ backgroundColor: previewColor }} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. MINIMAL BOTTOM WAVE (Uploaded Image 1: Giant Editorial INVOICE + Soft Gray Bar + Dual Bottom Wave) */}
+                        {theme.graphicStyle === "bottom-swoosh" && (
+                          <div className="relative h-full w-full p-2.5 flex flex-col justify-between">
+                            <svg viewBox="0 0 200 75" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-12 pointer-events-none">
+                              <path d="M 0,25 C 55,15 100,42 145,75 L 0,75 Z" fill={previewColor} fillOpacity="0.24" />
+                              <path d="M 25,75 C 85,26 150,15 200,5 L 200,75 Z" fill={previewColor} />
+                            </svg>
+                            <div className="relative z-10 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[6px] font-bold text-slate-500">LOGO</span>
+                                <span className="text-[6px] font-mono text-slate-500">NO. 001</span>
+                              </div>
+                              <div className="text-[13px] font-black tracking-tight leading-none pt-0.5" style={{ color: previewColor }}>
+                                INVOICE
+                              </div>
+                            </div>
+                            <div className="relative z-10 space-y-1.5 my-auto">
+                              <div className="grid grid-cols-2 gap-2 pt-1">
+                                <div className="space-y-0.5">
+                                  <div className="h-1 w-6 rounded-xs bg-slate-800 dark:bg-zinc-300" />
+                                  <div className="h-1 w-9 rounded-xs bg-slate-300 dark:bg-zinc-600" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <div className="h-1 w-6 rounded-xs bg-slate-800 dark:bg-zinc-300" />
+                                  <div className="h-1 w-9 rounded-xs bg-slate-300 dark:bg-zinc-600" />
+                                </div>
+                              </div>
+                              <div className="h-2.5 w-full rounded-xs bg-slate-200 dark:bg-zinc-700" />
+                              <div className="h-1.5 w-full bg-slate-100 dark:bg-zinc-800" />
+                              <div className="h-1.5 w-full bg-slate-100 dark:bg-zinc-800" />
+                              <div className="border-t border-b border-slate-300 dark:border-zinc-700 py-0.5 flex justify-end">
+                                <div className="h-1.5 w-8 rounded-xs" style={{ backgroundColor: previewColor }} />
+                              </div>
+                            </div>
+                            <div className="relative z-10 h-6" />
+                          </div>
+                        )}
+
+                        {/* 4. CORPORATE SPLIT HERO (2-Column Colored Top Hero Block + 3-Metric Strip + Bottom Bar) */}
+                        {theme.graphicStyle === "split-hero-banner" && (
+                          <div className="relative h-full w-full flex flex-col justify-between">
+                            <div className="p-2.5 text-white flex items-center justify-between" style={{ backgroundColor: previewColor }}>
+                              <div className="space-y-0.5">
+                                <div className="h-2 w-11 rounded-xs bg-white" />
+                                <div className="h-1 w-7 rounded-xs bg-white/70" />
+                              </div>
+                              <div className="text-right">
+                                <div className="text-[8px] font-black tracking-wider">INVOICE</div>
+                                <div className="h-1 w-6 rounded-xs bg-white/80 ml-auto mt-0.5" />
+                              </div>
+                            </div>
+                            <div className="px-2.5 space-y-1.5 my-auto">
+                              {/* 3-Stat KPI Strip */}
+                              <div className="grid grid-cols-3 gap-1 rounded bg-slate-100 dark:bg-zinc-800 p-1">
+                                <div className="h-2 rounded-xs bg-white dark:bg-zinc-900" />
+                                <div className="h-2 rounded-xs bg-white dark:bg-zinc-900" />
+                                <div className="h-2 rounded-xs" style={{ backgroundColor: previewColor }} />
+                              </div>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <div className="space-y-0.5">
+                                  <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                  <div className="h-1 w-10 rounded-xs bg-slate-300" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                  <div className="h-1 w-10 rounded-xs bg-slate-300" />
+                                </div>
+                              </div>
+                              <div className="h-2 w-full rounded-xs" style={{ backgroundColor: previewColor }} />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                            </div>
+                            <div className="px-2.5 pb-2">
+                              <div className="flex justify-end mb-1.5">
+                                <div className="h-3.5 w-12 rounded-xs" style={{ backgroundColor: previewColor }} />
+                              </div>
+                              <div className="h-1.5 w-full rounded-full" style={{ backgroundColor: previewColor }} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 5. LUXURY GOLD CREST & ARCH (Ornamental Dome Arch + Floating Crest Pill + Double Rules) */}
+                        {theme.graphicStyle === "editorial-crest" && (
+                          <div className="relative h-full w-full p-2.5 flex flex-col justify-between bg-amber-50/25 dark:bg-zinc-900">
+                            <svg viewBox="0 0 200 60" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-9 pointer-events-none">
+                              <path d="M 0,0 L 200,0 L 200,20 Q 100,58 0,20 Z" fill={previewColor} fillOpacity="0.22" />
+                              <path d="M 0,0 L 200,0 L 200,12 Q 100,48 0,12 Z" fill={previewColor} />
+                            </svg>
+                            <svg viewBox="0 0 200 40" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-6 pointer-events-none">
+                              <path d="M 0,40 L 0,22 Q 100,0 200,22 L 200,40 Z" fill={previewColor} fillOpacity="0.2" />
+                            </svg>
+                            <div className="relative z-10 flex justify-center pt-2">
+                              <span
+                                className="rounded-full bg-white dark:bg-zinc-900 px-2.5 py-0.5 text-[7px] font-serif font-black tracking-widest shadow-xs border"
+                                style={{ color: previewColor, borderColor: previewColor }}
+                              >
+                                INVOICE
+                              </span>
+                            </div>
+                            <div className="relative z-10 space-y-1.5 my-auto">
+                              <div className="border-y py-1 grid grid-cols-2 gap-1 text-center" style={{ borderColor: `${previewColor}55` }}>
+                                <div className="h-1.5 w-8 mx-auto rounded-xs bg-slate-400" />
+                                <div className="h-1.5 w-8 mx-auto rounded-xs bg-slate-400" />
+                              </div>
+                              <div className="h-2 w-full rounded-xs" style={{ backgroundColor: previewColor }} />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-200/70 dark:bg-zinc-800" />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-200/70 dark:bg-zinc-800" />
+                            </div>
+                            <div className="relative z-10 flex justify-center pb-1.5">
+                              <div className="h-3.5 w-14 rounded-full border-2 flex items-center justify-center" style={{ borderColor: previewColor }}>
+                                <div className="h-1 w-8 rounded-xs" style={{ backgroundColor: previewColor }} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 6. SAAS TERMINAL DARK GRID (Dark Slate Header Card + 4-Metric Strip + Monospace Grid) */}
+                        {theme.graphicStyle === "cyber-grid" && (
+                          <div className="relative h-full w-full p-2 flex flex-col justify-between">
+                            <div className="rounded-md bg-slate-900 text-white p-2 flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-0.5">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                </div>
+                                <div className="text-[7px] font-mono font-black tracking-tight pt-0.5">INVOICE.SH</div>
+                              </div>
+                              <span className="rounded px-1 py-0.5 text-[6px] font-mono font-bold text-white" style={{ backgroundColor: previewColor }}>
+                                #001
+                              </span>
+                            </div>
+                            <div className="space-y-1 my-auto">
+                              <div className="grid grid-cols-4 gap-0.5">
+                                <div className="h-2.5 rounded-xs bg-slate-100 dark:bg-zinc-800 border-t-2" style={{ borderColor: previewColor }} />
+                                <div className="h-2.5 rounded-xs bg-slate-100 dark:bg-zinc-800 border-t-2" style={{ borderColor: previewColor }} />
+                                <div className="h-2.5 rounded-xs bg-slate-100 dark:bg-zinc-800 border-t-2" style={{ borderColor: previewColor }} />
+                                <div className="h-2.5 rounded-xs bg-slate-100 dark:bg-zinc-800 border-t-2" style={{ borderColor: previewColor }} />
+                              </div>
+                              <div className="rounded border border-slate-200 dark:border-zinc-700 overflow-hidden">
+                                <div className="h-2 w-full bg-slate-900" />
+                                <div className="h-1.5 w-full bg-slate-100 dark:bg-zinc-800 my-0.5" />
+                                <div className="h-1.5 w-full bg-slate-50 dark:bg-zinc-800/50" />
+                              </div>
+                            </div>
+                            <div className="rounded bg-slate-900 p-1.5 flex items-center justify-between">
+                              <span className="h-1 w-6 rounded-xs bg-slate-400" />
+                              <span className="h-2 w-9 rounded-xs" style={{ backgroundColor: previewColor }} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 7. VERTICAL SPINE STUDIO (Wide Left Colored Sidebar Column + Right Content Sheet) */}
+                        {theme.graphicStyle === "sidebar-ribbon" && (
+                          <div className="relative h-full w-full flex">
+                            <div
+                              className="w-7 h-full p-1 flex flex-col items-center justify-between text-white shrink-0"
+                              style={{ backgroundColor: previewColor }}
+                            >
+                              <div className="h-3 w-3 rounded-full bg-white/30" />
+                              <span className="text-[7px] font-black tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 opacity-90">
+                                INVOICE
+                              </span>
+                              <div className="h-1 w-3 rounded-xs bg-white/60" />
+                            </div>
+                            <div className="flex-1 p-2 flex flex-col justify-between relative overflow-hidden">
+                              <div className="space-y-0.5 border-b pb-1" style={{ borderColor: previewColor }}>
+                                <div className="h-2 w-12 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                <div className="h-1 w-8 rounded-xs bg-slate-300" />
+                              </div>
+                              <div className="space-y-1 my-auto">
+                                <div className="space-y-0.5">
+                                  <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                  <div className="h-1 w-14 rounded-xs bg-slate-300" />
+                                </div>
+                                <div className="h-2 w-full rounded-xs" style={{ backgroundColor: previewColor }} />
+                                <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                                <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                              </div>
+                              <div className="flex justify-end">
+                                <div className="h-3.5 w-12 rounded-md" style={{ backgroundColor: previewColor }} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 8. INDIAN GST LEDGER GRID (Outer Frame + Corner Ribbons + Full Boxed Ledger Grid Table) */}
                         {theme.graphicStyle === "gst-seal-frame" && (
-                          <>
-                            <div className="absolute inset-1.5 border-[1.5px] pointer-events-none rounded-md" style={{ borderColor: previewColor }} />
+                          <div className="relative h-full w-full p-2 flex flex-col justify-between">
+                            <div className="absolute inset-1.5 border-2 pointer-events-none rounded-md" style={{ borderColor: previewColor }} />
                             <svg viewBox="0 0 40 40" className="absolute top-1.5 left-1.5 w-4 h-4 pointer-events-none">
                               <polygon points="0,0 40,0 0,40" fill={previewColor} />
                             </svg>
                             <svg viewBox="0 0 40 40" className="absolute top-1.5 right-1.5 w-4 h-4 pointer-events-none">
                               <polygon points="40,0 0,0 40,40" fill={previewColor} />
                             </svg>
-                            <svg viewBox="0 0 40 40" className="absolute bottom-1.5 right-1.5 w-4 h-4 pointer-events-none">
-                              <polygon points="40,40 0,40 40,0" fill={previewColor} />
-                            </svg>
-                          </>
-                        )}
-                        {theme.graphicStyle === "fluid-blobs" && (
-                          <svg viewBox="0 0 200 60" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-10 pointer-events-none">
-                            <path d="M 0,0 L 200,0 L 200,30 C 150,54 110,16 60,42 C 30,56 10,38 0,32 Z" fill={previewColor} fillOpacity="0.22" />
-                            <path d="M 0,0 L 160,0 C 125,38 75,18 35,38 C 18,46 5,32 0,26 Z" fill={previewColor} />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "chevron-header" && (
-                          <svg viewBox="0 0 200 55" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-9 pointer-events-none">
-                            <polygon points="0,0 200,0 200,22 100,48 0,22" fill={previewColor} fillOpacity="0.24" />
-                            <polygon points="0,0 200,0 200,14 100,38 0,14" fill={previewColor} />
-                          </svg>
-                        )}
-
-                        {/* Bottom Graphical SVG Overlays */}
-                        {(theme.graphicStyle === "dual-wave" || theme.graphicStyle === "bottom-swoosh") && (
-                          <svg viewBox="0 0 200 65" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-10 pointer-events-none">
-                            <path d="M 0,28 C 45,18 90,36 135,65 L 0,65 Z" fill={previewColor} fillOpacity="0.24" />
-                            <path d="M 35,65 C 95,26 155,16 200,10 L 200,65 Z" fill={previewColor} />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "angle-slash" && (
-                          <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-8 pointer-events-none">
-                            <polygon points="35,50 200,10 200,50" fill={previewColor} fillOpacity="0.24" />
-                            <polygon points="75,50 200,18 200,50" fill={previewColor} />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "fluid-blobs" && (
-                          <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-8 pointer-events-none">
-                            <path d="M 0,50 L 0,24 C 55,6 115,42 200,14 L 200,50 Z" fill={previewColor} fillOpacity="0.2" />
-                            <path d="M 55,50 C 110,20 160,28 200,16 L 200,50 Z" fill={previewColor} />
-                          </svg>
-                        )}
-                        {theme.graphicStyle === "chevron-header" && (
-                          <svg viewBox="0 0 200 40" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-6 pointer-events-none">
-                            <polygon points="0,40 100,12 200,40" fill={previewColor} />
-                          </svg>
-                        )}
-
-                        {/* Top Mini A4 Header Content */}
-                        <div className="relative z-10 space-y-1.5 pt-0.5">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <span
-                                className="block h-2 w-11 rounded-xs"
-                                style={{
-                                  backgroundColor:
-                                    theme.graphicStyle === "bottom-swoosh" ||
-                                    theme.graphicStyle === "gst-seal-frame" ||
-                                    theme.graphicStyle === "sidebar-ribbon"
-                                      ? previewColor
-                                      : "#ffffff",
-                                }}
-                              />
-                              <span
-                                className="block h-1 w-7 rounded-xs opacity-70"
-                                style={{
-                                  backgroundColor:
-                                    theme.graphicStyle === "bottom-swoosh" ||
-                                    theme.graphicStyle === "gst-seal-frame" ||
-                                    theme.graphicStyle === "sidebar-ribbon"
-                                      ? previewColor
-                                      : "#ffffff",
-                                }}
-                              />
+                            <div className="relative z-10 text-center pt-1">
+                              <div className="text-[7px] font-black uppercase tracking-wider" style={{ color: previewColor }}>
+                                GST TAX INVOICE
+                              </div>
+                              <div className="h-0.5 w-12 mx-auto mt-0.5" style={{ backgroundColor: previewColor }} />
                             </div>
-                            <span
-                              className="text-[8px] font-black tracking-wider uppercase"
-                              style={{
-                                color:
-                                  theme.graphicStyle === "chevron-header" ? "#ffffff" : previewColor,
-                              }}
-                            >
-                              INVOICE
-                            </span>
-                          </div>
-
-                          {theme.graphicStyle === "bottom-swoosh" && (
-                            <div className="text-[11px] font-black tracking-tight uppercase pt-1" style={{ color: previewColor }}>
-                              INVOICE
+                            <div className="relative z-10 px-1 space-y-1 my-auto">
+                              <div className="grid grid-cols-2 border rounded-xs overflow-hidden" style={{ borderColor: `${previewColor}66` }}>
+                                <div className="p-1 border-r" style={{ borderColor: `${previewColor}66` }}>
+                                  <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                  <div className="h-1 w-8 rounded-xs bg-slate-300 mt-0.5" />
+                                </div>
+                                <div className="p-1">
+                                  <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
+                                  <div className="h-1 w-8 rounded-xs bg-slate-300 mt-0.5" />
+                                </div>
+                              </div>
+                              <div className="border rounded-xs overflow-hidden" style={{ borderColor: previewColor }}>
+                                <div className="h-2 w-full" style={{ backgroundColor: previewColor }} />
+                                <div className="grid grid-cols-3 divide-x border-t h-2" style={{ borderColor: `${previewColor}44` }}>
+                                  <div />
+                                  <div />
+                                  <div />
+                                </div>
+                                <div className="grid grid-cols-3 divide-x border-t h-2" style={{ borderColor: `${previewColor}44` }}>
+                                  <div />
+                                  <div />
+                                  <div />
+                                </div>
+                              </div>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Middle Mini A4 Content: Billed By / To + Multi-Row Table + Summary */}
-                        <div className="relative z-10 space-y-2 my-auto py-2">
-                          {/* Mini Billing Party Blocks */}
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <div className="rounded bg-slate-100/95 dark:bg-zinc-800/90 p-1.5 space-y-1 border border-slate-200/60 dark:border-zinc-700/50">
-                              <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
-                              <div className="h-1 w-10 rounded-xs bg-slate-300 dark:bg-zinc-600" />
-                              <div className="h-1 w-8 rounded-xs bg-slate-200 dark:bg-zinc-700" />
-                            </div>
-                            <div className="rounded bg-slate-100/95 dark:bg-zinc-800/90 p-1.5 space-y-1 border border-slate-200/60 dark:border-zinc-700/50">
-                              <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: previewColor }} />
-                              <div className="h-1 w-10 rounded-xs bg-slate-300 dark:bg-zinc-600" />
-                              <div className="h-1 w-8 rounded-xs bg-slate-200 dark:bg-zinc-700" />
+                            <div className="relative z-10 px-1 pb-1">
+                              <div className="h-3 w-full rounded-xs" style={{ backgroundColor: previewColor }} />
                             </div>
                           </div>
+                        )}
 
-                          {/* Mini Table Header & 3 Data Rows */}
-                          <div className="space-y-1">
+                        {/* 9. CREATIVE CIRCLE & CLOUDS (Organic Corner Circles + Floating Pill Rows) */}
+                        {theme.graphicStyle === "fluid-blobs" && (
+                          <div className="relative h-full w-full p-2.5 flex flex-col justify-between overflow-hidden">
                             <div
-                              className="h-2.5 w-full rounded-xs px-1 flex items-center justify-between"
-                              style={{
-                                backgroundColor:
-                                  theme.graphicStyle === "bottom-swoosh" ? "#e2e8f0" : previewColor,
-                              }}
-                            >
-                              <span className="h-0.5 w-6 rounded bg-white/80" />
-                              <span className="h-0.5 w-3 rounded bg-white/80" />
+                              className="absolute -top-6 -right-6 w-16 h-16 rounded-full pointer-events-none"
+                              style={{ backgroundColor: previewColor, opacity: 0.22 }}
+                            />
+                            <div
+                              className="absolute -top-4 -left-4 w-14 h-14 rounded-full pointer-events-none"
+                              style={{ backgroundColor: previewColor }}
+                            />
+                            <div
+                              className="absolute -bottom-6 -right-5 w-16 h-16 rounded-full pointer-events-none"
+                              style={{ backgroundColor: previewColor }}
+                            />
+                            <div className="relative z-10 flex items-center justify-between">
+                              <span className="h-2 w-2 rounded-full bg-white" />
+                              <span
+                                className="rounded-full px-2 py-0.5 text-[7px] font-black text-white"
+                                style={{ backgroundColor: previewColor }}
+                              >
+                                INVOICE
+                              </span>
                             </div>
-                            <div className="h-2 w-full rounded-xs bg-slate-100 dark:bg-zinc-800 px-1 flex items-center justify-between">
-                              <span className="h-0.5 w-8 rounded bg-slate-300 dark:bg-zinc-600" />
-                              <span className="h-0.5 w-4 rounded bg-slate-300 dark:bg-zinc-600" />
+                            <div className="relative z-10 space-y-1 my-auto">
+                              <div className="rounded-lg p-1.5 flex justify-between" style={{ backgroundColor: `${previewColor}15` }}>
+                                <div className="h-1.5 w-8 rounded-full" style={{ backgroundColor: previewColor }} />
+                                <div className="h-1.5 w-8 rounded-full bg-slate-400" />
+                              </div>
+                              <div className="h-2.5 w-full rounded-full" style={{ backgroundColor: previewColor }} />
+                              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-zinc-800" />
+                              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-zinc-800" />
                             </div>
-                            <div className="h-2 w-full rounded-xs bg-slate-50 dark:bg-zinc-800/50 px-1 flex items-center justify-between">
-                              <span className="h-0.5 w-7 rounded bg-slate-300 dark:bg-zinc-600" />
-                              <span className="h-0.5 w-4 rounded bg-slate-300 dark:bg-zinc-600" />
-                            </div>
-                            <div className="h-2 w-full rounded-xs bg-slate-100 dark:bg-zinc-800 px-1 flex items-center justify-between">
-                              <span className="h-0.5 w-9 rounded bg-slate-300 dark:bg-zinc-600" />
-                              <span className="h-0.5 w-4 rounded bg-slate-300 dark:bg-zinc-600" />
+                            <div className="relative z-10 flex justify-start pb-1">
+                              <div className="h-3.5 w-12 rounded-full" style={{ backgroundColor: previewColor }} />
                             </div>
                           </div>
-                        </div>
+                        )}
 
-                        {/* Bottom Mini Terms & Grand Total Pill */}
-                        <div className="relative z-10 flex items-end justify-between pb-2">
-                          <div className="space-y-0.5">
-                            <div className="h-1 w-7 rounded-xs bg-slate-300 dark:bg-zinc-600" />
-                            <div className="h-1 w-10 rounded-xs bg-slate-200 dark:bg-zinc-700" />
+                        {/* 10. EMERALD V-CHEVRON PRO (Sharp V-Apex Top Shield + Center Crest + V-Footer) */}
+                        {theme.graphicStyle === "chevron-header" && (
+                          <div className="relative h-full w-full p-2.5 flex flex-col justify-between">
+                            <svg viewBox="0 0 200 65" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-11 pointer-events-none">
+                              <polygon points="0,0 200,0 200,24 100,62 0,24" fill={previewColor} fillOpacity="0.24" />
+                              <polygon points="0,0 200,0 200,14 100,50 0,14" fill={previewColor} />
+                            </svg>
+                            <svg viewBox="0 0 200 40" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-6 pointer-events-none">
+                              <polygon points="0,40 100,8 200,40" fill={previewColor} />
+                            </svg>
+                            <div className="relative z-10 flex justify-center pt-3">
+                              <div
+                                className="h-5 w-12 rounded-md bg-white dark:bg-zinc-900 shadow-xs border-2 flex items-center justify-center"
+                                style={{ borderColor: previewColor }}
+                              >
+                                <span className="text-[6px] font-black" style={{ color: previewColor }}>INVOICE</span>
+                              </div>
+                            </div>
+                            <div className="relative z-10 space-y-1 my-auto">
+                              <div className="grid grid-cols-2 gap-1">
+                                <div className="h-3 rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                                <div className="h-3 rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                              </div>
+                              <div className="h-2 w-full rounded-xs" style={{ backgroundColor: previewColor }} />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                              <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                            </div>
+                            <div className="relative z-10 flex justify-end pb-3">
+                              <div className="h-3 w-11 rounded-xs" style={{ backgroundColor: previewColor }} />
+                            </div>
                           </div>
-                          <div
-                            className="h-3.5 w-12 rounded-full shadow-xs flex items-center justify-end px-1.5"
-                            style={{ backgroundColor: previewColor }}
-                          >
-                            <span className="h-1 w-5 rounded-xs bg-white/90" />
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
 
@@ -958,6 +1163,55 @@ export function RefrensInvoiceStudio({
               </div>
             )}
 
+            {activeThemeObj.graphicStyle === "split-hero-banner" && (
+              <div className="w-full overflow-hidden select-none">
+                <div
+                  className="px-6 sm:px-10 md:px-12 py-7 text-white flex flex-wrap items-center justify-between gap-4"
+                  style={{ backgroundColor: themeColor }}
+                >
+                  <div className="space-y-1">
+                    {invoiceData.logoDataUrl ? (
+                      <img
+                        src={invoiceData.logoDataUrl}
+                        alt="Logo"
+                        className="max-h-12 max-w-[160px] object-contain bg-white rounded-lg px-2.5 py-1"
+                      />
+                    ) : (
+                      <div className="text-2xl sm:text-3xl font-black tracking-tight uppercase">
+                        {invoiceData.companyName || "CORPORATE ENTERPRISE"}
+                      </div>
+                    )}
+                    <div className="text-xs opacity-85">
+                      {[invoiceData.companyAddress, invoiceData.companyCityState].filter(Boolean).join(" · ")}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-extrabold uppercase tracking-widest opacity-80">Official Document</div>
+                    <h2 className="text-2xl sm:text-4xl font-black tracking-wider uppercase">
+                      {invoiceData.documentTitle || "INVOICE"}
+                    </h2>
+                  </div>
+                </div>
+                {/* 3-Metric Corporate KPI Bar */}
+                <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-zinc-800 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/50 text-xs">
+                  <div className="px-6 py-3">
+                    <div className="text-[10px] font-bold uppercase text-slate-400">Invoice Number</div>
+                    <div className="font-mono font-black text-sm text-slate-900 dark:text-white">#{invoiceData.invoiceNumber}</div>
+                  </div>
+                  <div className="px-6 py-3">
+                    <div className="text-[10px] font-bold uppercase text-slate-400">Issue Date</div>
+                    <div className="font-mono font-black text-sm text-slate-900 dark:text-white">{invoiceData.issueDate}</div>
+                  </div>
+                  <div className="px-6 py-3" style={{ backgroundColor: `${themeColor}14` }}>
+                    <div className="text-[10px] font-bold uppercase" style={{ color: themeColor }}>Amount Due</div>
+                    <div className="font-mono font-black text-sm" style={{ color: themeColor }}>
+                      {curr}{grandTotal.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeThemeObj.graphicStyle === "editorial-crest" && (
               <div className="relative h-28 sm:h-32 w-full overflow-hidden select-none">
                 <svg viewBox="0 0 800 130" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
@@ -965,7 +1219,7 @@ export function RefrensInvoiceStudio({
                   <path d="M 0,0 L 800,0 L 800,36 Q 400,112 0,36 Z" fill={themeColor} />
                 </svg>
                 <div className="relative z-10 h-full flex flex-col items-center justify-center pt-4">
-                  <span className="rounded-full bg-white dark:bg-zinc-900 px-6 py-1.5 text-lg sm:text-2xl font-black tracking-widest uppercase shadow-md border" style={{ color: themeColor, borderColor: `${themeColor}40` }}>
+                  <span className="rounded-full bg-white dark:bg-zinc-900 px-6 py-1.5 text-lg sm:text-2xl font-serif font-black tracking-widest uppercase shadow-md border-2" style={{ color: themeColor, borderColor: themeColor }}>
                     {invoiceData.documentTitle || "INVOICE"}
                   </span>
                 </div>
@@ -973,24 +1227,24 @@ export function RefrensInvoiceStudio({
             )}
 
             {activeThemeObj.graphicStyle === "cyber-grid" && (
-              <div className="relative h-28 sm:h-32 w-full overflow-hidden select-none">
-                <svg viewBox="0 0 800 130" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                  <polygon points="0,0 520,0 440,110 0,110" fill={themeColor} />
-                  <polygon points="540,0 800,0 800,78 475,78" fill={themeColor} fillOpacity="0.22" />
-                </svg>
-                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 flex items-center justify-between">
-                  <div className="text-white">
-                    <div className="text-[10px] font-mono uppercase tracking-widest opacity-80">
-                      {invoiceData.companyName}
+              <div className="p-6 sm:px-10 md:px-12 pb-0 select-none">
+                <div className="rounded-2xl bg-slate-950 text-white p-6 flex flex-wrap items-center justify-between gap-4 shadow-lg border border-slate-800">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded-full bg-rose-500" />
+                      <span className="h-3 w-3 rounded-full bg-amber-400" />
+                      <span className="h-3 w-3 rounded-full bg-emerald-400" />
+                      <span className="text-[11px] font-mono text-slate-400 ml-2">~/billing/{invoiceData.invoiceNumber}.json</span>
                     </div>
                     <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight">
                       {invoiceData.documentTitle || "INVOICE"}
                     </h2>
                   </div>
-                  <div className="font-mono text-right">
-                    <span className="rounded-xl px-3.5 py-1.5 text-xs font-black text-white shadow-sm" style={{ backgroundColor: themeColor }}>
-                      NO. {invoiceData.invoiceNumber}
+                  <div className="font-mono text-right space-y-1">
+                    <span className="inline-block rounded-lg px-3.5 py-1.5 text-xs font-black text-white" style={{ backgroundColor: themeColor }}>
+                      ID #{invoiceData.invoiceNumber}
                     </span>
+                    <div className="text-[11px] text-slate-400">DATE: {invoiceData.issueDate}</div>
                   </div>
                 </div>
               </div>
@@ -998,18 +1252,29 @@ export function RefrensInvoiceStudio({
 
             {activeThemeObj.graphicStyle === "fluid-blobs" && (
               <div className="relative h-32 sm:h-36 w-full overflow-hidden select-none">
-                <svg viewBox="0 0 800 150" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                  <path d="M 0,0 L 800,0 L 800,75 C 620,145 450,35 240,115 C 120,150 40,95 0,85 Z" fill={themeColor} fillOpacity="0.18" />
-                  <path d="M 0,0 L 640,0 C 510,105 310,40 140,102 C 70,126 20,88 0,72 Z" fill={themeColor} />
-                </svg>
-                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 pt-5 flex items-start justify-between">
+                <div
+                  className="absolute -top-16 -left-12 w-56 h-56 rounded-full pointer-events-none"
+                  style={{ backgroundColor: themeColor }}
+                />
+                <div
+                  className="absolute -top-20 left-32 w-48 h-48 rounded-full pointer-events-none"
+                  style={{ backgroundColor: themeColor, opacity: 0.2 }}
+                />
+                <div
+                  className="absolute -top-16 -right-12 w-52 h-52 rounded-full pointer-events-none"
+                  style={{ backgroundColor: themeColor, opacity: 0.16 }}
+                />
+                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 pt-6 flex items-start justify-between">
                   <div className="text-white">
                     <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
                       {invoiceData.documentTitle || "Tax Invoice"}
                     </h2>
-                    <p className="text-xs opacity-90">{invoiceData.companyName}</p>
+                    <p className="text-xs opacity-90 font-bold">{invoiceData.companyName}</p>
                   </div>
-                  <span className="rounded-full bg-white/95 dark:bg-zinc-900 px-4 py-1.5 text-xs font-black font-mono shadow-md" style={{ color: themeColor }}>
+                  <span
+                    className="rounded-full px-5 py-2 text-xs font-black font-mono text-white shadow-md"
+                    style={{ backgroundColor: themeColor }}
+                  >
                     #{invoiceData.invoiceNumber}
                   </span>
                 </div>
@@ -1017,30 +1282,48 @@ export function RefrensInvoiceStudio({
             )}
 
             {activeThemeObj.graphicStyle === "chevron-header" && (
-              <div className="relative h-28 sm:h-32 w-full overflow-hidden select-none">
-                <svg viewBox="0 0 800 130" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                  <polygon points="0,0 800,0 800,55 400,125 0,55" fill={themeColor} fillOpacity="0.22" />
-                  <polygon points="0,0 800,0 800,38 400,102 0,38" fill={themeColor} />
+              <div className="relative h-32 sm:h-36 w-full overflow-hidden select-none">
+                <svg viewBox="0 0 800 140" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                  <polygon points="0,0 800,0 800,52 400,136 0,52" fill={themeColor} fillOpacity="0.22" />
+                  <polygon points="0,0 800,0 800,34 400,112 0,34" fill={themeColor} />
                 </svg>
-                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 pt-3 flex items-start justify-between text-white">
-                  <div className="font-black text-base sm:text-lg uppercase tracking-wider">
-                    {invoiceData.companyName || "ENTERPRISE"}
-                  </div>
-                  <div className="font-mono text-xs font-bold opacity-95">
-                    #{invoiceData.invoiceNumber}
+                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 flex flex-col items-center justify-center pt-4">
+                  <div
+                    className="rounded-xl bg-white dark:bg-zinc-900 px-6 py-2 shadow-lg border-2 text-center"
+                    style={{ borderColor: themeColor }}
+                  >
+                    <div className="text-lg sm:text-2xl font-black uppercase tracking-wider" style={{ color: themeColor }}>
+                      {invoiceData.documentTitle || "INVOICE"}
+                    </div>
+                    <div className="text-[10px] font-mono font-bold text-slate-500">
+                      #{invoiceData.invoiceNumber} · {invoiceData.issueDate}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {activeThemeObj.graphicStyle === "sidebar-ribbon" && (
-              <div className="absolute left-0 top-0 bottom-0 w-4 sm:w-5 z-10" style={{ backgroundColor: themeColor }} />
+              <div
+                className="absolute left-0 top-0 bottom-0 w-12 sm:w-16 z-10 flex flex-col items-center justify-between py-8 text-white select-none"
+                style={{ backgroundColor: themeColor }}
+              >
+                <div className="h-8 w-8 rounded-full bg-white/25 flex items-center justify-center font-black text-xs">
+                  {(invoiceData.companyName || "B")[0]}
+                </div>
+                <span className="text-lg sm:text-2xl font-black tracking-[0.35em] uppercase [writing-mode:vertical-rl] rotate-180 opacity-90">
+                  {invoiceData.documentTitle || "INVOICE"}
+                </span>
+                <div className="text-[10px] font-mono font-bold opacity-80 [writing-mode:vertical-rl] rotate-180">
+                  #{invoiceData.invoiceNumber}
+                </div>
+              </div>
             )}
 
             <div
               className={`relative z-10 p-6 sm:p-10 md:p-12 space-y-6 ${fontClass} ${
                 activeThemeObj.graphicStyle === "gst-seal-frame" ? "m-4 sm:m-6 border-2 rounded-2xl" : ""
-              } ${activeThemeObj.graphicStyle === "sidebar-ribbon" ? "pl-8 sm:pl-14" : ""}`}
+              } ${activeThemeObj.graphicStyle === "sidebar-ribbon" ? "pl-16 sm:pl-24" : ""}`}
               style={activeThemeObj.graphicStyle === "gst-seal-frame" ? { borderColor: themeColor } : undefined}
             >
               {/* Corner Triangles for GST Seal Frame */}

@@ -856,47 +856,65 @@ export async function generateInvoicePdf(
     }
   };
 
-  // Template-specific graphical vector artwork (Top & Bottom waves, slashes, polygons, seals)
-  if (template === "executive-orange" || template === "corporate-split") {
-    // Dual Wave Graphic Pro (Matches Uploaded Image 2: Top-Left layered S-wave + Bottom-Right layered S-wave)
+  // Template-specific graphical vector artwork (10 unique architectural designs)
+  if (template === "executive-orange") {
+    // 1. Dual Wave Graphic Pro (Top-Left layered S-wave + Bottom-Right layered S-wave)
     drawGraphicWave("M 0,0 L 585,0 C 445,95 235,165 0,132 Z", themeColor, 0.22);
     drawGraphicWave("M 0,0 L 535,0 C 400,82 205,144 0,114 Z", themeColor, 1);
-    // Bottom wave curves (near y = 1130 in 800-wide scaled coordinates where bottom is 1131)
     drawGraphicWave("M 0,1045 C 185,1022 340,1075 495,1132 L 0,1132 Z", themeColor, 0.22);
     drawGraphicWave("M 165,1132 C 375,1042 595,1018 800,1010 L 800,1132 Z", themeColor, 1);
-  } else if (template === "minimal-swiss") {
-    // Minimal Bottom Wave (Matches Uploaded Image 1: Clean white top + dual-tone overlapping bottom waves)
-    drawGraphicWave("M 0,1015 C 190,995 360,1050 510,1132 L 0,1132 Z", themeColor, 0.22);
-    drawGraphicWave("M 110,1132 C 360,1020 590,995 800,965 L 800,1132 Z", themeColor, 1);
   } else if (template === "modern-banner") {
-    // Dynamic Diagonal Slash top & bottom polygons
+    // 2. Dynamic Diagonal Slash top & bottom polygons
     drawGraphicWave("M 0,0 L 800,0 L 535,135 L 0,88 Z", themeColor, 0.22);
     drawGraphicWave("M 0,0 L 740,0 L 475,118 L 0,74 Z", themeColor, 1);
     drawGraphicWave("M 180,1132 L 800,1045 L 800,1132 Z", themeColor, 0.22);
     drawGraphicWave("M 310,1132 L 800,1060 L 800,1132 Z", themeColor, 1);
+  } else if (template === "minimal-swiss") {
+    // 3. Minimal Bottom Wave (Clean white top + dual-tone overlapping bottom waves)
+    drawGraphicWave("M 0,1015 C 190,995 360,1050 510,1132 L 0,1132 Z", themeColor, 0.22);
+    drawGraphicWave("M 110,1132 C 360,1020 590,995 800,965 L 800,1132 Z", themeColor, 1);
+  } else if (template === "corporate-split") {
+    // 4. Corporate Split Hero (Full colored top header block + 3-stat strip + bottom bar)
+    page.drawRectangle({ x: 0, y: height - 76, width, height: 76, color: themeColor });
+    page.drawRectangle({ x: 0, y: height - 102, width, height: 26, color: softThemeTint });
+    page.drawRectangle({ x: 0, y: 0, width, height: 14, color: themeColor });
   } else if (template === "luxury-editorial") {
-    // Luxury Gold Crest & Arch
+    // 5. Luxury Gold Crest & Arch
     drawGraphicWave("M 0,0 L 800,0 L 800,48 Q 400,122 0,48 Z", themeColor, 0.2);
     drawGraphicWave("M 0,0 L 800,0 L 800,34 Q 400,104 0,34 Z", themeColor, 1);
     drawGraphicWave("M 0,1132 L 0,1095 Q 400,1045 800,1095 L 800,1132 Z", themeColor, 0.18);
   } else if (template === "tech-mono") {
-    // SaaS Geometric Prism
-    drawGraphicWave("M 0,0 L 520,0 L 440,98 L 0,98 Z", themeColor, 1);
-    drawGraphicWave("M 540,0 L 800,0 L 800,72 L 475,72 Z", themeColor, 0.24);
-    drawGraphicWave("M 420,1132 L 800,1080 L 800,1132 Z", themeColor, 1);
+    // 6. SaaS Terminal Dark Grid (Dark slate top terminal card + bottom bar)
+    page.drawRectangle({
+      x: margin,
+      y: height - 88,
+      width: contentW,
+      height: 62,
+      color: rgb(0.06, 0.08, 0.14),
+    });
+    page.drawCircle({ x: margin + 14, y: height - 40, size: 3.5, color: rgb(0.95, 0.25, 0.35) });
+    page.drawCircle({ x: margin + 24, y: height - 40, size: 3.5, color: rgb(0.96, 0.72, 0.15) });
+    page.drawCircle({ x: margin + 34, y: height - 40, size: 3.5, color: rgb(0.15, 0.8, 0.45) });
+    page.drawRectangle({ x: 0, y: 0, width, height: 12, color: rgb(0.06, 0.08, 0.14) });
   } else if (template === "bold-sidebar") {
-    // Vertical Left Ribbon + Bottom Corner Wave
+    // 7. Vertical Spine Studio (Wide left colored sidebar column)
     page.drawRectangle({
       x: 0,
       y: 0,
-      width: 14,
+      width: 34,
       height,
       color: themeColor,
     });
-    drawGraphicWave("M 800,1132 L 280,1132 C 430,1078 620,1042 800,1048 Z", themeColor, 0.22);
-    drawGraphicWave("M 800,1132 L 380,1132 C 510,1090 670,1060 800,1066 Z", themeColor, 1);
+    page.drawText(safePdfWinAnsi((data.documentTitle || "INVOICE").toUpperCase()), {
+      x: 22,
+      y: height / 2 - 40,
+      size: 14,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+      rotate: degrees(90),
+    });
   } else if (template === "gst-pro-ledger") {
-    // Royal GST Seal & Frame with corner triangles
+    // 8. Royal GST Seal & Frame with corner triangles
     page.drawRectangle({
       x: 18,
       y: 18,
@@ -909,13 +927,14 @@ export async function generateInvoicePdf(
     drawGraphicWave("M 776,24 L 705,24 L 776,95 Z", themeColor, 1);
     drawGraphicWave("M 776,1107 L 705,1107 L 776,1036 Z", themeColor, 1);
   } else if (template === "agency-studio") {
-    // Abstract Studio Fluid Curves
-    drawGraphicWave("M 0,0 L 800,0 L 800,68 C 620,132 450,32 240,104 C 120,136 40,86 0,76 Z", themeColor, 0.2);
-    drawGraphicWave("M 0,0 L 640,0 C 510,94 310,36 140,92 C 70,114 20,78 0,64 Z", themeColor, 1);
-    drawGraphicWave("M 0,1132 L 0,1078 C 220,1038 460,1115 800,1054 L 800,1132 Z", themeColor, 0.2);
-    drawGraphicWave("M 240,1132 C 440,1068 640,1086 800,1056 L 800,1132 Z", themeColor, 1);
+    // 9. Creative Circle & Clouds (Organic corner circles)
+    page.drawCircle({ x: 35, y: height - 15, size: 78, color: themeColor });
+    page.drawCircle({ x: 135, y: height - 10, size: 62, color: themeColor, opacity: 0.22 });
+    page.drawCircle({ x: width - 25, y: height - 20, size: 65, color: themeColor, opacity: 0.16 });
+    page.drawCircle({ x: width - 20, y: 20, size: 72, color: themeColor });
+    page.drawCircle({ x: width - 110, y: 10, size: 55, color: themeColor, opacity: 0.22 });
   } else if (template === "compact-enterprise") {
-    // Emerald Chevron Pro
+    // 10. Emerald V-Chevron Pro
     drawGraphicWave("M 0,0 L 800,0 L 800,48 L 400,110 L 0,48 Z", themeColor, 0.22);
     drawGraphicWave("M 0,0 L 800,0 L 800,32 L 400,90 L 0,32 Z", themeColor, 1);
     drawGraphicWave("M 0,1132 L 400,1084 L 800,1132 Z", themeColor, 1);
@@ -928,7 +947,7 @@ export async function generateInvoicePdf(
 
   let cursorY = height - 108;
 
-  if (template === "executive-orange" || template === "corporate-split") {
+  if (template === "executive-orange") {
     // Brand Name in White inside Top-Left Wave, INVOICE on Top-Right
     page.drawText(safePdfWinAnsi((data.companyName || "BRAND NAME").toUpperCase()).slice(0, 26), {
       x: margin,
@@ -966,7 +985,65 @@ export async function generateInvoicePdf(
       });
     }
     cursorY = height - 114;
-  } else if (template === "modern-banner" || template === "tech-mono" || template === "agency-studio") {
+  } else if (template === "corporate-split") {
+    page.drawText(safePdfWinAnsi((data.companyName || "CORPORATE ENTERPRISE").toUpperCase()).slice(0, 28), {
+      x: margin,
+      y: height - 38,
+      size: 16,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    page.drawText(
+      safePdfWinAnsi([data.companyAddress, data.companyCityState].filter(Boolean).join(" | ")).slice(0, 46),
+      {
+        x: margin,
+        y: height - 54,
+        size: 8.5,
+        font: fontRegular,
+        color: rgb(0.92, 0.94, 0.98),
+      }
+    );
+    page.drawText(titleStr, {
+      x: width - margin - titleW,
+      y: height - 46,
+      size: titleSize,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    page.drawText(safePdfWinAnsi(`INVOICE #${data.invoiceNumber}   |   DATE: ${data.issueDate}`), {
+      x: margin,
+      y: height - 93,
+      size: 9,
+      font: fontBold,
+      color: themeColor,
+    });
+    cursorY = height - 122;
+  } else if (template === "tech-mono") {
+    page.drawText(safePdfWinAnsi(titleStr), {
+      x: margin + 14,
+      y: height - 72,
+      size: 18,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    const invBadge = safePdfWinAnsi(`ID #${data.invoiceNumber || "A00001"}`);
+    const badgeW = fontBold.widthOfTextAtSize(invBadge, 11);
+    page.drawRectangle({
+      x: width - margin - badgeW - 24,
+      y: height - 66,
+      width: badgeW + 14,
+      height: 20,
+      color: themeColor,
+    });
+    page.drawText(invBadge, {
+      x: width - margin - badgeW - 17,
+      y: height - 60,
+      size: 11,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    cursorY = height - 110;
+  } else if (template === "modern-banner" || template === "agency-studio") {
     page.drawText(titleStr, {
       x: margin,
       y: height - 44,
