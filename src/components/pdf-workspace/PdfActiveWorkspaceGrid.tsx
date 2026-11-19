@@ -89,6 +89,10 @@ export function PdfActiveWorkspaceGrid(props: any) {
     invoiceData,
     setInvoiceData,
     isInvoiceTool,
+    isPdfInvoiceToEInvoiceTool,
+    isXmlEInvoiceToPdfTool,
+    einvoiceStandard,
+    setEinvoiceStandard,
     currentTargetBytes,
     isTargetAlreadyUnder,
     smartTargetPresets,
@@ -1143,9 +1147,81 @@ export function PdfActiveWorkspaceGrid(props: any) {
                 </div>
               )}
 
-              {/* 10. INVOICE VISUAL BUILDER */}
-              {isInvoiceTool && (
-                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+              {/* 10. E-INVOICE CONVERTER INSPECTOR (PDF Invoice -> E-Invoice XML & XML E-Invoice -> PDF) */}
+              {(isInvoiceTool || isPdfInvoiceToEInvoiceTool || isXmlEInvoiceToPdfTool) && (
+                <div className="space-y-4 max-h-[540px] overflow-y-auto pr-1">
+                  {isPdfInvoiceToEInvoiceTool && (
+                    <div className="rounded-2xl border border-[#ff5500]/30 bg-[#ff5500]/5 p-3.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-[#ff5500]">
+                          Target E-Invoice Standard
+                        </span>
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          Auto-Extracted from PDF
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { id: "ubl-2.1", label: "UBL 2.1 XML", sub: "OASIS Standard" },
+                          { id: "factur-x", label: "Factur-X", sub: "EN 16931 / ZUGFeRD" },
+                          { id: "peppol-bis", label: "Peppol BIS 3.0", sub: "Global B2B" },
+                        ].map((std) => (
+                          <button
+                            key={std.id}
+                            type="button"
+                            onClick={() => setEinvoiceStandard?.(std.id as any)}
+                            className={`rounded-xl border p-2 text-left transition-all cursor-pointer ${
+                              einvoiceStandard === std.id
+                                ? "border-[#ff5500] bg-[#ff5500] text-white shadow-xs"
+                                : "border-border bg-background text-foreground hover:border-[#ff5500]/50"
+                            }`}
+                          >
+                            <div className="text-[11px] font-black leading-tight">{std.label}</div>
+                            <div className={`text-[9px] mt-0.5 ${einvoiceStandard === std.id ? "text-white/80" : "text-muted-foreground"}`}>
+                              {std.sub}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {isXmlEInvoiceToPdfTool && (
+                    <div className="rounded-2xl border border-[#ff5500]/30 bg-[#ff5500]/5 p-3.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-[#ff5500]">
+                          Parsed XML E-Invoice Data &amp; PDF Theme
+                        </span>
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          UBL / ZUGFeRD Parsed
+                        </span>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground block mb-1">
+                          Visual PDF Design Template:
+                        </label>
+                        <select
+                          value={invoiceData.invoiceTemplate || "executive-orange"}
+                          onChange={(e: any) =>
+                            setInvoiceData({ ...invoiceData, invoiceTemplate: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-bold"
+                        >
+                          <option value="executive-orange">1. Dual Wave Graphic Pro (Default Orange)</option>
+                          <option value="modern-banner">2. Dynamic Diagonal Slash</option>
+                          <option value="minimal-swiss">3. Minimal Bottom Wave</option>
+                          <option value="corporate-split">4. Corporate Split Hero</option>
+                          <option value="luxury-editorial">5. Luxury Gold Crest &amp; Arch</option>
+                          <option value="tech-mono">6. SaaS Terminal Dark Grid</option>
+                          <option value="bold-sidebar">7. Vertical Spine Studio</option>
+                          <option value="gst-pro-ledger">8. Indian GST Ledger Grid</option>
+                          <option value="agency-studio">9. Creative Circle &amp; Clouds</option>
+                          <option value="compact-enterprise">10. Emerald V-Chevron Pro</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[11px] font-bold text-muted-foreground block">Invoice #:</label>
@@ -1163,17 +1239,40 @@ export function PdfActiveWorkspaceGrid(props: any) {
                         onChange={(e: any) => setInvoiceData({ ...invoiceData, currency: e.target.value })}
                         className="w-full rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold"
                       >
+                        <option value="₹">INR (₹)</option>
                         <option value="$">USD ($)</option>
                         <option value="€">EUR (€)</option>
                         <option value="£">GBP (£)</option>
-                        <option value="₹">INR (₹)</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] font-bold text-muted-foreground block">Company Name:</label>
+                      <label className="text-[11px] font-bold text-muted-foreground block">Issue Date:</label>
+                      <input
+                        type="text"
+                        value={invoiceData.issueDate}
+                        onChange={(e: any) => setInvoiceData({ ...invoiceData, issueDate: e.target.value })}
+                        placeholder="YYYY-MM-DD"
+                        className="w-full rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-mono font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-muted-foreground block">Due Date:</label>
+                      <input
+                        type="text"
+                        value={invoiceData.dueDate}
+                        onChange={(e: any) => setInvoiceData({ ...invoiceData, dueDate: e.target.value })}
+                        placeholder="YYYY-MM-DD"
+                        className="w-full rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-bold text-muted-foreground block">Seller / Supplier:</label>
                       <input
                         type="text"
                         value={invoiceData.companyName}
@@ -1182,7 +1281,7 @@ export function PdfActiveWorkspaceGrid(props: any) {
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-muted-foreground block">Client Name:</label>
+                      <label className="text-[11px] font-bold text-muted-foreground block">Buyer / Customer:</label>
                       <input
                         type="text"
                         value={invoiceData.clientName}
@@ -1195,7 +1294,9 @@ export function PdfActiveWorkspaceGrid(props: any) {
                   {/* Line Items */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-extrabold uppercase text-muted-foreground">Line Items:</label>
+                      <label className="text-[11px] font-extrabold uppercase text-muted-foreground">
+                        Extracted Line Items ({invoiceData.items.length}):
+                      </label>
                       <button
                         type="button"
                         onClick={() =>
@@ -1203,7 +1304,7 @@ export function PdfActiveWorkspaceGrid(props: any) {
                             ...invoiceData,
                             items: [
                               ...invoiceData.items,
-                              { id: String(Date.now()), description: "New Service", quantity: 1, rate: 100, taxPercent: 0 },
+                              { id: String(Date.now()), description: "New Line Item", quantity: 1, rate: 100, taxPercent: 18 },
                             ],
                           })
                         }
@@ -1346,13 +1447,17 @@ export function PdfActiveWorkspaceGrid(props: any) {
                       <span>
                         {isInvoiceTool
                           ? "Generate PDF Invoice"
-                          : tool.slug === "image-to-pdf" ||
-                            tool.slug === "images-to-pdf" ||
-                            tool.slug === "jpg-to-pdf" ||
-                            tool.slug === "png-to-pdf" ||
-                            tool.slug === "webp-to-pdf"
-                            ? `Convert ${files.length > 1 ? `${files.length} Images` : "Image"} to PDF`
-                            : `Process with ${tool.name}`}
+                          : isPdfInvoiceToEInvoiceTool
+                            ? "Convert PDF Invoice to E-Invoice (XML)"
+                            : isXmlEInvoiceToPdfTool
+                              ? "Convert XML E-Invoice to Visual PDF"
+                              : tool.slug === "image-to-pdf" ||
+                                tool.slug === "images-to-pdf" ||
+                                tool.slug === "jpg-to-pdf" ||
+                                tool.slug === "png-to-pdf" ||
+                                tool.slug === "webp-to-pdf"
+                                ? `Convert ${files.length > 1 ? `${files.length} Images` : "Image"} to PDF`
+                                : `Process with ${tool.name}`}
                       </span>
                       <ArrowRight className="h-5 w-5" />
                     </>

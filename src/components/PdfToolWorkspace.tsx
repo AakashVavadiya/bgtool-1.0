@@ -5,7 +5,7 @@ import { fireConfetti } from "@/lib/confetti";
 import { type Tool } from "@/lib/tools";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
-import { mergePdfDocuments, splitPdfDocument, rotatePdfPages, addWatermarkToPdf, addPageNumbersToPdf, compressPdfDocument, protectPdfDocument, flattenPdfDocument, changePdfPageDimensions, generateInvoicePdf, convertImagesToPdf, applyEditsToPdf, type PdfTextEditItem, type PdfStandardFontName, type PdfEditElementKind, type PdfImageShape, type InvoiceData } from "@/lib/pdf-engine";
+import { mergePdfDocuments, splitPdfDocument, rotatePdfPages, addWatermarkToPdf, addPageNumbersToPdf, compressPdfDocument, protectPdfDocument, flattenPdfDocument, changePdfPageDimensions, generateInvoicePdf, extractInvoiceDataFromPdfBuffer, convertInvoiceDataToUblXml, parseXmlEInvoiceToInvoiceData, convertImagesToPdf, applyEditsToPdf, type PdfTextEditItem, type PdfStandardFontName, type PdfEditElementKind, type PdfImageShape, type InvoiceData } from "@/lib/pdf-engine";
 import { generateFileThumbnail, renderPdfPage, extractPdfPageElements, cropRegionFromPageDataUrl, type ExtractedPdfTextItem, type ExtractedPdfImageItem } from "@/lib/pdf-preview";
 import { PdfPreviewViewer } from "@/components/PdfPreviewViewer";
 import { Telemetry, REALTIME_EVENT_NAME } from "@/lib/telemetry";
@@ -1392,14 +1392,17 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     terms: "1. Please pay within 15 days from the date of invoice, overdue interest @ 14% will be charged on delayed payments.\n2. Please quote invoice number when remitting funds.",
   });
 
-  const isInvoiceTool =
-    tool.slug === "create-invoice" ||
-    tool.slug === "pdf-invoice-to-einvoice" ||
-    tool.slug === "xml-einvoice-to-pdf";
+  const isInvoiceTool = tool.slug === "create-invoice";
+  const isPdfInvoiceToEInvoiceTool = tool.slug === "pdf-invoice-to-einvoice";
+  const isXmlEInvoiceToPdfTool = tool.slug === "xml-einvoice-to-pdf";
+  const [einvoiceStandard, setEinvoiceStandard] = useState<"ubl-2.1" | "factur-x" | "peppol-bis">("ubl-2.1");
+  const [resultXmlText, setResultXmlText] = useState<string>("");
 
   // Calculate accepted MIME types dynamically based on tool
   const acceptedFileExtensions = useMemo(() => {
     if (isInvoiceTool) return ".pdf,.xml,.json";
+    if (isPdfInvoiceToEInvoiceTool) return ".pdf,application/pdf";
+    if (isXmlEInvoiceToPdfTool) return ".xml,.json,text/xml,application/xml,application/json";
     if (
       tool.slug === "image-to-pdf" ||
       tool.slug === "images-to-pdf" ||
@@ -1577,7 +1580,39 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
       setHasProcessed(false);
       setResultBlob(null);
       setResultBuffer(null);
+      setResultXmlText("");
       toast.success(`Loaded ${newItems.length} file${newItems.length > 1 ? "s" : ""}!`);
+
+      // Automatically parse uploaded PDF invoice or XML e-invoice into structured invoiceData
+      const primaryItem = newItems[0];
+      if (primaryItem && isPdfInvoiceToEInvoiceTool) {
+        extractInvoiceDataFromPdfBuffer(primaryItem.buffer)
+          .then((parsed) => {
+            setInvoiceData((prev) => ({
+              ...prev,
+              ...parsed,
+              invoiceTemplate: prev.invoiceTemplate || "executive-orange",
+              themeColor: prev.themeColor || "#ff5500",
+            }));
+            toast.success(`Extracted invoice #${parsed.invoiceNumber} (${parsed.items.length} line item${parsed.items.length === 1 ? "" : "s"}) from PDF!`);
+          })
+          .catch((err) => {
+            console.warn("Could not auto-extract PDF invoice fields:", err);
+          });
+      } else if (primaryItem && isXmlEInvoiceToPdfTool) {
+        try {
+          const parsed = parseXmlEInvoiceToInvoiceData(primaryItem.buffer);
+          setInvoiceData((prev) => ({
+            ...prev,
+            ...parsed,
+            invoiceTemplate: prev.invoiceTemplate || "executive-orange",
+            themeColor: prev.themeColor || "#ff5500",
+          }));
+          toast.success(`Parsed XML E-Invoice #${parsed.invoiceNumber} (${parsed.items.length} line item${parsed.items.length === 1 ? "" : "s"})!`);
+        } catch (err) {
+          console.warn("Could not parse XML e-invoice:", err);
+        }
+      }
 
       // Asynchronously generate high-fidelity thumbnails & page counts
       for (const item of newItems) {
@@ -2034,7 +2069,25 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
         outName = `${baseName}_compiled.pdf`;
         pageCount = imgPdfRes.pageCount;
       }
-      // 12. GENERAL FALLBACK (Compress/Re-pack)
+      // 12. PDF INVOICE TO E-INVOICE (XML / UBL 2.1 / Factur-X / Peppol BIS)
+      else if (isPdfInvoiceToEInvoiceTool) {
+        if (!activeFile) throw new Error("Please upload a PDF invoice first.");
+        const { xmlString, xmlBytes } = convertInvoiceDataToUblXml(invoiceData, einvoiceStandard);
+        outputPdfBytes = xmlBytes;
+        outName = `${baseName}_${einvoiceStandard}_einvoice.xml`;
+        pageCount = 1;
+        setResultXmlText(xmlString);
+      }
+      // 13. XML E-INVOICE TO PDF (Render parsed UBL/Factur-X/ZUGFeRD XML into formatted A4 PDF Invoice)
+      else if (isXmlEInvoiceToPdfTool) {
+        if (!activeFile) throw new Error("Please upload an XML or E-Invoice file first.");
+        const invRes = await generateInvoicePdf(invoiceData);
+        outputPdfBytes = invRes.pdfBytes;
+        outName = `${baseName}_visual_invoice.pdf`;
+        pageCount = invRes.pageCount;
+        setResultXmlText("");
+      }
+      // 14. GENERAL FALLBACK (Compress/Re-pack)
       else {
         if (!activeFile) throw new Error("No file selected.");
         const compRes = await compressPdfDocument(activeFile.buffer, "recommended");
@@ -2044,12 +2097,17 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
       }
 
       // Convert to blob and buffer for preview
-      const blob = new Blob([outputPdfBytes as unknown as BlobPart], { type: "application/pdf" });
+      const isXmlOutput = isPdfInvoiceToEInvoiceTool;
+      const blob = new Blob([outputPdfBytes as unknown as BlobPart], {
+        type: isXmlOutput ? "application/xml;charset=utf-8" : "application/pdf",
+      });
       const origSize = activeFile ? activeFile.size : (files.reduce((acc, f) => acc + f.size, 0) || 50000);
-      const outBuffer = outputPdfBytes.buffer.slice(
-        outputPdfBytes.byteOffset,
-        outputPdfBytes.byteOffset + outputPdfBytes.byteLength
-      ) as ArrayBuffer;
+      const outBuffer = isXmlOutput
+        ? null
+        : (outputPdfBytes.buffer.slice(
+            outputPdfBytes.byteOffset,
+            outputPdfBytes.byteOffset + outputPdfBytes.byteLength
+          ) as ArrayBuffer);
 
       setResultBlob(blob);
       setResultBuffer(outBuffer);
@@ -2334,6 +2392,11 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     invoiceData,
     setInvoiceData,
     isInvoiceTool,
+    isPdfInvoiceToEInvoiceTool,
+    isXmlEInvoiceToPdfTool,
+    einvoiceStandard,
+    setEinvoiceStandard,
+    resultXmlText,
     currentTargetBytes,
     isTargetAlreadyUnder,
     smartTargetPresets,

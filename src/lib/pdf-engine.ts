@@ -2266,3 +2266,471 @@ export async function applyEditsToPdf(
   return { pdfBytes, pageCount: totalPages };
 }
 
+function escapeXmlStr(str: string): string {
+  return (str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * Extract structured invoice fields from an uploaded PDF Invoice buffer using pdf.js text extraction
+ */
+export async function extractInvoiceDataFromPdfBuffer(buffer: ArrayBuffer): Promise<InvoiceData> {
+  const pdfjs = await getPdfJs();
+  const copyBuf = buffer.slice(0);
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(copyBuf),
+    useSystemFonts: true,
+  });
+  const pdfDoc = await loadingTask.promise;
+  let fullText = "";
+  const lines: string[] = [];
+
+  for (let p = 1; p <= pdfDoc.numPages; p++) {
+    const page = await pdfDoc.getPage(p);
+    const tc = await page.getTextContent();
+    // Group items by approximate Y coordinate to reconstruct visual lines
+    const rowMap = new Map<number, Array<{ x: number; str: string }>>();
+    for (const rawItem of tc.items as any[]) {
+      const str = (rawItem.str || "").trim();
+      if (!str) continue;
+      const yKey = Math.round((rawItem.transform?.[5] || 0) / 4) * 4;
+      const xVal = rawItem.transform?.[4] || 0;
+      if (!rowMap.has(yKey)) rowMap.set(yKey, []);
+      rowMap.get(yKey)!.push({ x: xVal, str });
+    }
+    const sortedY = Array.from(rowMap.keys()).sort((a, b) => b - a);
+    for (const y of sortedY) {
+      const rowItems = rowMap.get(y)!.sort((a, b) => a.x - b.x);
+      const lineStr = rowItems.map((r) => r.str).join(" ");
+      lines.push(lineStr);
+      fullText += lineStr + "\n";
+    }
+  }
+
+  // Parse Invoice Number
+  const invMatch =
+    fullText.match(/(?:Invoice\s*(?:No|Number|#)|INV\s*#|NO\.)\s*[:#-]?\s*([A-Z0-9/-]{2,24})/i) ||
+    fullText.match(/\b(INV-[A-Z0-9-]{2,18}|A\d{4,8})\b/i);
+  const invoiceNumber = invMatch?.[1]?.trim() || "INV-2026-001";
+
+  // Parse Dates (YYYY-MM-DD or DD/MM/YYYY or DD-MM-YYYY)
+  const isoDates = fullText.match(/\b(\d{4}-\d{2}-\d{2})\b/g) || [];
+  const slashDates = fullText.match(/\b(\d{2})[/-](\d{2})[/-](\d{4})\b/g) || [];
+  const convertedDates = slashDates.map((d) => {
+    const parts = d.split(/[/-]/);
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  });
+  const allDates = [...isoDates, ...convertedDates];
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const issueDate = allDates[0] || todayIso;
+  const dueDate = allDates[1] || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+
+  // Parse GSTINs (Indian 15-character GSTIN format)
+  const gstinMatches = fullText.match(/\b\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b/gi) || [];
+  const companyGstin = gstinMatches[0]?.toUpperCase() || "";
+  const clientGstin = gstinMatches[1]?.toUpperCase() || "";
+
+  // Parse Emails
+  const emailMatches = fullText.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi) || [];
+  const companyEmail = emailMatches[0] || "billing@company.com";
+  const clientEmail = emailMatches[1] || "accounts@client.com";
+
+  // Parse Currency
+  let currency = "₹";
+  if (/\$|USD/i.test(fullText) && !/Rs\.|INR|₹/i.test(fullText)) currency = "$";
+  else if (/€|EUR/i.test(fullText)) currency = "€";
+  else if (/£|GBP/i.test(fullText)) currency = "£";
+
+  // Parse Company & Client Names from non-empty header lines
+  const cleanLines = lines
+    .map((l) => l.trim())
+    .filter(
+      (l) =>
+        l.length > 2 &&
+        !/^(tax\s*invoice|invoice|original|billed\s*by|billed\s*to|date|due\s*date|item|sl\b|qty)/i.test(l)
+    );
+  const companyName = cleanLines[0]?.slice(0, 48) || "Extracted Supplier Business";
+  const clientName = cleanLines[1]?.slice(0, 48) || "Extracted Buyer Organization";
+
+  // Extract Line Items from lines containing numbers/prices
+  const extractedItems: InvoiceItem[] = [];
+  for (const line of lines) {
+    // Match rows like: "1. Web Design Services 1 12000.00" or "01 Consulting 2 4500"
+    const rowMatch = line.match(
+      /^(?:\d+[.)]?\s+)?([A-Za-z][A-Za-z0-9\s,&()/.-]{3,42}?)\s+(\d+(?:\.\d+)?)\s+(?:Rs\.?\s*|₹|\$|€|£)?(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i
+    );
+    if (rowMatch) {
+      const desc = rowMatch[1]!.trim();
+      if (/^(total|subtotal|taxable|cgst|sgst|igst|discount|amount|invoice|phone|gstin)/i.test(desc)) {
+        continue;
+      }
+      const qty = Math.max(1, Number(rowMatch[2]) || 1);
+      const rate = Number(rowMatch[3]!.replace(/,/g, "")) || 0;
+      if (rate > 0) {
+        extractedItems.push({
+          id: `ext_${extractedItems.length + 1}`,
+          description: desc,
+          quantity: qty,
+          rate,
+          taxPercent: 18,
+        });
+      }
+    }
+    if (extractedItems.length >= 12) break;
+  }
+
+  // Fallback if PDF only has a grand total or unstructured text
+  if (extractedItems.length === 0) {
+    const totalMatch =
+      fullText.match(/(?:Grand\s*Total|Total\s*Amount|Total|Amount\s*Due)\s*[:=-]?\s*(?:Rs\.?\s*|₹|\$|€|£)?\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/i) ||
+      fullText.match(/(?:Rs\.?\s*|₹|\$|€|£)\s*(\d+(?:,\d{3})*(?:\.\d{2}))/i);
+    const detectedAmount = totalMatch?.[1] ? Number(totalMatch[1].replace(/,/g, "")) : 1000;
+    extractedItems.push({
+      id: "ext_1",
+      description: cleanLines[2]?.slice(0, 46) || "Invoiced Goods & Professional Services",
+      quantity: 1,
+      rate: detectedAmount > 0 ? detectedAmount : 1000,
+      taxPercent: 0,
+    });
+  }
+
+  return {
+    documentTitle: "Tax Invoice",
+    themeColor: "#ff5500",
+    invoiceTemplate: "executive-orange",
+    invoiceFont: "sans",
+    taxMode: companyGstin ? "gst_intra" : "standard",
+    invoiceNumber,
+    issueDate,
+    dueDate,
+    currency,
+    companyName,
+    companyCountry: "India",
+    companyGstin,
+    companyAddress: cleanLines[2]?.slice(0, 52) || "Registered Corporate Office",
+    companyEmail,
+    clientName,
+    clientCountry: "India",
+    clientGstin,
+    clientAddress: cleanLines[3]?.slice(0, 52) || "Client Billing Address",
+    clientEmail,
+    items: extractedItems,
+    showTotalInWords: true,
+  };
+}
+
+/**
+ * Convert InvoiceData into OASIS UBL 2.1 / Peppol BIS 3.0 / Factur-X Electronic Invoice XML
+ */
+export function convertInvoiceDataToUblXml(
+  data: InvoiceData,
+  standard: "ubl-2.1" | "factur-x" | "peppol-bis" = "ubl-2.1"
+): { xmlString: string; xmlBytes: Uint8Array } {
+  const currencyCode =
+    data.currency === "$"
+      ? "USD"
+      : data.currency === "€"
+        ? "EUR"
+        : data.currency === "£"
+          ? "GBP"
+          : "INR";
+
+  const taxMode = data.taxMode || "gst_intra";
+  let taxableSubtotal = 0;
+  let totalTax = 0;
+
+  const items = data.items.length > 0 ? data.items : [
+    { id: "1", description: "Invoiced Services", quantity: 1, rate: 1000, taxPercent: 18 },
+  ];
+
+  items.forEach((it) => {
+    const lineAmt = (Number(it.quantity) || 0) * (Number(it.rate) || 0);
+    const lineTax = taxMode === "none" ? 0 : (lineAmt * (Number(it.taxPercent) || 0)) / 100;
+    taxableSubtotal += lineAmt;
+    totalTax += lineTax;
+  });
+
+  const grandTotal = taxableSubtotal + totalTax;
+  const profileId =
+    standard === "peppol-bis"
+      ? "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
+      : standard === "factur-x"
+        ? "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:extended"
+        : "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2";
+
+  const linesXml = items
+    .map((it, idx) => {
+      const qty = Number(it.quantity) || 1;
+      const rate = Number(it.rate) || 0;
+      const lineExt = (qty * rate).toFixed(2);
+      const taxPct = taxMode === "none" ? 0 : Number(it.taxPercent) || 0;
+      return `  <cac:InvoiceLine>
+    <cbc:ID>${idx + 1}</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="EA">${qty}</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="${currencyCode}">${lineExt}</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Description>${escapeXmlStr(it.subDescription || it.description)}</cbc:Description>
+      <cbc:Name>${escapeXmlStr(it.description)}</cbc:Name>
+      ${it.hsnSac ? `<cac:CommodityClassification><cbc:ItemClassificationCode listID="HSN">${escapeXmlStr(it.hsnSac)}</cbc:ItemClassificationCode></cac:CommodityClassification>` : ""}
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>${taxPct > 0 ? "S" : "Z"}</cbc:ID>
+        <cbc:Percent>${taxPct.toFixed(2)}</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>${taxMode.startsWith("gst") ? "GST" : "VAT"}</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="${currencyCode}">${rate.toFixed(2)}</cbc:PriceAmount>
+    </cac:Price>
+  </cac:InvoiceLine>`;
+    })
+    .join("\n");
+
+  const xmlString = `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
+  <cbc:CustomizationID>${escapeXmlStr(profileId)}</cbc:CustomizationID>
+  <cbc:ID>${escapeXmlStr(data.invoiceNumber || "INV-001")}</cbc:ID>
+  <cbc:IssueDate>${escapeXmlStr(data.issueDate || new Date().toISOString().slice(0, 10))}</cbc:IssueDate>
+  <cbc:DueDate>${escapeXmlStr(data.dueDate || data.issueDate || new Date().toISOString().slice(0, 10))}</cbc:DueDate>
+  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+  <cbc:DocumentCurrencyCode>${currencyCode}</cbc:DocumentCurrencyCode>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyName>
+        <cbc:Name>${escapeXmlStr(data.companyName)}</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>${escapeXmlStr(data.companyAddress)}</cbc:StreetName>
+        <cbc:CityName>${escapeXmlStr(data.companyCityState || "")}</cbc:CityName>
+        <cac:Country>
+          <cbc:IdentificationCode>${data.companyCountry === "United States" ? "US" : data.companyCountry === "United Kingdom" ? "GB" : "IN"}</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      ${data.companyGstin ? `<cac:PartyTaxScheme><cbc:CompanyID>${escapeXmlStr(data.companyGstin)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>GST</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}
+      <cac:Contact>
+        <cbc:ElectronicMail>${escapeXmlStr(data.companyEmail)}</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyName>
+        <cbc:Name>${escapeXmlStr(data.clientName)}</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>${escapeXmlStr(data.clientAddress)}</cbc:StreetName>
+        <cbc:CityName>${escapeXmlStr(data.clientCityState || "")}</cbc:CityName>
+        <cac:Country>
+          <cbc:IdentificationCode>${data.clientCountry === "United States" ? "US" : data.clientCountry === "United Kingdom" ? "GB" : "IN"}</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      ${data.clientGstin ? `<cac:PartyTaxScheme><cbc:CompanyID>${escapeXmlStr(data.clientGstin)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>GST</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}
+      <cac:Contact>
+        <cbc:ElectronicMail>${escapeXmlStr(data.clientEmail)}</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="${currencyCode}">${totalTax.toFixed(2)}</cbc:TaxAmount>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="${currencyCode}">${taxableSubtotal.toFixed(2)}</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="${currencyCode}">${taxableSubtotal.toFixed(2)}</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="${currencyCode}">${grandTotal.toFixed(2)}</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="${currencyCode}">${grandTotal.toFixed(2)}</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+${linesXml}
+</Invoice>`;
+
+  const xmlBytes = new TextEncoder().encode(xmlString);
+  return { xmlString, xmlBytes };
+}
+
+/**
+ * Parse an uploaded UBL 2.1 / Peppol / CII / Factur-X / ZUGFeRD XML or JSON E-Invoice buffer into InvoiceData
+ */
+export function parseXmlEInvoiceToInvoiceData(buffer: ArrayBuffer): InvoiceData {
+  const rawText = new TextDecoder("utf-8").decode(buffer).trim();
+
+  // Support JSON e-invoice (e.g. Indian IRP GST E-Invoice JSON schema) as well as XML
+  if (rawText.startsWith("{")) {
+    try {
+      const json = JSON.parse(rawText);
+      const docDtls = json.DocDtls || {};
+      const seller = json.SellerDtls || {};
+      const buyer = json.BuyerDtls || {};
+      const itemList = Array.isArray(json.ItemList) ? json.ItemList : [];
+      return {
+        documentTitle: "Tax Invoice (E-Invoice)",
+        themeColor: "#ff5500",
+        invoiceTemplate: "executive-orange",
+        invoiceFont: "sans",
+        taxMode: "gst_intra",
+        invoiceNumber: docDtls.No || json.invoiceNumber || "EINV-001",
+        issueDate: docDtls.Dt || json.issueDate || new Date().toISOString().slice(0, 10),
+        dueDate: json.dueDate || new Date().toISOString().slice(0, 10),
+        currency: "₹",
+        companyName: seller.LglNm || json.companyName || "Seller Organization",
+        companyGstin: seller.Gstin || "",
+        companyAddress: seller.Addr1 || "",
+        companyCityState: seller.Loc || "",
+        companyEmail: seller.Em || "",
+        clientName: buyer.LglNm || json.clientName || "Buyer Organization",
+        clientGstin: buyer.Gstin || "",
+        clientAddress: buyer.Addr1 || "",
+        clientCityState: buyer.Loc || "",
+        clientEmail: buyer.Em || "",
+        items:
+          itemList.length > 0
+            ? itemList.map((it: any, idx: number) => ({
+                id: String(idx + 1),
+                description: it.PrdDesc || it.description || "Item",
+                hsnSac: it.HsnCd || "",
+                quantity: Number(it.Qty || it.quantity) || 1,
+                rate: Number(it.UnitPrice || it.rate) || 0,
+                taxPercent: Number(it.GstRt || it.taxPercent) || 18,
+              }))
+            : [{ id: "1", description: "Electronic Invoice Item", quantity: 1, rate: 1000, taxPercent: 18 }],
+        showTotalInWords: true,
+      };
+    } catch {
+      // fall through to XML parser
+    }
+  }
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(rawText, "application/xml");
+
+  const getTagText = (parent: Document | Element, localNames: string[]): string => {
+    for (const name of localNames) {
+      const els = parent.getElementsByTagNameNS("*", name);
+      if (els.length > 0 && els[0]?.textContent?.trim()) {
+        return els[0].textContent.trim();
+      }
+      const direct = parent.getElementsByTagName(name);
+      if (direct.length > 0 && direct[0]?.textContent?.trim()) {
+        return direct[0].textContent.trim();
+      }
+    }
+    return "";
+  };
+
+  const invoiceNumber = getTagText(xmlDoc, ["ID", "ExchangedDocument"]) || "XML-INV-001";
+  const rawIssueDate = getTagText(xmlDoc, ["IssueDate", "IssueDateTime", "DateTimeString"]);
+  const issueDate =
+    rawIssueDate.length === 8 && /^\d{8}$/.test(rawIssueDate)
+      ? `${rawIssueDate.slice(0, 4)}-${rawIssueDate.slice(4, 6)}-${rawIssueDate.slice(6, 8)}`
+      : rawIssueDate || new Date().toISOString().slice(0, 10);
+  const dueDate = getTagText(xmlDoc, ["DueDate"]) || issueDate;
+
+  const currCode = getTagText(xmlDoc, ["DocumentCurrencyCode", "InvoiceCurrencyCode"]) || "INR";
+  const currency =
+    currCode === "USD" ? "$" : currCode === "EUR" ? "€" : currCode === "GBP" ? "£" : "₹";
+
+  // Supplier (AccountingSupplierParty or SellerTradeParty)
+  const supplierEl =
+    xmlDoc.getElementsByTagNameNS("*", "AccountingSupplierParty")[0] ||
+    xmlDoc.getElementsByTagNameNS("*", "SellerTradeParty")[0] ||
+    xmlDoc.documentElement;
+  const companyName =
+    getTagText(supplierEl, ["RegistrationName", "Name"]) || "Electronic Invoice Supplier";
+  const companyAddress = getTagText(supplierEl, ["StreetName", "LineOne", "AddressLine"]) || "";
+  const companyCityState = getTagText(supplierEl, ["CityName", "CountrySubentity"]) || "";
+  const companyGstin = getTagText(supplierEl, ["CompanyID", "SpecifiedTaxRegistration"]) || "";
+  const companyEmail = getTagText(supplierEl, ["ElectronicMail", "URIID"]) || "";
+
+  // Customer (AccountingCustomerParty or BuyerTradeParty)
+  const customerEl =
+    xmlDoc.getElementsByTagNameNS("*", "AccountingCustomerParty")[0] ||
+    xmlDoc.getElementsByTagNameNS("*", "BuyerTradeParty")[0] ||
+    xmlDoc.documentElement;
+  const clientName =
+    customerEl !== xmlDoc.documentElement
+      ? getTagText(customerEl, ["RegistrationName", "Name"]) || "Electronic Invoice Buyer"
+      : "Electronic Invoice Buyer";
+  const clientAddress =
+    customerEl !== xmlDoc.documentElement
+      ? getTagText(customerEl, ["StreetName", "LineOne", "AddressLine"])
+      : "";
+  const clientCityState =
+    customerEl !== xmlDoc.documentElement ? getTagText(customerEl, ["CityName"]) : "";
+  const clientGstin =
+    customerEl !== xmlDoc.documentElement ? getTagText(customerEl, ["CompanyID"]) : "";
+  const clientEmail =
+    customerEl !== xmlDoc.documentElement ? getTagText(customerEl, ["ElectronicMail"]) : "";
+
+  // Invoice Lines (cac:InvoiceLine or ram:IncludedSupplyChainTradeLineItem)
+  const ublLines = Array.from(xmlDoc.getElementsByTagNameNS("*", "InvoiceLine"));
+  const ciiLines = Array.from(
+    xmlDoc.getElementsByTagNameNS("*", "IncludedSupplyChainTradeLineItem")
+  );
+  const lineNodes = ublLines.length > 0 ? ublLines : ciiLines;
+
+  const items: InvoiceItem[] = lineNodes.map((node, idx) => {
+    const desc =
+      getTagText(node, ["Name", "Description"]) || `E-Invoice Line Item #${idx + 1}`;
+    const qty = Number(getTagText(node, ["InvoicedQuantity", "BilledQuantity"])) || 1;
+    const price =
+      Number(getTagText(node, ["PriceAmount", "ChargeAmount", "LineExtensionAmount"])) || 0;
+    const taxPct = Number(getTagText(node, ["Percent", "RateApplicablePercent"])) || 0;
+    const hsnSac = getTagText(node, ["ItemClassificationCode", "SellerAssignedID"]) || "";
+
+    return {
+      id: `xml_line_${idx + 1}`,
+      description: desc,
+      hsnSac,
+      quantity: qty,
+      rate: price,
+      taxPercent: taxPct,
+    };
+  });
+
+  if (items.length === 0) {
+    const payable =
+      Number(getTagText(xmlDoc, ["PayableAmount", "TaxInclusiveAmount", "GrandTotalAmount"])) ||
+      1000;
+    items.push({
+      id: "xml_line_1",
+      description: "Electronic Invoice Consolidated Charge",
+      quantity: 1,
+      rate: payable,
+      taxPercent: 0,
+    });
+  }
+
+  return {
+    documentTitle: "Tax Invoice",
+    documentSubtitle: `Converted from ${currCode} Electronic Invoice XML`,
+    themeColor: "#ff5500",
+    invoiceTemplate: "executive-orange",
+    invoiceFont: "sans",
+    taxMode: items.some((i) => i.taxPercent > 0) ? "gst_intra" : "none",
+    invoiceNumber,
+    issueDate,
+    dueDate,
+    currency,
+    companyName,
+    companyCountry: "India",
+    companyGstin,
+    companyAddress,
+    companyCityState,
+    companyEmail,
+    clientName,
+    clientCountry: "India",
+    clientGstin,
+    clientAddress,
+    clientCityState,
+    clientEmail,
+    items,
+    showTotalInWords: true,
+  };
+}
+
