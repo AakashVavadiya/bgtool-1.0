@@ -841,8 +841,51 @@ export async function generateInvoicePdf(
   const pdfCurr = rawCurrency === "₹" ? "Rs. " : safePdfWinAnsi(rawCurrency);
   const taxMode = data.taxMode || "gst_intra";
 
-  // Template-specific page decorations
-  if (template === "bold-sidebar") {
+  // Helper to draw SVG paths in PDF coordinate space (SVG top-left 800x842 -> PDF 595.28x841.89)
+  const drawGraphicWave = (svgPath: string, fillCol: ReturnType<typeof rgb>, opacity = 1) => {
+    try {
+      page.drawSvgPath(svgPath, {
+        x: 0,
+        y: height,
+        scale: width / 800,
+        color: fillCol,
+        opacity,
+      });
+    } catch {
+      // fallback if path unsupported
+    }
+  };
+
+  // Template-specific graphical vector artwork (Top & Bottom waves, slashes, polygons, seals)
+  if (template === "executive-orange" || template === "corporate-split") {
+    // Dual Wave Graphic Pro (Matches Uploaded Image 2: Top-Left layered S-wave + Bottom-Right layered S-wave)
+    drawGraphicWave("M 0,0 L 585,0 C 445,95 235,165 0,132 Z", themeColor, 0.22);
+    drawGraphicWave("M 0,0 L 535,0 C 400,82 205,144 0,114 Z", themeColor, 1);
+    // Bottom wave curves (near y = 1130 in 800-wide scaled coordinates where bottom is 1131)
+    drawGraphicWave("M 0,1045 C 185,1022 340,1075 495,1132 L 0,1132 Z", themeColor, 0.22);
+    drawGraphicWave("M 165,1132 C 375,1042 595,1018 800,1010 L 800,1132 Z", themeColor, 1);
+  } else if (template === "minimal-swiss") {
+    // Minimal Bottom Wave (Matches Uploaded Image 1: Clean white top + dual-tone overlapping bottom waves)
+    drawGraphicWave("M 0,1015 C 190,995 360,1050 510,1132 L 0,1132 Z", themeColor, 0.22);
+    drawGraphicWave("M 110,1132 C 360,1020 590,995 800,965 L 800,1132 Z", themeColor, 1);
+  } else if (template === "modern-banner") {
+    // Dynamic Diagonal Slash top & bottom polygons
+    drawGraphicWave("M 0,0 L 800,0 L 535,135 L 0,88 Z", themeColor, 0.22);
+    drawGraphicWave("M 0,0 L 740,0 L 475,118 L 0,74 Z", themeColor, 1);
+    drawGraphicWave("M 180,1132 L 800,1045 L 800,1132 Z", themeColor, 0.22);
+    drawGraphicWave("M 310,1132 L 800,1060 L 800,1132 Z", themeColor, 1);
+  } else if (template === "luxury-editorial") {
+    // Luxury Gold Crest & Arch
+    drawGraphicWave("M 0,0 L 800,0 L 800,48 Q 400,122 0,48 Z", themeColor, 0.2);
+    drawGraphicWave("M 0,0 L 800,0 L 800,34 Q 400,104 0,34 Z", themeColor, 1);
+    drawGraphicWave("M 0,1132 L 0,1095 Q 400,1045 800,1095 L 800,1132 Z", themeColor, 0.18);
+  } else if (template === "tech-mono") {
+    // SaaS Geometric Prism
+    drawGraphicWave("M 0,0 L 520,0 L 440,98 L 0,98 Z", themeColor, 1);
+    drawGraphicWave("M 540,0 L 800,0 L 800,72 L 475,72 Z", themeColor, 0.24);
+    drawGraphicWave("M 420,1132 L 800,1080 L 800,1132 Z", themeColor, 1);
+  } else if (template === "bold-sidebar") {
+    // Vertical Left Ribbon + Bottom Corner Wave
     page.drawRectangle({
       x: 0,
       y: 0,
@@ -850,75 +893,133 @@ export async function generateInvoicePdf(
       height,
       color: themeColor,
     });
-  } else if (template === "corporate-split" || template === "compact-enterprise") {
-    page.drawRectangle({
-      x: 0,
-      y: height - 10,
-      width,
-      height: 10,
-      color: themeColor,
-    });
+    drawGraphicWave("M 800,1132 L 280,1132 C 430,1078 620,1042 800,1048 Z", themeColor, 0.22);
+    drawGraphicWave("M 800,1132 L 380,1132 C 510,1090 670,1060 800,1066 Z", themeColor, 1);
   } else if (template === "gst-pro-ledger") {
+    // Royal GST Seal & Frame with corner triangles
     page.drawRectangle({
-      x: 20,
-      y: 20,
-      width: width - 40,
-      height: height - 40,
+      x: 18,
+      y: 18,
+      width: width - 36,
+      height: height - 36,
       borderColor: themeColor,
-      borderWidth: 1.5,
+      borderWidth: 1.6,
     });
+    drawGraphicWave("M 24,24 L 95,24 L 24,95 Z", themeColor, 1);
+    drawGraphicWave("M 776,24 L 705,24 L 776,95 Z", themeColor, 1);
+    drawGraphicWave("M 776,1107 L 705,1107 L 776,1036 Z", themeColor, 1);
   } else if (template === "agency-studio") {
-    page.drawRectangle({
-      x: 0,
-      y: height - 92,
-      width,
-      height: 92,
-      color: softThemeTint,
-    });
+    // Abstract Studio Fluid Curves
+    drawGraphicWave("M 0,0 L 800,0 L 800,68 C 620,132 450,32 240,104 C 120,136 40,86 0,76 Z", themeColor, 0.2);
+    drawGraphicWave("M 0,0 L 640,0 C 510,94 310,36 140,92 C 70,114 20,78 0,64 Z", themeColor, 1);
+    drawGraphicWave("M 0,1132 L 0,1078 C 220,1038 460,1115 800,1054 L 800,1132 Z", themeColor, 0.2);
+    drawGraphicWave("M 240,1132 C 440,1068 640,1086 800,1056 L 800,1132 Z", themeColor, 1);
+  } else if (template === "compact-enterprise") {
+    // Emerald Chevron Pro
+    drawGraphicWave("M 0,0 L 800,0 L 800,48 L 400,110 L 0,48 Z", themeColor, 0.22);
+    drawGraphicWave("M 0,0 L 800,0 L 800,32 L 400,90 L 0,32 Z", themeColor, 1);
+    drawGraphicWave("M 0,1132 L 400,1084 L 800,1132 Z", themeColor, 1);
   }
 
-  // 1. Top Title & Subtitle
-  const titleStr = safePdfWinAnsi(data.documentTitle || "Tax Invoice");
-  const titleSize = 20;
+  // 1. Top Title, Brand Header & Subtitle
+  const titleStr = safePdfWinAnsi((data.documentTitle || "INVOICE").toUpperCase());
+  const titleSize = 22;
   const titleW = fontBold.widthOfTextAtSize(titleStr, titleSize);
 
-  let cursorY = height - 68;
+  let cursorY = height - 108;
 
-  if (template === "modern-banner") {
-    page.drawRectangle({
-      x: 0,
-      y: height - 82,
-      width,
-      height: 82,
+  if (template === "executive-orange" || template === "corporate-split") {
+    // Brand Name in White inside Top-Left Wave, INVOICE on Top-Right
+    page.drawText(safePdfWinAnsi((data.companyName || "BRAND NAME").toUpperCase()).slice(0, 26), {
+      x: margin,
+      y: height - 42,
+      size: 16,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+    page.drawText(
+      safePdfWinAnsi(data.companyCityState || data.companyAddress || "OFFICIAL TAX INVOICE").slice(0, 38),
+      {
+        x: margin,
+        y: height - 56,
+        size: 8.5,
+        font: fontRegular,
+        color: rgb(0.93, 0.95, 0.98),
+      }
+    );
+    page.drawText(titleStr, {
+      x: width - margin - titleW,
+      y: height - 58,
+      size: titleSize,
+      font: fontBold,
       color: themeColor,
     });
+    if (data.documentSubtitle?.trim()) {
+      const subStr = safePdfWinAnsi(data.documentSubtitle.trim());
+      const subW = fontRegular.widthOfTextAtSize(subStr, 8.5);
+      page.drawText(subStr, {
+        x: width - margin - subW,
+        y: height - 72,
+        size: 8.5,
+        font: fontRegular,
+        color: mutedText,
+      });
+    }
+    cursorY = height - 114;
+  } else if (template === "modern-banner" || template === "tech-mono" || template === "agency-studio") {
     page.drawText(titleStr, {
       x: margin,
-      y: height - 48,
-      size: 22,
+      y: height - 44,
+      size: 20,
       font: fontBold,
       color: rgb(1, 1, 1),
     });
     if (data.documentSubtitle?.trim()) {
       page.drawText(safePdfWinAnsi(data.documentSubtitle.trim()), {
         x: margin,
-        y: height - 64,
-        size: 9,
+        y: height - 58,
+        size: 8.5,
         font: fontRegular,
-        color: rgb(0.92, 0.92, 0.95),
+        color: rgb(0.94, 0.94, 0.97),
       });
     }
     const invBadge = safePdfWinAnsi(`#${data.invoiceNumber || "A00001"}`);
-    const badgeW = fontBold.widthOfTextAtSize(invBadge, 14);
+    const badgeW = fontBold.widthOfTextAtSize(invBadge, 13);
     page.drawText(invBadge, {
       x: width - margin - badgeW,
-      y: height - 48,
-      size: 14,
+      y: height - 44,
+      size: 13,
       font: fontBold,
-      color: rgb(1, 1, 1),
+      color: template === "modern-banner" || template === "agency-studio" ? themeColor : rgb(1, 1, 1),
     });
-    cursorY = height - 102;
-  } else if (template === "minimal-swiss" || template === "bold-sidebar" || template === "tech-mono") {
+    cursorY = height - 106;
+  } else if (template === "minimal-swiss") {
+    // Uploaded Image 1 layout: Brand Top-Left, NO. Top-Right, Huge INVOICE Title below
+    page.drawText(safePdfWinAnsi((data.companyName || "YOUR LOGO").toUpperCase()).slice(0, 28), {
+      x: margin,
+      y: height - 44,
+      size: 10,
+      font: fontBold,
+      color: darkText,
+    });
+    const noStr = safePdfWinAnsi(`NO. ${data.invoiceNumber || "000001"}`);
+    const noW = fontBold.widthOfTextAtSize(noStr, 10);
+    page.drawText(noStr, {
+      x: width - margin - noW,
+      y: height - 44,
+      size: 10,
+      font: fontBold,
+      color: darkText,
+    });
+    page.drawText(titleStr, {
+      x: margin,
+      y: height - 86,
+      size: 30,
+      font: fontBold,
+      color: themeColor,
+    });
+    cursorY = height - 114;
+  } else if (template === "bold-sidebar") {
     page.drawText(titleStr, {
       x: margin,
       y: height - 48,
@@ -933,11 +1034,11 @@ export async function generateInvoicePdf(
       height: 1.2,
       color: themeColor,
     });
-    cursorY = height - 70;
+    cursorY = height - 74;
   } else {
     page.drawText(titleStr, {
       x: (width - titleW) / 2,
-      y: height - 46,
+      y: height - 68,
       size: titleSize,
       font: fontBold,
       color: themeColor,
@@ -945,26 +1046,13 @@ export async function generateInvoicePdf(
 
     page.drawRectangle({
       x: (width - titleW) / 2,
-      y: height - 51,
+      y: height - 73,
       width: titleW,
       height: 1.5,
       color: themeColor,
     });
 
-    if (data.documentSubtitle?.trim()) {
-      const subStr = safePdfWinAnsi(data.documentSubtitle.trim());
-      const subW = fontRegular.widthOfTextAtSize(subStr, 9);
-      page.drawText(subStr, {
-        x: (width - subW) / 2,
-        y: cursorY,
-        size: 9,
-        font: fontRegular,
-        color: mutedText,
-      });
-      cursorY -= 16;
-    } else {
-      cursorY -= 6;
-    }
+    cursorY = height - 96;
   }
 
   // 2. Invoice Metadata (Left) & Business Logo (Right)

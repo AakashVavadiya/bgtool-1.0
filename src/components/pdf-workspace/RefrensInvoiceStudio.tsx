@@ -43,99 +43,109 @@ export interface PremiumThemeConfig {
   badge: string;
   defaultColor: string;
   defaultFont: "sans" | "serif" | "mono";
-  headerStyle: "centered" | "banner" | "left-rule" | "split-top" | "frame" | "hero-tint" | "sidebar";
+  graphicStyle:
+    | "dual-wave"
+    | "bottom-swoosh"
+    | "angle-slash"
+    | "corner-polygons"
+    | "sidebar-ribbon"
+    | "editorial-crest"
+    | "cyber-grid"
+    | "gst-seal-frame"
+    | "fluid-blobs"
+    | "chevron-header";
 }
 
 const PREMIUM_INVOICE_THEMES: PremiumThemeConfig[] = [
   {
     id: "executive-orange",
-    name: "1. Executive Classic",
-    subtitle: "Centered title, warm studio cards & solid table bar",
+    name: "1. Dual Wave Graphic Pro",
+    subtitle: "Sculpted top & bottom layered curves with signature hero arc",
     badge: "Default",
     defaultColor: "#ff5500",
     defaultFont: "sans",
-    headerStyle: "centered",
+    graphicStyle: "dual-wave",
   },
   {
     id: "modern-banner",
-    name: "2. Modern Full-Bleed Banner",
-    subtitle: "Bold full-width colored top header with invoice badge",
+    name: "2. Dynamic Diagonal Slash",
+    subtitle: "Bold angled polygon top banner with geometric bottom corner wedge",
     badge: "Popular",
     defaultColor: "#ff5500",
     defaultFont: "sans",
-    headerStyle: "banner",
+    graphicStyle: "angle-slash",
   },
   {
     id: "minimal-swiss",
-    name: "3. Swiss Minimalist Grid",
-    subtitle: "Clean left-aligned editorial typography & hairline rules",
+    name: "3. Minimal Bottom Wave",
+    subtitle: "Oversized editorial header & overlapping dual-tone bottom swoosh",
     badge: "Minimal",
-    defaultColor: "#0f172a",
+    defaultColor: "#18181b",
     defaultFont: "sans",
-    headerStyle: "left-rule",
+    graphicStyle: "bottom-swoosh",
   },
   {
     id: "corporate-split",
-    name: "4. Corporate Split Header",
-    subtitle: "Top accent bar with structured split corporate metadata",
-    badge: "Enterprise",
-    defaultColor: "#2563eb",
+    name: "4. Teal & Navy Dual Curve",
+    subtitle: "Executive dark-teal layered S-curve header & signature wave footer",
+    badge: "Corporate",
+    defaultColor: "#042f40",
     defaultFont: "sans",
-    headerStyle: "split-top",
+    graphicStyle: "dual-wave",
   },
   {
     id: "luxury-editorial",
-    name: "5. Luxury Serif Editorial",
-    subtitle: "Classic Times serif typography with warm cream cards",
-    badge: "Editorial",
+    name: "5. Luxury Gold Crest & Arch",
+    subtitle: "Ornamental curved top arch, gold corner accents & classic serif",
+    badge: "Luxury",
     defaultColor: "#9a3412",
     defaultFont: "serif",
-    headerStyle: "centered",
+    graphicStyle: "editorial-crest",
   },
   {
     id: "tech-mono",
-    name: "6. Developer SaaS Mono",
-    subtitle: "Precision monospace numbers, code-style headers & grid",
-    badge: "SaaS / Dev",
-    defaultColor: "#ff5500",
+    name: "6. SaaS Geometric Prism",
+    subtitle: "Angular tech polygons, precision monospace grid & pill badges",
+    badge: "SaaS / Tech",
+    defaultColor: "#2563eb",
     defaultFont: "mono",
-    headerStyle: "left-rule",
+    graphicStyle: "cyber-grid",
   },
   {
     id: "bold-sidebar",
-    name: "7. Bold Left Accent Ribbon",
-    subtitle: "Vertical colored accent spine along the left page edge",
+    name: "7. Vertical Ribbon & Wave",
+    subtitle: "Left geometric spine with sculpted bottom corner wave accent",
     badge: "Creative",
     defaultColor: "#ea580c",
     defaultFont: "sans",
-    headerStyle: "sidebar",
+    graphicStyle: "sidebar-ribbon",
   },
   {
     id: "gst-pro-ledger",
-    name: "8. Indian GST Pro Ledger",
-    subtitle: "Full outer document border frame for official GST filing",
+    name: "8. Royal GST Seal & Frame",
+    subtitle: "Double ornamental border frame with corner ribbons for GST tax",
     badge: "GST Official",
     defaultColor: "#5b21b6",
     defaultFont: "sans",
-    headerStyle: "frame",
+    graphicStyle: "gst-seal-frame",
   },
   {
     id: "agency-studio",
-    name: "9. Creative Agency Studio",
-    subtitle: "Soft tinted hero header block with floating party cards",
+    name: "9. Abstract Studio Curves",
+    subtitle: "Soft layered organic wave clouds top & bottom for creative studios",
     badge: "Studio",
     defaultColor: "#e11d48",
     defaultFont: "sans",
-    headerStyle: "hero-tint",
+    graphicStyle: "fluid-blobs",
   },
   {
     id: "compact-enterprise",
-    name: "10. Enterprise Compact",
-    subtitle: "High-density financial statement with top accent rule",
-    badge: "Compact",
+    name: "10. Emerald Chevron Pro",
+    subtitle: "Sharp architectural V-chevron header & angled footer bar",
+    badge: "Enterprise",
     defaultColor: "#059669",
     defaultFont: "sans",
-    headerStyle: "split-top",
+    graphicStyle: "chevron-header",
   },
 ];
 
@@ -549,10 +559,11 @@ export function RefrensInvoiceStudio({
               </div>
             </div>
 
-            {/* 10 Premium Themes Grid */}
+            {/* 10 Premium Graphical Themes Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               {PREMIUM_INVOICE_THEMES.map((theme) => {
                 const isSelected = activeTemplateId === theme.id;
+                const previewColor = isSelected ? themeColor : theme.defaultColor;
                 return (
                   <button
                     key={theme.id}
@@ -564,57 +575,124 @@ export function RefrensInvoiceStudio({
                         : "border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-800/30 hover:border-slate-400 dark:hover:border-zinc-600"
                     }`}
                   >
-                    {/* Mini Wireframe Preview of Template */}
-                    <div className="w-full h-24 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 mb-3 overflow-hidden relative p-2 flex flex-col justify-between shadow-2xs">
-                      {theme.headerStyle === "banner" && (
-                        <div className=" -mx-2 -mt-2 h-6 px-2 flex items-center justify-between" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }}>
-                          <span className="h-1.5 w-10 rounded bg-white/90" />
-                          <span className="h-1.5 w-5 rounded bg-white/70" />
-                        </div>
+                    {/* Mini Graphical Artwork Thumbnail Preview */}
+                    <div className="w-full h-28 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 mb-3 overflow-hidden relative p-2.5 flex flex-col justify-between shadow-2xs">
+                      {/* Top Graphical SVG Overlay */}
+                      {theme.graphicStyle === "dual-wave" && (
+                        <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-8 pointer-events-none">
+                          <path d="M 0,0 L 145,0 C 115,24 65,46 0,38 Z" fill={previewColor} fillOpacity="0.24" />
+                          <path d="M 0,0 L 132,0 C 102,20 55,40 0,32 Z" fill={previewColor} />
+                        </svg>
                       )}
-                      {theme.headerStyle === "sidebar" && (
-                        <div className="absolute left-0 top-0 bottom-0 w-2" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
+                      {theme.graphicStyle === "angle-slash" && (
+                        <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-8 pointer-events-none">
+                          <polygon points="0,0 200,0 135,44 0,26" fill={previewColor} fillOpacity="0.22" />
+                          <polygon points="0,0 185,0 115,38 0,22" fill={previewColor} />
+                        </svg>
                       )}
-                      {theme.headerStyle === "split-top" && (
-                        <div className="absolute left-0 right-0 top-0 h-1.5" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
+                      {theme.graphicStyle === "editorial-crest" && (
+                        <svg viewBox="0 0 200 45" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-7 pointer-events-none">
+                          <path d="M 0,0 L 200,0 L 200,18 Q 100,44 0,18 Z" fill={previewColor} fillOpacity="0.2" />
+                          <path d="M 0,0 L 200,0 L 200,12 Q 100,36 0,12 Z" fill={previewColor} />
+                        </svg>
                       )}
-                      {theme.headerStyle === "frame" && (
-                        <div className="absolute inset-1 border pointer-events-none rounded-md" style={{ borderColor: isSelected ? themeColor : theme.defaultColor }} />
+                      {theme.graphicStyle === "cyber-grid" && (
+                        <svg viewBox="0 0 200 45" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-7 pointer-events-none">
+                          <polygon points="0,0 130,0 105,34 0,34" fill={previewColor} />
+                          <polygon points="135,0 200,0 200,24 115,24" fill={previewColor} fillOpacity="0.28" />
+                        </svg>
                       )}
-                      {theme.headerStyle === "hero-tint" && (
-                        <div className="-mx-2 -mt-2 h-6 px-2 flex items-center justify-center" style={{ backgroundColor: `${isSelected ? themeColor : theme.defaultColor}22` }}>
-                          <span className="h-1.5 w-12 rounded" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
-                        </div>
+                      {theme.graphicStyle === "sidebar-ribbon" && (
+                        <>
+                          <div className="absolute left-0 top-0 bottom-0 w-2.5" style={{ backgroundColor: previewColor }} />
+                          <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="absolute bottom-0 right-0 w-24 h-7 pointer-events-none">
+                            <path d="M 200,50 L 30,50 C 75,28 135,10 200,14 Z" fill={previewColor} fillOpacity="0.25" />
+                            <path d="M 200,50 L 50,50 C 90,32 145,16 200,20 Z" fill={previewColor} />
+                          </svg>
+                        </>
                       )}
-                      {(theme.headerStyle === "centered" || theme.headerStyle === "frame") && (
-                        <div className="flex flex-col items-center pt-0.5">
-                          <span className="h-1.5 w-12 rounded" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
-                        </div>
+                      {theme.graphicStyle === "gst-seal-frame" && (
+                        <>
+                          <div className="absolute inset-1 border-2 pointer-events-none rounded-lg" style={{ borderColor: previewColor }} />
+                          <svg viewBox="0 0 40 40" className="absolute top-1 left-1 w-4 h-4 pointer-events-none">
+                            <polygon points="0,0 40,0 0,40" fill={previewColor} />
+                          </svg>
+                          <svg viewBox="0 0 40 40" className="absolute bottom-1 right-1 w-4 h-4 pointer-events-none">
+                            <polygon points="40,40 0,40 40,0" fill={previewColor} />
+                          </svg>
+                        </>
                       )}
-                      {theme.headerStyle === "left-rule" && (
-                        <div className="flex flex-col items-start pt-0.5">
-                          <span className="h-1.5 w-12 rounded" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
-                          <span className="h-0.5 w-full mt-1" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
-                        </div>
+                      {theme.graphicStyle === "fluid-blobs" && (
+                        <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-8 pointer-events-none">
+                          <path d="M 0,0 L 200,0 L 200,26 C 150,46 110,12 60,36 C 30,48 10,32 0,28 Z" fill={previewColor} fillOpacity="0.22" />
+                          <path d="M 0,0 L 160,0 C 125,32 75,14 35,32 C 18,40 5,28 0,22 Z" fill={previewColor} />
+                        </svg>
+                      )}
+                      {theme.graphicStyle === "chevron-header" && (
+                        <svg viewBox="0 0 200 45" preserveAspectRatio="none" className="absolute top-0 left-0 w-full h-7 pointer-events-none">
+                          <polygon points="0,0 200,0 200,18 100,40 0,18" fill={previewColor} fillOpacity="0.24" />
+                          <polygon points="0,0 200,0 200,12 100,32 0,12" fill={previewColor} />
+                        </svg>
                       )}
 
-                      {/* Mini Party Boxes */}
-                      <div className="grid grid-cols-2 gap-1.5 my-1">
-                        <div className="h-5 rounded bg-slate-100 dark:bg-zinc-800 p-1">
-                          <div className="h-1 w-6 rounded bg-slate-300 dark:bg-zinc-600" />
-                        </div>
-                        <div className="h-5 rounded bg-slate-100 dark:bg-zinc-800 p-1">
-                          <div className="h-1 w-6 rounded bg-slate-300 dark:bg-zinc-600" />
-                        </div>
+                      {/* Bottom Graphical SVG Overlays */}
+                      {(theme.graphicStyle === "dual-wave" || theme.graphicStyle === "bottom-swoosh") && (
+                        <svg viewBox="0 0 200 55" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-8 pointer-events-none">
+                          <path d="M 0,25 C 45,18 90,32 135,55 L 0,55 Z" fill={previewColor} fillOpacity="0.24" />
+                          <path d="M 35,55 C 95,22 155,15 200,8 L 200,55 Z" fill={previewColor} />
+                        </svg>
+                      )}
+                      {theme.graphicStyle === "angle-slash" && (
+                        <svg viewBox="0 0 200 45" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-6 pointer-events-none">
+                          <polygon points="40,45 200,10 200,45" fill={previewColor} fillOpacity="0.24" />
+                          <polygon points="75,45 200,16 200,45" fill={previewColor} />
+                        </svg>
+                      )}
+                      {theme.graphicStyle === "fluid-blobs" && (
+                        <svg viewBox="0 0 200 45" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-6 pointer-events-none">
+                          <path d="M 0,45 L 0,22 C 55,4 115,38 200,12 L 200,45 Z" fill={previewColor} fillOpacity="0.2" />
+                          <path d="M 60,45 C 110,18 160,26 200,14 L 200,45 Z" fill={previewColor} />
+                        </svg>
+                      )}
+                      {theme.graphicStyle === "chevron-header" && (
+                        <svg viewBox="0 0 200 35" preserveAspectRatio="none" className="absolute bottom-0 left-0 w-full h-5 pointer-events-none">
+                          <polygon points="0,35 100,10 200,35" fill={previewColor} />
+                        </svg>
+                      )}
+
+                      {/* Top Mini Header Content */}
+                      <div className="relative z-10 flex items-center justify-between pt-2">
+                        <span
+                          className="h-1.5 w-10 rounded"
+                          style={{
+                            backgroundColor:
+                              theme.graphicStyle === "bottom-swoosh" || theme.graphicStyle === "gst-seal-frame"
+                                ? previewColor
+                                : "#ffffff",
+                          }}
+                        />
+                        <span className="text-[7px] font-black tracking-tighter uppercase" style={{ color: previewColor }}>
+                          INVOICE
+                        </span>
                       </div>
 
-                      {/* Mini Table Bar */}
-                      <div className="space-y-1">
-                        <div className="h-2 w-full rounded-xs" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
-                        <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
-                        <div className="flex justify-end">
-                          <div className="h-2 w-8 rounded-xs" style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }} />
+                      {/* Mini Party & Table Wireframe */}
+                      <div className="relative z-10 space-y-1 my-1">
+                        <div className="grid grid-cols-2 gap-1">
+                          <div className="h-3.5 rounded-xs bg-slate-100/90 dark:bg-zinc-800/90 p-0.5">
+                            <div className="h-1 w-5 rounded bg-slate-300 dark:bg-zinc-600" />
+                          </div>
+                          <div className="h-3.5 rounded-xs bg-slate-100/90 dark:bg-zinc-800/90 p-0.5">
+                            <div className="h-1 w-5 rounded bg-slate-300 dark:bg-zinc-600" />
+                          </div>
                         </div>
+                        <div className="h-2 w-full rounded-xs" style={{ backgroundColor: previewColor }} />
+                        <div className="h-1.5 w-full rounded-xs bg-slate-100 dark:bg-zinc-800" />
+                      </div>
+
+                      {/* Bottom Mini Total Pill */}
+                      <div className="relative z-10 flex justify-end pb-1">
+                        <div className="h-2.5 w-9 rounded-full shadow-2xs" style={{ backgroundColor: previewColor }} />
                       </div>
                     </div>
 
@@ -625,7 +703,7 @@ export function RefrensInvoiceStudio({
                         </span>
                         <span
                           className="rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase shrink-0 text-white"
-                          style={{ backgroundColor: isSelected ? themeColor : theme.defaultColor }}
+                          style={{ backgroundColor: previewColor }}
                         >
                           {theme.badge}
                         </span>
@@ -716,67 +794,205 @@ export function RefrensInvoiceStudio({
             </div>
           </div>
 
-          {/* LIVE FULL-SHEET A4 PREVIEW IN SELECTED PREMIUM THEME */}
+          {/* LIVE FULL-SHEET A4 PREVIEW IN SELECTED PREMIUM GRAPHICAL THEME */}
           <div className="rounded-3xl border-2 border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden relative">
-            {/* Template-Specific Page Decorations */}
-            {activeThemeObj.headerStyle === "sidebar" && (
-              <div className="absolute left-0 top-0 bottom-0 w-3.5" style={{ backgroundColor: themeColor }} />
-            )}
-            {activeThemeObj.headerStyle === "split-top" && (
-              <div className="h-3 w-full" style={{ backgroundColor: themeColor }} />
-            )}
-
-            <div
-              className={`p-6 sm:p-10 md:p-12 space-y-6 ${fontClass} ${
-                activeThemeObj.headerStyle === "frame" ? "m-4 sm:m-6 border-2 rounded-2xl" : ""
-              }`}
-              style={activeThemeObj.headerStyle === "frame" ? { borderColor: themeColor } : undefined}
-            >
-              {/* Header Block per Theme */}
-              {activeThemeObj.headerStyle === "banner" ? (
-                <div
-                  className="-mx-6 -mt-6 sm:-mx-10 sm:-mt-10 md:-mx-12 md:-mt-12 p-6 sm:p-8 text-white flex flex-wrap items-center justify-between gap-4 mb-4"
-                  style={{ backgroundColor: themeColor }}
-                >
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                      {invoiceData.documentTitle || "Tax Invoice"}
-                    </h2>
-                    {invoiceData.documentSubtitle && (
-                      <p className="text-xs opacity-90 mt-0.5">{invoiceData.documentSubtitle}</p>
+            {/* TOP & SIDE GRAPHICAL ARTWORK OVERLAYS */}
+            {activeThemeObj.graphicStyle === "dual-wave" && (
+              <div className="relative h-36 sm:h-44 w-full overflow-hidden select-none">
+                <svg viewBox="0 0 800 180" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                  <path d="M 0,0 L 580,0 C 440,105 230,185 0,148 Z" fill={themeColor} fillOpacity="0.22" />
+                  <path d="M 0,0 L 535,0 C 400,90 205,162 0,128 Z" fill={themeColor} />
+                </svg>
+                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 pt-6 flex items-start justify-between">
+                  <div className="text-white max-w-xs">
+                    {invoiceData.logoDataUrl ? (
+                      <img
+                        src={invoiceData.logoDataUrl}
+                        alt="Logo"
+                        className="max-h-12 max-w-[160px] object-contain bg-white/95 rounded-lg px-2.5 py-1 shadow-sm"
+                      />
+                    ) : (
+                      <>
+                        <div className="text-xl sm:text-2xl font-black tracking-tight uppercase">
+                          {invoiceData.companyName || "BRAND NAME"}
+                        </div>
+                        <div className="text-[11px] font-semibold opacity-85">
+                          {invoiceData.companyCityState || invoiceData.companyAddress || "YOUR TAGLINE HERE"}
+                        </div>
+                      </>
                     )}
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs uppercase font-bold opacity-80">Invoice No</div>
-                    <div className="text-xl font-black font-mono">#{invoiceData.invoiceNumber}</div>
+                  <div className="text-right pt-2">
+                    <h2
+                      className="text-2xl sm:text-4xl font-black tracking-widest uppercase"
+                      style={{ color: themeColor }}
+                    >
+                      {invoiceData.documentTitle || "INVOICE"}
+                    </h2>
+                    {invoiceData.documentSubtitle && (
+                      <p className="text-xs text-slate-500 font-bold mt-0.5">{invoiceData.documentSubtitle}</p>
+                    )}
                   </div>
                 </div>
-              ) : activeThemeObj.headerStyle === "hero-tint" ? (
-                <div
-                  className="-mx-6 -mt-6 sm:-mx-10 sm:-mt-10 md:-mx-12 md:-mt-12 p-6 sm:p-8 flex flex-wrap items-center justify-between gap-4 mb-4 border-b"
-                  style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}30` }}
-                >
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black" style={{ color: themeColor }}>
-                      {invoiceData.documentTitle || "Tax Invoice"}
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "angle-slash" && (
+              <div className="relative h-32 sm:h-40 w-full overflow-hidden select-none">
+                <svg viewBox="0 0 800 160" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                  <polygon points="0,0 800,0 530,152 0,98" fill={themeColor} fillOpacity="0.2" />
+                  <polygon points="0,0 740,0 470,132 0,84" fill={themeColor} />
+                </svg>
+                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 pt-6 flex items-start justify-between">
+                  <div className="text-white">
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight uppercase">
+                      {invoiceData.documentTitle || "TAX INVOICE"}
                     </h2>
-                    {invoiceData.documentSubtitle && (
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">{invoiceData.documentSubtitle}</p>
-                    )}
+                    <p className="text-xs opacity-90 font-semibold">
+                      {invoiceData.companyName || "Your Business"}
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <span
-                      className="rounded-xl px-3.5 py-1.5 text-sm font-black text-white font-mono"
-                      style={{ backgroundColor: themeColor }}
-                    >
+                  <div className="text-right bg-white/95 dark:bg-zinc-900/95 rounded-2xl px-4 py-2 shadow-md border border-slate-200/70">
+                    <div className="text-[10px] font-black uppercase text-slate-400">Invoice No</div>
+                    <div className="text-base sm:text-lg font-black font-mono" style={{ color: themeColor }}>
                       #{invoiceData.invoiceNumber}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "editorial-crest" && (
+              <div className="relative h-28 sm:h-32 w-full overflow-hidden select-none">
+                <svg viewBox="0 0 800 130" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                  <path d="M 0,0 L 800,0 L 800,52 Q 400,130 0,52 Z" fill={themeColor} fillOpacity="0.18" />
+                  <path d="M 0,0 L 800,0 L 800,36 Q 400,112 0,36 Z" fill={themeColor} />
+                </svg>
+                <div className="relative z-10 h-full flex flex-col items-center justify-center pt-4">
+                  <span className="rounded-full bg-white dark:bg-zinc-900 px-6 py-1.5 text-lg sm:text-2xl font-black tracking-widest uppercase shadow-md border" style={{ color: themeColor, borderColor: `${themeColor}40` }}>
+                    {invoiceData.documentTitle || "INVOICE"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "cyber-grid" && (
+              <div className="relative h-28 sm:h-32 w-full overflow-hidden select-none">
+                <svg viewBox="0 0 800 130" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                  <polygon points="0,0 520,0 440,110 0,110" fill={themeColor} />
+                  <polygon points="540,0 800,0 800,78 475,78" fill={themeColor} fillOpacity="0.22" />
+                </svg>
+                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 flex items-center justify-between">
+                  <div className="text-white">
+                    <div className="text-[10px] font-mono uppercase tracking-widest opacity-80">
+                      {invoiceData.companyName}
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight">
+                      {invoiceData.documentTitle || "INVOICE"}
+                    </h2>
+                  </div>
+                  <div className="font-mono text-right">
+                    <span className="rounded-xl px-3.5 py-1.5 text-xs font-black text-white shadow-sm" style={{ backgroundColor: themeColor }}>
+                      NO. {invoiceData.invoiceNumber}
                     </span>
                   </div>
                 </div>
-              ) : activeThemeObj.headerStyle === "left-rule" || activeThemeObj.headerStyle === "sidebar" ? (
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "fluid-blobs" && (
+              <div className="relative h-32 sm:h-36 w-full overflow-hidden select-none">
+                <svg viewBox="0 0 800 150" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                  <path d="M 0,0 L 800,0 L 800,75 C 620,145 450,35 240,115 C 120,150 40,95 0,85 Z" fill={themeColor} fillOpacity="0.18" />
+                  <path d="M 0,0 L 640,0 C 510,105 310,40 140,102 C 70,126 20,88 0,72 Z" fill={themeColor} />
+                </svg>
+                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 pt-5 flex items-start justify-between">
+                  <div className="text-white">
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                      {invoiceData.documentTitle || "Tax Invoice"}
+                    </h2>
+                    <p className="text-xs opacity-90">{invoiceData.companyName}</p>
+                  </div>
+                  <span className="rounded-full bg-white/95 dark:bg-zinc-900 px-4 py-1.5 text-xs font-black font-mono shadow-md" style={{ color: themeColor }}>
+                    #{invoiceData.invoiceNumber}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "chevron-header" && (
+              <div className="relative h-28 sm:h-32 w-full overflow-hidden select-none">
+                <svg viewBox="0 0 800 130" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                  <polygon points="0,0 800,0 800,55 400,125 0,55" fill={themeColor} fillOpacity="0.22" />
+                  <polygon points="0,0 800,0 800,38 400,102 0,38" fill={themeColor} />
+                </svg>
+                <div className="relative z-10 h-full px-6 sm:px-10 md:px-12 pt-3 flex items-start justify-between text-white">
+                  <div className="font-black text-base sm:text-lg uppercase tracking-wider">
+                    {invoiceData.companyName || "ENTERPRISE"}
+                  </div>
+                  <div className="font-mono text-xs font-bold opacity-95">
+                    #{invoiceData.invoiceNumber}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "sidebar-ribbon" && (
+              <div className="absolute left-0 top-0 bottom-0 w-4 sm:w-5 z-10" style={{ backgroundColor: themeColor }} />
+            )}
+
+            <div
+              className={`relative z-10 p-6 sm:p-10 md:p-12 space-y-6 ${fontClass} ${
+                activeThemeObj.graphicStyle === "gst-seal-frame" ? "m-4 sm:m-6 border-2 rounded-2xl" : ""
+              } ${activeThemeObj.graphicStyle === "sidebar-ribbon" ? "pl-8 sm:pl-14" : ""}`}
+              style={activeThemeObj.graphicStyle === "gst-seal-frame" ? { borderColor: themeColor } : undefined}
+            >
+              {/* Corner Triangles for GST Seal Frame */}
+              {activeThemeObj.graphicStyle === "gst-seal-frame" && (
+                <>
+                  <svg viewBox="0 0 60 60" className="absolute top-0 left-0 w-10 h-10 pointer-events-none">
+                    <polygon points="0,0 60,0 0,60" fill={themeColor} />
+                  </svg>
+                  <svg viewBox="0 0 60 60" className="absolute top-0 right-0 w-10 h-10 pointer-events-none">
+                    <polygon points="60,0 0,0 60,60" fill={themeColor} />
+                  </svg>
+                </>
+              )}
+
+              {/* Minimal Bottom Swoosh Header (Matches Uploaded Image 1: Logo Top-Left, NO. Top-Right, Huge INVOICE Title) */}
+              {activeThemeObj.graphicStyle === "bottom-swoosh" && (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between text-xs font-bold tracking-widest uppercase text-slate-700 dark:text-zinc-300">
+                    <div>
+                      {invoiceData.logoDataUrl ? (
+                        <img src={invoiceData.logoDataUrl} alt="Logo" className="max-h-12 max-w-[150px] object-contain" />
+                      ) : (
+                        <span className="font-black text-sm">{invoiceData.companyName || "YOUR LOGO"}</span>
+                      )}
+                    </div>
+                    <div className="font-mono text-sm">NO. {invoiceData.invoiceNumber}</div>
+                  </div>
+                  <div>
+                    <h2
+                      className="text-4xl sm:text-5xl font-black tracking-tight uppercase"
+                      style={{ color: themeColor }}
+                    >
+                      {invoiceData.documentTitle || "INVOICE"}
+                    </h2>
+                    {invoiceData.documentSubtitle && (
+                      <p className="text-xs text-slate-500 mt-1">{invoiceData.documentSubtitle}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Header for Sidebar Ribbon or GST Seal Frame */}
+              {(activeThemeObj.graphicStyle === "sidebar-ribbon" ||
+                activeThemeObj.graphicStyle === "gst-seal-frame" ||
+                activeThemeObj.graphicStyle === "chevron-header") && (
                 <div className="border-b-2 pb-3 flex items-end justify-between" style={{ borderColor: themeColor }}>
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-black" style={{ color: themeColor }}>
+                    <h2 className="text-2xl sm:text-3xl font-black uppercase" style={{ color: themeColor }}>
                       {invoiceData.documentTitle || "Tax Invoice"}
                     </h2>
                     {invoiceData.documentSubtitle && (
@@ -786,18 +1002,6 @@ export function RefrensInvoiceStudio({
                   <span className="text-sm font-mono font-black text-slate-700 dark:text-zinc-300">
                     #{invoiceData.invoiceNumber}
                   </span>
-                </div>
-              ) : (
-                <div className="text-center space-y-1">
-                  <h2
-                    className="inline-block text-2xl sm:text-3xl font-black border-b-2 pb-1 px-4"
-                    style={{ color: themeColor, borderColor: themeColor }}
-                  >
-                    {invoiceData.documentTitle || "Tax Invoice"}
-                  </h2>
-                  {invoiceData.documentSubtitle && (
-                    <p className="text-xs text-slate-500">{invoiceData.documentSubtitle}</p>
-                  )}
                 </div>
               )}
 
@@ -826,22 +1030,30 @@ export function RefrensInvoiceStudio({
                   ))}
                 </div>
 
-                {invoiceData.logoDataUrl && (
-                  <img
-                    src={invoiceData.logoDataUrl}
-                    alt="Business Logo"
-                    className="max-h-16 max-w-[180px] object-contain"
-                  />
-                )}
+                {invoiceData.logoDataUrl &&
+                  activeThemeObj.graphicStyle !== "dual-wave" &&
+                  activeThemeObj.graphicStyle !== "bottom-swoosh" && (
+                    <img
+                      src={invoiceData.logoDataUrl}
+                      alt="Business Logo"
+                      className="max-h-16 max-w-[180px] object-contain"
+                    />
+                  )}
               </div>
 
               {/* Billed By & Billed To Preview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
-                  className="rounded-2xl p-4 border space-y-1 text-xs"
+                  className={`rounded-2xl p-4 space-y-1 text-xs ${
+                    activeThemeObj.graphicStyle === "bottom-swoosh" ? "border-0 px-0" : "border"
+                  }`}
                   style={{
-                    backgroundColor: activeTemplateId === "agency-studio" ? `${themeColor}10` : undefined,
-                    borderColor: activeTemplateId === "gst-pro-ledger" ? themeColor : undefined,
+                    backgroundColor:
+                      activeThemeObj.graphicStyle === "bottom-swoosh"
+                        ? "transparent"
+                        : `${themeColor}08`,
+                    borderColor:
+                      activeThemeObj.graphicStyle === "gst-seal-frame" ? themeColor : `${themeColor}28`,
                   }}
                 >
                   <div className="text-xs font-black uppercase tracking-wider" style={{ color: themeColor }}>
@@ -863,10 +1075,16 @@ export function RefrensInvoiceStudio({
                 </div>
 
                 <div
-                  className="rounded-2xl p-4 border space-y-1 text-xs"
+                  className={`rounded-2xl p-4 space-y-1 text-xs ${
+                    activeThemeObj.graphicStyle === "bottom-swoosh" ? "border-0 px-0" : "border"
+                  }`}
                   style={{
-                    backgroundColor: activeTemplateId === "agency-studio" ? `${themeColor}10` : undefined,
-                    borderColor: activeTemplateId === "gst-pro-ledger" ? themeColor : undefined,
+                    backgroundColor:
+                      activeThemeObj.graphicStyle === "bottom-swoosh"
+                        ? "transparent"
+                        : `${themeColor}08`,
+                    borderColor:
+                      activeThemeObj.graphicStyle === "gst-seal-frame" ? themeColor : `${themeColor}28`,
                   }}
                 >
                   <div className="text-xs font-black uppercase tracking-wider" style={{ color: themeColor }}>
@@ -892,13 +1110,24 @@ export function RefrensInvoiceStudio({
               <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-zinc-800">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="text-white font-bold" style={{ backgroundColor: themeColor }}>
-                      <th className="py-2.5 px-3">#</th>
+                    <tr
+                      className={`font-bold ${
+                        activeThemeObj.graphicStyle === "bottom-swoosh"
+                          ? "bg-slate-200/80 dark:bg-zinc-800 text-slate-900 dark:text-white"
+                          : "text-white"
+                      }`}
+                      style={
+                        activeThemeObj.graphicStyle === "bottom-swoosh"
+                          ? undefined
+                          : { backgroundColor: themeColor }
+                      }
+                    >
+                      <th className="py-2.5 px-3">SL</th>
                       <th className="py-2.5 px-3">Item Description</th>
                       {taxMode !== "none" && <th className="py-2.5 px-3">HSN/SAC</th>}
                       {taxMode !== "none" && <th className="py-2.5 px-3">Tax %</th>}
                       <th className="py-2.5 px-3 text-center">Qty</th>
-                      <th className="py-2.5 px-3 text-right">Rate</th>
+                      <th className="py-2.5 px-3 text-right">Price</th>
                       <th className="py-2.5 px-3 text-right">Amount</th>
                       <th className="py-2.5 px-3 text-right">Total</th>
                     </tr>
@@ -908,8 +1137,8 @@ export function RefrensInvoiceStudio({
                       const amt = (Number(it.quantity) || 0) * (Number(it.rate) || 0);
                       const tx = taxMode === "none" ? 0 : (amt * (Number(it.taxPercent) || 0)) / 100;
                       return (
-                        <tr key={it.id}>
-                          <td className="py-2.5 px-3 font-mono">{i + 1}</td>
+                        <tr key={it.id} className={i % 2 === 1 ? "bg-slate-50/70 dark:bg-zinc-800/30" : ""}>
+                          <td className="py-2.5 px-3 font-mono">{String(i + 1).padStart(2, "0")}</td>
                           <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                             {it.description || "Item"}
                             {it.subDescription && (
@@ -930,7 +1159,7 @@ export function RefrensInvoiceStudio({
               </div>
 
               {/* Bottom Totals & Bank Preview */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2 pb-16">
                 <div className="md:col-span-7 space-y-2 text-xs text-slate-600 dark:text-zinc-400">
                   {(invoiceData.bankAccountNumber || invoiceData.bankName || invoiceData.upiId) && (
                     <div>
@@ -952,11 +1181,14 @@ export function RefrensInvoiceStudio({
                       <p className="whitespace-pre-line text-[11px]">{invoiceData.terms}</p>
                     </div>
                   )}
+                  <div className="pt-2 font-bold text-slate-800 dark:text-zinc-200">
+                    Thank You For Your Business!
+                  </div>
                 </div>
 
                 <div className="md:col-span-5 space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Taxable Amount</span>
+                    <span className="text-slate-500">Subtotal</span>
                     <span className="font-mono font-bold">{curr}{taxableSubtotal.toFixed(2)}</span>
                   </div>
                   {taxMode === "gst_intra" && (
@@ -978,7 +1210,7 @@ export function RefrensInvoiceStudio({
                     </div>
                   )}
                   <div
-                    className="rounded-xl p-3 text-white flex items-center justify-between font-black text-sm"
+                    className="rounded-full px-5 py-3 text-white flex items-center justify-between font-black text-sm shadow-md"
                     style={{ backgroundColor: themeColor }}
                   >
                     <span>Total ({selectedCurrencyObj.code})</span>
@@ -990,7 +1222,7 @@ export function RefrensInvoiceStudio({
                   {invoiceData.signatureDataUrl && (
                     <div className="pt-3 flex flex-col items-end">
                       <img src={invoiceData.signatureDataUrl} alt="Signature" className="max-h-14 object-contain" />
-                      <span className="text-[11px] font-bold text-slate-500 mt-1">
+                      <span className="text-[11px] font-bold text-slate-500 mt-1 border-t border-slate-300 pt-1 px-3">
                         {invoiceData.signatureLabel || "Authorized Signatory"}
                       </span>
                     </div>
@@ -998,6 +1230,51 @@ export function RefrensInvoiceStudio({
                 </div>
               </div>
             </div>
+
+            {/* BOTTOM GRAPHICAL WAVE / SWOOSH / POLYGON FOOTER ARTWORK */}
+            {(activeThemeObj.graphicStyle === "dual-wave" || activeThemeObj.graphicStyle === "bottom-swoosh") && (
+              <div className="relative h-24 sm:h-28 w-full -mt-14 pointer-events-none select-none overflow-hidden">
+                <svg viewBox="0 0 800 130" preserveAspectRatio="none" className="w-full h-full">
+                  <path d="M 0,48 C 180,25 340,75 490,130 L 0,130 Z" fill={themeColor} fillOpacity="0.22" />
+                  <path d="M 160,130 C 370,42 590,18 800,12 L 800,130 Z" fill={themeColor} />
+                </svg>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "angle-slash" && (
+              <div className="relative h-20 w-full -mt-12 pointer-events-none select-none overflow-hidden">
+                <svg viewBox="0 0 800 100" preserveAspectRatio="none" className="w-full h-full">
+                  <polygon points="180,100 800,18 800,100" fill={themeColor} fillOpacity="0.22" />
+                  <polygon points="310,100 800,32 800,100" fill={themeColor} />
+                </svg>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "fluid-blobs" && (
+              <div className="relative h-20 w-full -mt-12 pointer-events-none select-none overflow-hidden">
+                <svg viewBox="0 0 800 100" preserveAspectRatio="none" className="w-full h-full">
+                  <path d="M 0,100 L 0,48 C 220,10 460,85 800,26 L 800,100 Z" fill={themeColor} fillOpacity="0.18" />
+                  <path d="M 240,100 C 440,38 640,56 800,28 L 800,100 Z" fill={themeColor} />
+                </svg>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "sidebar-ribbon" && (
+              <div className="relative h-20 w-full -mt-12 pointer-events-none select-none overflow-hidden">
+                <svg viewBox="0 0 800 100" preserveAspectRatio="none" className="w-full h-full">
+                  <path d="M 800,100 L 280,100 C 430,52 620,18 800,24 Z" fill={themeColor} fillOpacity="0.22" />
+                  <path d="M 800,100 L 380,100 C 510,64 670,34 800,40 Z" fill={themeColor} />
+                </svg>
+              </div>
+            )}
+
+            {activeThemeObj.graphicStyle === "chevron-header" && (
+              <div className="relative h-14 w-full -mt-8 pointer-events-none select-none overflow-hidden">
+                <svg viewBox="0 0 800 70" preserveAspectRatio="none" className="w-full h-full">
+                  <polygon points="0,70 400,18 800,70" fill={themeColor} />
+                </svg>
+              </div>
+            )}
 
             {/* Bottom Step 2 Action Bar */}
             <div className="bg-slate-50 dark:bg-zinc-950/60 border-t border-slate-200 dark:border-zinc-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
