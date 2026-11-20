@@ -28,6 +28,8 @@ export const LEGACY_TOOL_SLUG_ALIASES: Record<string, string> = {
   "batch-png": "convert-from-jpg",
   "create-electronic-invoice": "create-invoice",
   "create-invoice-visually": "create-invoice",
+  "pdf-converter": "pdf-to-word",
+  "pdf-to-images": "pdf-to-jpg",
 };
 
 export const resolveCanonicalToolSlug = (slug: string): string =>

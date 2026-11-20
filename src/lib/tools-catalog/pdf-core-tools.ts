@@ -1,5 +1,5 @@
 // Core PDF workspace tools (merge, split, compress, edit, sign, security, office exports).
-import { Minimize2, Crop, FileImage, ScanText, FileType2, FileText, Presentation, Code2, FileDown, Table2, FileSpreadsheet, MonitorPlay, Stamp, RotateCw, FileCode, Hash, Merge, SplitSquareVertical, FilePlus, FilePen, FileSignature, FileOutput, Images, Camera, Globe, ClipboardList, Briefcase, QrCode, Receipt, FileX, BookOpen, Layers, Lock, Unlock, ShieldOff, GitCompare, Wrench, Zap, Shield, BookMarked, FileSearch, ArrowLeftRight } from "lucide-react";
+import { Minimize2, Crop, FileImage, ScanText, FileType2, FileText, Presentation, Code2, FileDown, Table2, FileSpreadsheet, MonitorPlay, Stamp, RotateCw, FileCode, Hash, Merge, SplitSquareVertical, FilePlus, FilePen, FileSignature, FileOutput, Images, Camera, Globe, ClipboardList, Briefcase, QrCode, Receipt, FileX, BookOpen, Layers, Lock, Unlock, ShieldOff, GitCompare, Wrench, Zap, Shield, BookMarked, FileSearch } from "lucide-react";
 
 import type { Tool } from "./types";
 
@@ -187,36 +187,6 @@ export const pdfCoreTools: Tool[] = [
     },
   },
 
-  // PDF Converter
-  {
-    slug: "pdf-converter",
-    name: "PDF Converter",
-    category: "PDF Tools",
-    icon: ArrowLeftRight,
-    blurb: "Convert PDF to Word, Excel, PowerPoint, images and many other formats.",
-    accepts: "PDF",
-    outputs: "Various formats",
-    seo: {
-      title: "PDF Converter Online Free — Convert PDF to Word, Excel, JPG",
-      description: "Convert PDF files to Word, Excel, PowerPoint, JPG, PNG and more. Free online PDF converter. No installation, no account required.",
-      keywords: ["pdf converter", "convert pdf online", "pdf to word converter", "pdf to excel", "pdf to jpg"],
-      article: {
-        intro: "Our PDF converter supports conversion to and from dozens of formats. Whether you need to edit a PDF in Word, analyse data in Excel, or share pages as images, we have you covered.",
-        howTo: ["Upload your PDF.", "Choose the output format.", "Click Convert.", "Download the converted file."],
-        benefits: [
-          { heading: "Dozens of Formats", body: "Convert to Word, Excel, PowerPoint, images, HTML, and more." },
-          { heading: "High Fidelity", body: "Formatting, tables, and images are preserved in converted files." },
-          { heading: "Fast Conversion", body: "Most files convert in under 10 seconds." },
-          { heading: "Free to Use", body: "No subscription needed for standard conversions." },
-        ],
-        faqs: [
-          { q: "Does the converted Word file keep formatting?", a: "Yes, fonts, tables and layout are preserved as closely as possible." },
-          { q: "Can I convert scanned PDFs?", a: "Yes, our OCR engine extracts text from scanned documents." },
-        ],
-      },
-    },
-  },
-
   // Image to PDF (Multi-Image Select Support)
   {
     slug: "image-to-pdf",
@@ -245,37 +215,6 @@ export const pdfCoreTools: Tool[] = [
           { q: "Can I control the order of images?", a: "Yes, easily drag and drop or use the reorder buttons to arrange your pages before compiling." },
           { q: "Is there a limit on how many images I can select?", a: "No, you can select and convert as many photos as needed without limits." },
           { q: "Are my files uploaded to a remote server?", a: "No, all conversion runs securely right in your browser with 100% privacy." },
-        ],
-      },
-    },
-  },
-
-  // PDF to Images
-  {
-    slug: "pdf-to-images",
-    name: "PDF to Images",
-    category: "PDF Tools",
-    icon: FileImage,
-    tag: "Popular",
-    blurb: "Convert every PDF page into high-resolution JPG, PNG or WEBP images.",
-    accepts: "PDF",
-    outputs: "JPG, PNG, WEBP",
-    seo: {
-      title: "PDF to Images Online Free — Convert PDF Pages to JPG, PNG",
-      description: "Convert PDF pages to high-resolution images online for free. Export every page as JPG, PNG or WEBP. No account, instant download.",
-      keywords: ["pdf to images", "pdf to jpg", "pdf to png", "convert pdf to image", "pdf page to image"],
-      article: {
-        intro: "Extract every page of a PDF as a high-quality image file. Ideal for creating thumbnails, sharing specific pages, or preparing content for web or social media.",
-        howTo: ["Upload your PDF.", "Select image format (JPG, PNG, WEBP).", "Choose resolution.", "Download all pages as images."],
-        benefits: [
-          { heading: "High Resolution", body: "Export at 150, 300 or 600 DPI for crisp, print-ready images." },
-          { heading: "All Pages at Once", body: "Convert the entire document in one click." },
-          { heading: "Multiple Formats", body: "Choose JPG for small size, PNG for transparency, or WEBP for web." },
-          { heading: "Fast & Free", body: "Instant conversion with no account required." },
-        ],
-        faqs: [
-          { q: "What resolution are the output images?", a: "You can choose from 72, 150, 300 and 600 DPI." },
-          { q: "Can I convert only specific pages?", a: "Yes, select a page range before converting." },
         ],
       },
     },
