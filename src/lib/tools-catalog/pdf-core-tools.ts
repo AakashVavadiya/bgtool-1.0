@@ -1,5 +1,5 @@
 // Core PDF workspace tools (merge, split, compress, edit, sign, security, office exports).
-import { Minimize2, Crop, FileImage, ScanText, FileType2, FileText, Presentation, Code2, FileDown, Table2, FileSpreadsheet, MonitorPlay, Stamp, RotateCw, FileCode, Hash, Merge, SplitSquareVertical, FilePlus, FilePen, FileSignature, FileOutput, Images, Camera, Globe, ClipboardList, Briefcase, QrCode, Receipt, FileX, BookOpen, Layers, Lock, Unlock, ShieldOff, GitCompare, Wrench, Zap, Shield, BookMarked, FileSearch } from "lucide-react";
+import { Minimize2, Crop, FileImage, ScanText, FileType2, FileText, Presentation, Code2, FileDown, Table2, FileSpreadsheet, MonitorPlay, Stamp, RotateCw, FileCode, Hash, Merge, SplitSquareVertical, FilePlus, FilePen, FileSignature, FileOutput, Images, Camera, Globe, ClipboardList, Briefcase, QrCode, Receipt, FileX, BookOpen, Layers, Lock, Unlock, ShieldOff, GitCompare, Wrench, Zap, Shield, BookMarked, FileSearch, ArrowLeftRight } from "lucide-react";
 
 import type { Tool } from "./types";
 
