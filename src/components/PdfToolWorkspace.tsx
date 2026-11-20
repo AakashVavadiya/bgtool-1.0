@@ -5,7 +5,7 @@ import { fireConfetti } from "@/lib/confetti";
 import { type Tool } from "@/lib/tools";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
-import { mergePdfDocuments, splitPdfDocument, rotatePdfPages, addWatermarkToPdf, addPageNumbersToPdf, compressPdfDocument, protectPdfDocument, flattenPdfDocument, changePdfPageDimensions, generateInvoicePdf, extractInvoiceDataFromPdfBuffer, convertInvoiceDataToUblXml, generateZugferdHybridPdf, parseXmlEInvoiceToInvoiceData, convertImagesToPdf, applyEditsToPdf, type PdfTextEditItem, type PdfStandardFontName, type PdfEditElementKind, type PdfImageShape, type InvoiceData } from "@/lib/pdf-engine";
+import { mergePdfDocuments, splitPdfDocument, rotatePdfPages, addWatermarkToPdf, addPageNumbersToPdf, compressPdfDocument, protectPdfDocument, flattenPdfDocument, changePdfPageDimensions, generateInvoicePdf, extractInvoiceDataFromPdfBuffer, convertInvoiceDataToUblXml, generateZugferdHybridPdf, parseXmlEInvoiceToInvoiceData, convertImagesToPdf, applyEditsToPdf, signPdfDocument, type SignPdfOptions, type PdfTextEditItem, type PdfStandardFontName, type PdfEditElementKind, type PdfImageShape, type InvoiceData } from "@/lib/pdf-engine";
 import { generateFileThumbnail, renderPdfPage, extractPdfPageElements, cropRegionFromPageDataUrl, type ExtractedPdfTextItem, type ExtractedPdfImageItem } from "@/lib/pdf-preview";
 import { PdfPreviewViewer } from "@/components/PdfPreviewViewer";
 import { Telemetry, REALTIME_EVENT_NAME } from "@/lib/telemetry";
@@ -1330,9 +1330,43 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
   const [allowCopying, setAllowCopying] = useState<boolean>(true);
 
   // Sign tool state
-  const [sigMode, setSigMode] = useState<"draw" | "type">("draw");
+  const [sigMode, setSigMode] = useState<"draw" | "type" | "upload">("draw");
   const [sigTypedName, setSigTypedName] = useState<string>("");
+  const [sigFontFamily, setSigFontFamily] = useState<string>("'Caveat', 'Segoe Print', cursive");
   const [sigColor, setSigColor] = useState<string>("#0f172a");
+  const [sigPenWidth, setSigPenWidth] = useState<number>(3);
+  const [sigImageDataUrl, setSigImageDataUrl] = useState<string>("");
+  const [sigPageNumber, setSigPageNumber] = useState<number>(1);
+  const [sigAllPages, setSigAllPages] = useState<boolean>(false);
+  const [sigPosition, setSigPosition] = useState<{
+    xPercent: number;
+    yPercent: number;
+    widthPercent: number;
+    heightPercent: number;
+  }>({
+    xPercent: 62,
+    yPercent: 78,
+    widthPercent: 28,
+    heightPercent: 12,
+  });
+  const [sigIncludeDate, setSigIncludeDate] = useState<boolean>(true);
+  const [sigDateText, setSigDateText] = useState<string>(() => {
+    const d = new Date();
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  });
+  const [sigSignerName, setSigSignerName] = useState<string>("");
+  const [sigPageImageUrl, setSigPageImageUrl] = useState<string | null>(null);
+  const [sigIsLoadingPage, setSigIsLoadingPage] = useState<boolean>(false);
+  const [sigZoom, setSigZoom] = useState<number>(100);
+  const [sigStrokes, setSigStrokes] = useState<Array<{
+    points: Array<{ x: number; y: number }>;
+    color: string;
+    width: number;
+  }>>([]);
+  const sigCurrentStrokeRef = useRef<Array<{ x: number; y: number }>>([]);
 
   // Watermark tool state
   const [wmText, setWmText] = useState<string>("CONFIDENTIAL");
@@ -1827,6 +1861,56 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     toast.success("Generated & copied strong 16-character password!");
   };
 
+  // Load high-resolution page rendering for Sign PDF
+  useEffect(() => {
+    if (tool.slug !== "sign-pdf" || !activeFile) return;
+    let isMounted = true;
+    setSigIsLoadingPage(true);
+    const targetPage = Math.min(Math.max(1, sigPageNumber), activeFile.pageCount || 1);
+    renderPdfPage(activeFile.buffer, targetPage, 2.0)
+      .then((res) => {
+        if (isMounted) {
+          setSigPageImageUrl(res.dataUrl);
+          setSigIsLoadingPage(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to render page for sign-pdf:", err);
+        if (isMounted) setSigIsLoadingPage(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [tool.slug, activeFile?.id, sigPageNumber]);
+
+  // Reset page number to 1 when changing file in Sign PDF
+  useEffect(() => {
+    if (tool.slug === "sign-pdf" && activeFile) {
+      setSigPageNumber(1);
+    }
+  }, [tool.slug, activeFile?.id]);
+
+  // Real-time update for typed cursive signature
+  useEffect(() => {
+    if (sigMode !== "type") return;
+    if (!sigTypedName.trim()) {
+      setSigImageDataUrl("");
+      return;
+    }
+    const offscreen = document.createElement("canvas");
+    offscreen.width = 700;
+    offscreen.height = 180;
+    const ctx = offscreen.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, offscreen.width, offscreen.height);
+    ctx.font = `italic 56px ${sigFontFamily}`;
+    ctx.fillStyle = sigColor;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(sigTypedName.trim(), offscreen.width / 2, offscreen.height / 2);
+    setSigImageDataUrl(offscreen.toDataURL("image/png"));
+  }, [sigMode, sigTypedName, sigFontFamily, sigColor]);
+
   // Canvas signature handling
   useEffect(() => {
     const canvas = sigCanvasRef.current;
@@ -1834,37 +1918,132 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.lineWidth = 3;
+    ctx.lineWidth = sigPenWidth;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = sigColor;
-  }, [sigColor, sigMode]);
+  }, [sigColor, sigPenWidth, sigMode]);
 
-  const startDrawSig = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDrawSig = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = sigCanvasRef.current;
     if (!canvas) return;
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {}
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
     ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = sigColor;
+    ctx.lineWidth = sigPenWidth;
+    ctx.moveTo(x, y);
+
+    sigCurrentStrokeRef.current = [{ x, y }];
     setIsDrawingSig(true);
     setHasSignatureDrawn(true);
   };
 
-  const drawSig = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const drawSig = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingSig) return;
     const canvas = sigCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
     const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.stroke();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    const pts = sigCurrentStrokeRef.current;
+    pts.push({ x, y });
+
+    if (pts.length >= 3) {
+      const p0 = pts[pts.length - 2]!;
+      const p1 = pts[pts.length - 1]!;
+      const midX = (p0.x + p1.x) / 2;
+      const midY = (p0.y + p1.y) / 2;
+      ctx.quadraticCurveTo(p0.x, p0.y, midX, midY);
+      ctx.stroke();
+    } else {
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
   };
 
-  const stopDrawSig = () => {
+  const stopDrawSig = (e?: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingSig) return;
     setIsDrawingSig(false);
+    const canvas = sigCanvasRef.current;
+    if (canvas && e) {
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+
+    const pts = sigCurrentStrokeRef.current;
+    if (pts.length > 0) {
+      const strokeItem = {
+        points: [...pts],
+        color: sigColor,
+        width: sigPenWidth,
+      };
+      setSigStrokes((prev) => [...prev, strokeItem]);
+      if (canvas) {
+        setSigImageDataUrl(canvas.toDataURL("image/png"));
+      }
+    }
+    sigCurrentStrokeRef.current = [];
+  };
+
+  const undoSigStroke = () => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    setSigStrokes((prev) => {
+      if (prev.length <= 1) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        setHasSignatureDrawn(false);
+        setSigImageDataUrl("");
+        return [];
+      }
+      const next = prev.slice(0, -1);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const stroke of next) {
+        if (stroke.points.length === 0) continue;
+        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.width;
+        ctx.moveTo(stroke.points[0]!.x, stroke.points[0]!.y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          if (i >= 2) {
+            const p0 = stroke.points[i - 1]!;
+            const p1 = stroke.points[i]!;
+            const midX = (p0.x + p1.x) / 2;
+            const midY = (p0.y + p1.y) / 2;
+            ctx.quadraticCurveTo(p0.x, p0.y, midX, midY);
+          } else {
+            ctx.lineTo(stroke.points[i]!.x, stroke.points[i]!.y);
+          }
+        }
+        ctx.stroke();
+      }
+      setSigImageDataUrl(canvas.toDataURL("image/png"));
+      return next;
+    });
   };
 
   const clearSigCanvas = () => {
@@ -1873,7 +2052,10 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setSigStrokes([]);
+    sigCurrentStrokeRef.current = [];
     setHasSignatureDrawn(false);
+    setSigImageDataUrl("");
   };
 
   // Execute processing according to current tool
@@ -2096,7 +2278,48 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
         pageCount = invRes.pageCount;
         setResultXmlText("");
       }
-      // 14. GENERAL FALLBACK (Compress/Re-pack)
+      // 14. SIGN PDF (Embed electronic signature stamp, date & signer metadata)
+      else if (tool.slug === "sign-pdf") {
+        if (!activeFile) throw new Error("Please upload a PDF document first.");
+        let effectiveSig = sigImageDataUrl;
+        if (!effectiveSig && sigMode === "type" && sigTypedName.trim()) {
+          const offscreen = document.createElement("canvas");
+          offscreen.width = 700;
+          offscreen.height = 180;
+          const ctx = offscreen.getContext("2d");
+          if (ctx) {
+            ctx.font = `italic 56px ${sigFontFamily}`;
+            ctx.fillStyle = sigColor;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(sigTypedName.trim(), offscreen.width / 2, offscreen.height / 2);
+            effectiveSig = offscreen.toDataURL("image/png");
+          }
+        }
+        if (!effectiveSig) {
+          toast.error("Please draw, type, or upload your signature before applying.");
+          setProcessing(false);
+          return;
+        }
+
+        const signRes = await signPdfDocument(activeFile.buffer, {
+          pageNumber: sigPageNumber,
+          signatureDataUrl: effectiveSig,
+          xPercent: sigPosition.xPercent,
+          yPercent: sigPosition.yPercent,
+          widthPercent: sigPosition.widthPercent,
+          heightPercent: sigPosition.heightPercent,
+          signAllPages: sigAllPages,
+          includeDate: sigIncludeDate,
+          dateText: sigIncludeDate ? sigDateText : undefined,
+          signerName: sigSignerName.trim() || undefined,
+        });
+
+        outputPdfBytes = signRes.pdfBytes;
+        outName = `${baseName}_signed.pdf`;
+        pageCount = signRes.pageCount;
+      }
+      // 15. GENERAL FALLBACK (Compress/Re-pack)
       else {
         if (!activeFile) throw new Error("No file selected.");
         const compRes = await compressPdfDocument(activeFile.buffer, "recommended");
@@ -2381,8 +2604,31 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     setSigMode,
     sigTypedName,
     setSigTypedName,
+    sigFontFamily,
+    setSigFontFamily,
     sigColor,
     setSigColor,
+    sigPenWidth,
+    setSigPenWidth,
+    sigImageDataUrl,
+    setSigImageDataUrl,
+    sigPageNumber,
+    setSigPageNumber,
+    sigAllPages,
+    setSigAllPages,
+    sigPosition,
+    setSigPosition,
+    sigIncludeDate,
+    setSigIncludeDate,
+    sigDateText,
+    setSigDateText,
+    sigSignerName,
+    setSigSignerName,
+    sigPageImageUrl,
+    sigIsLoadingPage,
+    sigZoom,
+    setSigZoom,
+    sigStrokes,
     wmText,
     setWmText,
     wmAngle,
@@ -2428,6 +2674,7 @@ export function PdfToolWorkspace({ tool }: { tool: Tool }) {
     startDrawSig,
     drawSig,
     stopDrawSig,
+    undoSigStroke,
     clearSigCanvas,
     handleProcess,
     handleDownload,

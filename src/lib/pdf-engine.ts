@@ -2871,3 +2871,116 @@ export function parseXmlEInvoiceToInvoiceData(buffer: ArrayBuffer): InvoiceData 
   };
 }
 
+export interface SignPdfOptions {
+  pageNumber: number;
+  signatureDataUrl: string;
+  xPercent: number;
+  yPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+  signAllPages?: boolean | undefined;
+  includeDate?: boolean | undefined;
+  dateText?: string | undefined;
+  signerName?: string | undefined;
+}
+
+/**
+ * Embed an electronic or drawn signature image (with optional date and signer name)
+ * onto a specific page or all pages of a PDF document at exact percentage coordinates.
+ */
+export async function signPdfDocument(
+  pdfBuffer: ArrayBuffer,
+  options: SignPdfOptions
+): Promise<{ pdfBytes: Uint8Array; pageCount: number }> {
+  if (!options.signatureDataUrl || !options.signatureDataUrl.trim()) {
+    throw new Error("No signature provided. Please draw, type, or upload a signature.");
+  }
+
+  const doc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+  const totalPages = doc.getPageCount();
+  if (totalPages === 0) {
+    throw new Error("The PDF document contains no pages to sign.");
+  }
+
+  // Convert base64 data URL to Uint8Array
+  const commaIdx = options.signatureDataUrl.indexOf(",");
+  const cleanBase64 = commaIdx >= 0 ? options.signatureDataUrl.slice(commaIdx + 1) : options.signatureDataUrl;
+  const binaryStr = atob(cleanBase64);
+  const sigBytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    sigBytes[i] = binaryStr.charCodeAt(i);
+  }
+
+  // Embed signature image (try PNG first, fallback to JPG)
+  let embeddedSig;
+  try {
+    embeddedSig = await doc.embedPng(sigBytes);
+  } catch {
+    embeddedSig = await doc.embedJpg(sigBytes);
+  }
+
+  // Embed fonts if date or signer name is requested
+  let fontRegular;
+  let fontBold;
+  if (options.includeDate || options.signerName) {
+    fontRegular = await doc.embedFont(StandardFonts.Helvetica);
+    fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  }
+
+  const targetPages = options.signAllPages
+    ? Array.from({ length: totalPages }, (_, i) => i)
+    : [Math.min(Math.max(1, options.pageNumber), totalPages) - 1];
+
+  for (const pageIdx of targetPages) {
+    const page = doc.getPage(pageIdx);
+    const { width, height } = page.getSize();
+
+    const wPct = Math.max(2, Math.min(100, options.widthPercent || 25));
+    const hPct = Math.max(1, Math.min(100, options.heightPercent || 10));
+
+    const boxW = (wPct / 100) * width;
+    const boxH = (hPct / 100) * height;
+
+    const boxX = Math.max(0, Math.min(width - boxW, (options.xPercent / 100) * width));
+    // In PDF coordinates, origin (0, 0) is bottom-left; UI yPercent is measured from top-left:
+    const boxY = Math.max(0, Math.min(height - boxH, height - (options.yPercent / 100) * height - boxH));
+
+    page.drawImage(embeddedSig, {
+      x: boxX,
+      y: boxY,
+      width: boxW,
+      height: boxH,
+    });
+
+    if (fontRegular && fontBold && (options.signerName || (options.includeDate && options.dateText))) {
+      const fontSize = Math.max(6, Math.min(10, boxH * 0.16));
+      let curY = boxY - fontSize - 2;
+
+      if (options.signerName && options.signerName.trim()) {
+        page.drawText(options.signerName.trim(), {
+          x: boxX,
+          y: Math.max(4, curY),
+          size: fontSize,
+          font: fontBold,
+          color: rgb(0.12, 0.16, 0.22),
+        });
+        curY -= (fontSize + 2);
+      }
+
+      if (options.includeDate && options.dateText && options.dateText.trim()) {
+        page.drawText(options.dateText.trim(), {
+          x: boxX,
+          y: Math.max(4, curY),
+          size: fontSize * 0.9,
+          font: fontRegular,
+          color: rgb(0.35, 0.4, 0.45),
+        });
+      }
+    }
+  }
+
+  const pdfBytes = await doc.save();
+  return { pdfBytes, pageCount: totalPages };
+}
+
+
