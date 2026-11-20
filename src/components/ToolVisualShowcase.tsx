@@ -118,6 +118,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
   const [blurIntensity, setBlurIntensity] = useState<number>(14);
   const [editorFilter, setEditorFilter] = useState<"vibrant" | "warm" | "bw" | "cinema">("vibrant");
   const [pickedColorIdx, setPickedColorIdx] = useState<number>(0);
+  const [signPosition, setSignPosition] = useState<"br" | "bc" | "bl" | "tr">("br");
 
   const scrollToWorkspace = () => {
     if (typeof window !== "undefined") {
@@ -1235,7 +1236,126 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
             )}
 
             {/* 12. PDF TOOLS (MERGE / SPLIT / COMPRESS / EDIT / SIGN / SECURITY / QR / INVOICE) */}
-            {mode.startsWith("pdf-") && (
+            {mode === "pdf-sign" ? (
+              <div className="space-y-4">
+                {/* Single Sleek Authentic PDF Document Sheet - Zero Nested Box-in-a-Box Clutter */}
+                <div className="relative rounded-2xl bg-white dark:bg-[#111114] border border-border/80 p-5 sm:p-6 shadow-sm text-foreground select-none flex flex-col justify-between min-h-[300px]">
+                  {/* Document Meta Header */}
+                  <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#ff5500]/10 text-[#ff5500]">
+                        <FileSignature className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">
+                          Executive_Agreement_Final.pdf
+                        </div>
+                        <div className="text-[10px] text-muted-foreground font-mono">
+                          Page 1 of 1 · Execution Section
+                        </div>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Tamper-Proof Seal
+                    </span>
+                  </div>
+
+                  {/* Top Signature slot if Top Right is selected */}
+                  {signPosition === "tr" && (
+                    <div className="flex justify-end pt-1 transition-all duration-300">
+                      <div className="w-56 border-b-2 border-foreground/30 dark:border-white/30 pb-1.5">
+                        <div className="flex items-baseline justify-between">
+                          <span className="font-serif italic text-xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
+                            Alex Morgan
+                          </span>
+                          <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            ✓ Verified
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium pt-0.5">
+                          <span>Authorized Signatory</span>
+                          <span className="font-mono text-[9px]">2026-11-20</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Document Content Lines (Simulating Contract Terms) */}
+                  <div className="space-y-2 py-2">
+                    <div className="h-2 w-full rounded bg-foreground/15 dark:bg-white/10" />
+                    <div className="h-2 w-11/12 rounded bg-foreground/15 dark:bg-white/10" />
+                    <div className="h-2 w-4/5 rounded bg-foreground/10 dark:bg-white/5" />
+                    <div className="h-2 w-5/6 rounded bg-foreground/10 dark:bg-white/5" />
+                  </div>
+
+                  {/* Bottom Signature slot if Bottom Left, Center, or Right is selected */}
+                  {signPosition !== "tr" && (
+                    <div
+                      className={`transition-all duration-300 pt-1 flex ${
+                        signPosition === "br"
+                          ? "justify-end"
+                          : signPosition === "bc"
+                            ? "justify-center"
+                            : "justify-start"
+                      }`}
+                    >
+                      <div className="w-56 sm:w-64 border-b-2 border-foreground/30 dark:border-white/30 pb-1.5">
+                        <div className="flex items-baseline justify-between">
+                          <span className="font-serif italic text-2xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
+                            Alex Morgan
+                          </span>
+                          <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            ✓ Verified
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium pt-0.5">
+                          <span>Authorized Signatory</span>
+                          <span className="font-mono text-[9px]">2026-11-20 · 14:30 UTC</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Document Footer */}
+                  <div className="flex items-center justify-between pt-3 border-t border-border/40 text-[10px] text-muted-foreground font-mono">
+                    <span>Cryptographic Stamp ID: #BG-SIGN-7842</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% Client-Side Privacy</span>
+                  </div>
+                </div>
+
+                {/* Preset Controls Bar (Matches the actual Sign PDF settings panel) */}
+                <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                  <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <FileSignature className="h-3.5 w-3.5 text-accent" />
+                    <span>Signature Position:</span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {(
+                      [
+                        { id: "br", label: "Bottom Right" },
+                        { id: "bc", label: "Bottom Center" },
+                        { id: "bl", label: "Bottom Left" },
+                        { id: "tr", label: "Top Right" },
+                      ] as const
+                    ).map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSignPosition(p.id)}
+                        className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                          signPosition === p.id
+                            ? "bg-[#ff5500] text-white shadow-sm"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : mode.startsWith("pdf-") && (
               <div className="rounded-2xl bg-white dark:bg-[#0a0a0a] border border-border dark:border-white/10 p-4 sm:p-5 text-foreground dark:text-white space-y-4 shadow-inner">
                 {mode === "pdf-merge" ? (
                   <div className="space-y-4">
@@ -1300,21 +1420,6 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                         <div className="font-mono text-xl font-black text-emerald-600 dark:text-emerald-400">2.9 MB</div>
                         <span className="text-[11px] text-foreground dark:text-neutral-200">Crisp 300 DPI Vector Text Kept</span>
                       </div>
-                    </div>
-                  </div>
-                ) : mode === "pdf-sign" ? (
-                  <div className="bg-white dark:bg-[#141414] text-foreground dark:text-white rounded-xl border border-border dark:border-white/10 p-4 space-y-3">
-                    <div className="text-xs font-bold text-muted-foreground border-b border-border pb-2">
-                      EXECUTIVE APPROVAL &amp; SIGNATURE
-                    </div>
-                    <div className="rounded-xl border-2 border-dashed border-[#ff5500] bg-[#ff5500]/5 p-3 flex items-center justify-between">
-                      <div>
-                        <div className="font-serif italic text-xl font-bold text-foreground dark:text-white">Aakash Vavadiya</div>
-                        <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                          ✓ Digitally Signed &amp; Timestamped
-                        </div>
-                      </div>
-                      <FileSignature className="h-6 w-6 text-[#ff5500]" />
                     </div>
                   </div>
                 ) : mode === "pdf-security" ? (
