@@ -1625,6 +1625,77 @@ export function PdfActiveWorkspaceGrid(props: any) {
                     </div>
                   )}
 
+                  {/* Position & Size Configuration (matching user screenshot) */}
+                  <div className="rounded-2xl border border-border/80 bg-secondary/40 p-3.5 space-y-3 text-xs">
+                    <div className="flex flex-col gap-3">
+                      {/* Position Selector */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-bold text-foreground mr-1 select-none">Position:</span>
+                        {[
+                          { label: "Bottom Right", x: 62, y: 78 },
+                          { label: "Bottom Center", x: 36, y: 78 },
+                          { label: "Bottom Left", x: 8, y: 78 },
+                          { label: "Top Right", x: 62, y: 12 },
+                        ].map((pos) => {
+                          const isCurrent =
+                            Math.abs((sigPosition?.xPercent ?? 62) - pos.x) < 6 &&
+                            Math.abs((sigPosition?.yPercent ?? 78) - pos.y) < 6;
+                          return (
+                            <button
+                              key={pos.label}
+                              type="button"
+                              onClick={() =>
+                                setSigPosition &&
+                                setSigPosition((p: any) => ({ ...p, xPercent: pos.x, yPercent: pos.y }))
+                              }
+                              className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                                isCurrent
+                                  ? "border border-[#ff5500] bg-[#ff5500]/10 text-[#ff5500] shadow-xs"
+                                  : "border border-border bg-card hover:bg-secondary text-foreground"
+                              }`}
+                            >
+                              {pos.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Size Selector */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/50">
+                        <span className="font-bold text-foreground mr-1 select-none">Size:</span>
+                        {[
+                          { label: "Small", w: 20, h: 9 },
+                          { label: "Medium", w: 28, h: 12 },
+                          { label: "Large", w: 38, h: 16 },
+                        ].map((size) => {
+                          const isCurrent =
+                            size.label === "Small"
+                              ? (sigPosition?.widthPercent ?? 28) <= 22
+                              : size.label === "Medium"
+                              ? (sigPosition?.widthPercent ?? 28) > 22 && (sigPosition?.widthPercent ?? 28) < 35
+                              : (sigPosition?.widthPercent ?? 28) >= 35;
+                          return (
+                            <button
+                              key={size.label}
+                              type="button"
+                              onClick={() =>
+                                setSigPosition &&
+                                setSigPosition((p: any) => ({ ...p, widthPercent: size.w, heightPercent: size.h }))
+                              }
+                              className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                                isCurrent
+                                  ? "border border-[#ff5500] bg-[#ff5500]/10 text-[#ff5500] shadow-xs"
+                                  : "border border-border bg-card hover:bg-secondary text-foreground"
+                              }`}
+                            >
+                              {size.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Document & Signer Options */}
                   <div className="rounded-2xl border border-border/80 bg-secondary/40 p-3.5 space-y-3 text-xs">
                     {/* Apply to All Pages Toggle */}
