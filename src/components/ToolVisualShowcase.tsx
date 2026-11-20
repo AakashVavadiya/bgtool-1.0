@@ -436,18 +436,19 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
 
         {/* Right 6 Columns: BESPOKE INTERACTIVE VISUAL STAGE SPECIFIC TO THIS EXACT TOOL */}
         <div className="lg:col-span-6">
-          <div className="relative rounded-3xl border-2 border-border bg-card p-4 sm:p-6 shadow-2xl overflow-hidden">
+          <div className="relative rounded-3xl border-2 border-border bg-card p-3 sm:p-6 shadow-2xl overflow-hidden">
             {/* Window Title Bar */}
-            <div className="flex items-center justify-between gap-2 pb-3.5 mb-4 border-b border-border/70">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-rose-500/80" />
-                <span className="h-3 w-3 rounded-full bg-amber-500/80" />
-                <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
-                <span className="ml-2 text-xs font-extrabold text-foreground truncate">
-                  {tool.name} — Interactive Studio Demo
+            <div className="flex items-center justify-between gap-2 pb-3 mb-3 sm:mb-4 border-b border-border/70">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-rose-500/80 shrink-0" />
+                <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-amber-500/80 shrink-0" />
+                <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-emerald-500/80 shrink-0" />
+                <span className="ml-1.5 sm:ml-2 text-xs font-extrabold text-foreground truncate">
+                  <span className="hidden sm:inline">{tool.name} — Interactive Studio Demo</span>
+                  <span className="sm:hidden">{tool.name} Studio Demo</span>
                 </span>
               </div>
-              <span className="rounded-full bg-accent/15 border border-accent/30 px-2.5 py-0.5 text-[10px] font-mono font-bold text-accent">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-accent/15 border border-accent/30 px-2.5 py-0.5 text-[10px] font-mono font-bold text-accent">
                 {tool.accepts} → {tool.outputs}
               </span>
             </div>
@@ -1237,43 +1238,43 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
 
             {/* 12. PDF TOOLS (MERGE / SPLIT / COMPRESS / EDIT / SIGN / SECURITY / QR / INVOICE) */}
             {mode === "pdf-sign" ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Single Sleek Authentic PDF Document Sheet - Zero Nested Box-in-a-Box Clutter */}
-                <div className="relative rounded-2xl bg-white dark:bg-[#111114] border border-border/80 p-5 sm:p-6 shadow-sm text-foreground select-none flex flex-col justify-between min-h-[300px]">
+                <div className="relative rounded-xl sm:rounded-2xl bg-white dark:bg-[#111114] border border-border/80 p-3.5 sm:p-6 shadow-sm text-foreground select-none flex flex-col justify-between min-h-[250px] sm:min-h-[290px]">
                   {/* Document Meta Header */}
-                  <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#ff5500]/10 text-[#ff5500]">
-                        <FileSignature className="h-4 w-4" />
+                  <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2.5 sm:pb-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-lg bg-[#ff5500]/10 text-[#ff5500]">
+                        <FileSignature className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
-                      <div>
-                        <div className="text-xs font-bold text-foreground">
-                          Executive_Agreement_Final.pdf
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] sm:text-xs font-bold text-foreground truncate">
+                          Executive_Agreement.pdf
                         </div>
-                        <div className="text-[10px] text-muted-foreground font-mono">
+                        <div className="text-[9px] sm:text-[10px] text-muted-foreground font-mono truncate">
                           Page 1 of 1 · Execution Section
                         </div>
                       </div>
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Tamper-Proof Seal
+                    <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 sm:px-2.5 py-0.5 text-[9px] sm:text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                      <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      <span>Tamper-Proof</span>
                     </span>
                   </div>
 
                   {/* Top Signature slot if Top Right is selected */}
                   {signPosition === "tr" && (
                     <div className="flex justify-end pt-1 transition-all duration-300">
-                      <div className="w-56 border-b-2 border-foreground/30 dark:border-white/30 pb-1.5">
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-serif italic text-xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
+                      <div className="w-full max-w-[210px] sm:max-w-[240px] border-b-2 border-foreground/30 dark:border-white/30 pb-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="font-serif italic text-xl sm:text-2xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
                             Alex Morgan
                           </span>
-                          <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          <span className="shrink-0 text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             ✓ Verified
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium pt-0.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] text-muted-foreground font-medium pt-0.5 gap-0.5">
                           <span>Authorized Signatory</span>
                           <span className="font-mono text-[9px]">2026-11-20</span>
                         </div>
@@ -1282,11 +1283,11 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                   )}
 
                   {/* Document Content Lines (Simulating Contract Terms) */}
-                  <div className="space-y-2 py-2">
-                    <div className="h-2 w-full rounded bg-foreground/15 dark:bg-white/10" />
-                    <div className="h-2 w-11/12 rounded bg-foreground/15 dark:bg-white/10" />
-                    <div className="h-2 w-4/5 rounded bg-foreground/10 dark:bg-white/5" />
-                    <div className="h-2 w-5/6 rounded bg-foreground/10 dark:bg-white/5" />
+                  <div className="space-y-1.5 sm:space-y-2 py-1.5">
+                    <div className="h-1.5 sm:h-2 w-full rounded bg-foreground/15 dark:bg-white/10" />
+                    <div className="h-1.5 sm:h-2 w-11/12 rounded bg-foreground/15 dark:bg-white/10" />
+                    <div className="h-1.5 sm:h-2 w-4/5 rounded bg-foreground/10 dark:bg-white/5" />
+                    <div className="h-1.5 sm:h-2 w-5/6 rounded bg-foreground/10 dark:bg-white/5" />
                   </div>
 
                   {/* Bottom Signature slot if Bottom Left, Center, or Right is selected */}
@@ -1300,16 +1301,16 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                             : "justify-start"
                       }`}
                     >
-                      <div className="w-56 sm:w-64 border-b-2 border-foreground/30 dark:border-white/30 pb-1.5">
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-serif italic text-2xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
+                      <div className="w-full max-w-[210px] sm:max-w-[240px] border-b-2 border-foreground/30 dark:border-white/30 pb-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="font-serif italic text-xl sm:text-2xl font-bold tracking-tight text-blue-700 dark:text-blue-400">
                             Alex Morgan
                           </span>
-                          <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          <span className="shrink-0 text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             ✓ Verified
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium pt-0.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] sm:text-[11px] text-muted-foreground font-medium pt-0.5 gap-0.5">
                           <span>Authorized Signatory</span>
                           <span className="font-mono text-[9px]">2026-11-20 · 14:30 UTC</span>
                         </div>
@@ -1318,19 +1319,19 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                   )}
 
                   {/* Document Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border/40 text-[10px] text-muted-foreground font-mono">
-                    <span>Cryptographic Stamp ID: #BG-SIGN-7842</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% Client-Side Privacy</span>
+                  <div className="flex items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-border/40 text-[9px] sm:text-[10px] text-muted-foreground font-mono">
+                    <span className="truncate">Doc ID: #BG-SIGN-7842</span>
+                    <span className="shrink-0 text-emerald-600 dark:text-emerald-400 font-bold">100% Client-Side Privacy</span>
                   </div>
                 </div>
 
                 {/* Preset Controls Bar (Matches the actual Sign PDF settings panel) */}
-                <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-0.5">
                   <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                    <FileSignature className="h-3.5 w-3.5 text-accent" />
+                    <FileSignature className="h-3.5 w-3.5 text-accent shrink-0" />
                     <span>Signature Position:</span>
                   </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full sm:w-auto">
                     {(
                       [
                         { id: "br", label: "Bottom Right" },
@@ -1343,7 +1344,7 @@ export function ToolVisualShowcase({ tool }: { tool: Tool }) {
                         key={p.id}
                         type="button"
                         onClick={() => setSignPosition(p.id)}
-                        className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer text-center ${
                           signPosition === p.id
                             ? "bg-[#ff5500] text-white shadow-sm"
                             : "bg-secondary text-muted-foreground hover:text-foreground"
