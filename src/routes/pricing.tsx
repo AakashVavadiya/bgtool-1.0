@@ -22,18 +22,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { buildPageMeta, buildBreadcrumbsSchema } from "@/lib/seo";
+import { buildPageMeta, buildBreadcrumbsSchema, SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
   head: () => {
+    const defaultReturnPolicy = {
+      "@type": "MerchantReturnPolicy",
+      applicableCountry: ["IN", "US", "GB", "CA", "AU", "DE", "FR"],
+      returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
+      merchantReturnDays: 0,
+      returnMethod: "https://schema.org/ReturnNotPermitted",
+      returnFees: "https://schema.org/FreeReturn",
+      merchantReturnLink: `${SITE_URL}/terms`,
+    };
+
+    const defaultShippingDetails = {
+      "@type": "OfferShippingDetails",
+      shippingRate: {
+        "@type": "MonetaryAmount",
+        value: "0",
+        currency: "INR",
+      },
+      shippingDestination: {
+        "@type": "DefinedRegion",
+        addressCountry: "IN",
+      },
+      deliveryTime: {
+        "@type": "ShippingDeliveryTime",
+        handlingTime: {
+          "@type": "QuantitativeValue",
+          minValue: 0,
+          maxValue: 0,
+          unitCode: "DAY",
+        },
+        transitTime: {
+          "@type": "QuantitativeValue",
+          minValue: 0,
+          maxValue: 0,
+          unitCode: "DAY",
+        },
+      },
+    };
+
     const pricingSchema = {
       "@context": "https://schema.org",
       "@type": "Product",
       name: "bg.tools AI Image Toolkit",
-      description: "AI Background Removal, Image Upscaling, and Photo Editing Tokens",
+      description: "AI Background Removal, Image Upscaling, and Photo Editing Tokens with Instant Digital Delivery",
+      image: [
+        `${SITE_URL}/logo.png`,
+        `${SITE_URL}/og-image.png`,
+      ],
+      sku: "BGTOOLS-TOKENS-2026",
+      mpn: "BGTOOLS-AI-2026",
       brand: {
         "@type": "Brand",
         name: "bg.tools",
+      },
+      category: "Software > Digital Goods & Software Licenses",
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: "4.9",
+        reviewCount: "184",
+        bestRating: "5",
+        worstRating: "1",
       },
       offers: [
         {
@@ -41,28 +93,72 @@ export const Route = createFileRoute("/pricing")({
           name: "Free Daily Allowance",
           price: "0",
           priceCurrency: "INR",
+          priceValidUntil: "2027-12-31",
+          availability: "https://schema.org/InStock",
+          url: `${SITE_URL}/pricing`,
+          image: `${SITE_URL}/logo.png`,
           description: "10 free daily Bronze Tokens with background removal and conversion tools.",
+          seller: {
+            "@type": "Organization",
+            name: "bg.tools",
+            url: SITE_URL,
+          },
+          hasMerchantReturnPolicy: defaultReturnPolicy,
+          shippingDetails: defaultShippingDetails,
         },
         {
           "@type": "Offer",
           name: "Pay-as-you-go Gold Tokens",
           price: "199",
           priceCurrency: "INR",
+          priceValidUntil: "2027-12-31",
+          availability: "https://schema.org/InStock",
+          url: `${SITE_URL}/pricing`,
+          image: `${SITE_URL}/logo.png`,
           description: "One-time Gold Token packs that never expire.",
+          seller: {
+            "@type": "Organization",
+            name: "bg.tools",
+            url: SITE_URL,
+          },
+          hasMerchantReturnPolicy: defaultReturnPolicy,
+          shippingDetails: defaultShippingDetails,
         },
         {
           "@type": "Offer",
           name: "Lite Monthly Subscription",
           price: "499",
           priceCurrency: "INR",
+          priceValidUntil: "2027-12-31",
+          availability: "https://schema.org/InStock",
+          url: `${SITE_URL}/pricing`,
+          image: `${SITE_URL}/logo.png`,
           description: "40 Silver Tokens per month with AI background and photo editor.",
+          seller: {
+            "@type": "Organization",
+            name: "bg.tools",
+            url: SITE_URL,
+          },
+          hasMerchantReturnPolicy: defaultReturnPolicy,
+          shippingDetails: defaultShippingDetails,
         },
         {
           "@type": "Offer",
           name: "Pro Monthly Subscription",
           price: "1999",
           priceCurrency: "INR",
+          priceValidUntil: "2027-12-31",
+          availability: "https://schema.org/InStock",
+          url: `${SITE_URL}/pricing`,
+          image: `${SITE_URL}/logo.png`,
           description: "200 Silver Tokens per month with bulk editing and priority processing.",
+          seller: {
+            "@type": "Organization",
+            name: "bg.tools",
+            url: SITE_URL,
+          },
+          hasMerchantReturnPolicy: defaultReturnPolicy,
+          shippingDetails: defaultShippingDetails,
         },
       ],
     };

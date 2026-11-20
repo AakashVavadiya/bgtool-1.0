@@ -19,6 +19,8 @@ export const Route = createFileRoute("/download")({
         "@type": "Offer",
         price: "0",
         priceCurrency: "USD",
+        priceValidUntil: "2027-12-31",
+        availability: "https://schema.org/InStock",
       },
     };
 

@@ -32,6 +32,8 @@ export const Route = createFileRoute("/")({
         "@type": "Offer",
         price: "0",
         priceCurrency: "INR",
+        priceValidUntil: "2027-12-31",
+        availability: "https://schema.org/InStock",
       },
       description: "Free online AI background remover with sub-pixel hair matting and 4K exports. No watermark, zero tracking.",
     };

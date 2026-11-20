@@ -129,6 +129,8 @@ export const Route = createFileRoute("/tools/$slug")({
         "@type": "Offer",
         price: "0",
         priceCurrency: "INR",
+        priceValidUntil: "2027-12-31",
+        availability: "https://schema.org/InStock",
       },
       description,
     };
