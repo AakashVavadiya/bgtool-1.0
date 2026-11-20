@@ -21,6 +21,7 @@ export interface ApiGuardCheckResult {
 }
 
 // In-memory lockout tracker for repeated invalid API key attempts per IP
+// Enforces 20 failed attempts per 10 minutes -> 429 with Retry-After
 class ApiKeyLockoutTracker {
   private failedAttempts = new Map<string, { count: number; lockedUntil: number; lastAttempt: number }>();
 
@@ -44,8 +45,8 @@ class ApiKeyLockoutTracker {
     entry.lastAttempt = now;
     entry.count += 1;
 
-    // 10 failed invalid key attempts from an IP -> 10-minute block
-    if (entry.count >= 10) {
+    // 20 failed invalid key attempts from an IP -> 10-minute block (600s)
+    if (entry.count >= 20) {
       entry.lockedUntil = now + 10 * 60 * 1000;
       this.failedAttempts.set(ip, entry);
       return { locked: true, retryAfter: 600 };
@@ -64,7 +65,7 @@ export const apiKeyLockout = new ApiKeyLockoutTracker();
 
 /**
  * Creates a standardized public API error response.
- * Never leaks stack traces, paths, or internals.
+ * Never leaks stack traces, paths, or internal diagnostics.
  */
 export function createApiErrorResponse(
   status: number,
@@ -78,6 +79,9 @@ export function createApiErrorResponse(
     "X-Request-Id": requestId,
     "Cache-Control": "no-store, no-cache, must-revalidate",
     "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
     ...extraHeaders,
   });
 
@@ -110,7 +114,6 @@ function isIpAllowed(clientIp: string, allowlist: string[]): boolean {
       const [subnet, prefixLenStr] = cleanItem.split("/");
       const prefixLen = parseInt(prefixLenStr || "32", 10);
       if (subnet && !isNaN(prefixLen)) {
-        // Quick IPv4 bitwise check
         const ipParts = ip.split(".").map(Number);
         const subParts = subnet.split(".").map(Number);
         if (ipParts.length === 4 && subParts.length === 4) {
@@ -167,7 +170,7 @@ export async function authenticateApiV1Request(
     };
   }
 
-  // 3. IP Lockout Check (prevents brute-forcing or probing invalid keys)
+  // 3. IP Lockout Check: 20 failed attempts per 10 minutes -> 429
   const lockoutStatus = apiKeyLockout.isLocked(clientIp);
   if (lockoutStatus.locked) {
     return {
@@ -177,7 +180,12 @@ export async function authenticateApiV1Request(
         "ip_rate_limited",
         "Too many invalid API key attempts from this IP address. Account security lockout active.",
         requestId,
-        { "Retry-After": String(lockoutStatus.remainingSeconds) }
+        {
+          "Retry-After": String(lockoutStatus.remainingSeconds),
+          "X-RateLimit-Limit": "20",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(Math.floor(Date.now() / 1000) + lockoutStatus.remainingSeconds),
+        }
       ),
     };
   }
@@ -200,7 +208,7 @@ export async function authenticateApiV1Request(
         "unauthorized",
         "Missing API key. Provide your API key in the 'Authorization: Bearer <key>' or 'X-API-Key' request header.",
         requestId,
-        { "WWW-Authenticate": "Bearer realm=\"bg.tools public API\"" }
+        { "WWW-Authenticate": 'Bearer realm="bg.tools public API"' }
       ),
     };
   }
@@ -208,12 +216,24 @@ export async function authenticateApiV1Request(
   // 5. Constant-time Key Lookup
   const keyRecord = apiKeysRepo.findByRawKey(rawKey);
 
-  // Timing-safe failure handling: invalid or revoked keys return identical response
-  if (!keyRecord || keyRecord.status === "revoked") {
+  // Check if expired
+  let isExpired = false;
+  if (keyRecord?.expires_at) {
+    const expiresDate = new Date(keyRecord.expires_at);
+    if (!isNaN(expiresDate.getTime()) && expiresDate.getTime() < Date.now()) {
+      isExpired = true;
+    }
+  }
+
+  // Timing-safe failure handling: invalid, revoked, or expired keys return IDENTICAL 401 response
+  if (!keyRecord || keyRecord.status === "revoked" || isExpired) {
     const lockCheck = apiKeyLockout.recordFailure(clientIp);
-    const extraHeaders: Record<string, string> = { "WWW-Authenticate": "Bearer error=\"invalid_token\"" };
+    const extraHeaders: Record<string, string> = { "WWW-Authenticate": 'Bearer error="invalid_token"' };
     if (lockCheck.locked) {
       extraHeaders["Retry-After"] = String(lockCheck.retryAfter);
+      extraHeaders["X-RateLimit-Limit"] = "20";
+      extraHeaders["X-RateLimit-Remaining"] = "0";
+      extraHeaders["X-RateLimit-Reset"] = String(Math.floor(Date.now() / 1000) + lockCheck.retryAfter);
     }
 
     return {
@@ -221,7 +241,7 @@ export async function authenticateApiV1Request(
       response: createApiErrorResponse(
         401,
         "invalid_api_key",
-        "The provided API key is invalid, revoked, or does not exist.",
+        "The provided API key is invalid, revoked, or expired.",
         requestId,
         extraHeaders
       ),
@@ -231,23 +251,7 @@ export async function authenticateApiV1Request(
   // Successful key match: reset IP failure count
   apiKeyLockout.reset(clientIp);
 
-  // 6. Check Expiration
-  if (keyRecord.expires_at) {
-    const expiresDate = new Date(keyRecord.expires_at);
-    if (!isNaN(expiresDate.getTime()) && expiresDate.getTime() < Date.now()) {
-      return {
-        authorized: false,
-        response: createApiErrorResponse(
-          401,
-          "api_key_expired",
-          "This API key has expired. Please generate a new key from your dashboard at https://bg.tools/account.",
-          requestId
-        ),
-      };
-    }
-  }
-
-  // 7. Check Suspension
+  // 6. Check Suspension
   if (keyRecord.status === "suspended") {
     return {
       authorized: false,
@@ -260,7 +264,7 @@ export async function authenticateApiV1Request(
     };
   }
 
-  // 8. Verify Associated User Account
+  // 7. Verify Associated User Account
   const user = usersRepo.findById(keyRecord.user_id);
   if (!user) {
     return {
@@ -298,7 +302,7 @@ export async function authenticateApiV1Request(
     };
   }
 
-  // 9. IP Allowlist Check
+  // 8. IP Allowlist Check
   if (keyRecord.ip_allowlist) {
     let allowedIps: string[] = [];
     try {
@@ -318,7 +322,7 @@ export async function authenticateApiV1Request(
     }
   }
 
-  // 10. Scope Permission Check
+  // 9. Scope Permission Check
   if (requiredScope) {
     let scopes: string[] = ["*"];
     try {
@@ -344,7 +348,7 @@ export async function authenticateApiV1Request(
     }
   }
 
-  // 11. Rate Limiting (Per-Key & Per-IP via SQLite / Cluster)
+  // 10. Rate Limiting (Per-Key & Per-IP via SQLite / Cluster)
   const keyLimit = keyRecord.rate_limit_per_minute || 60;
   const rateLimitKey = `api_key:${keyRecord.id}`;
   const rateCheck = rateLimitsRepo.increment(rateLimitKey, keyLimit, 60);
@@ -374,7 +378,7 @@ export async function authenticateApiV1Request(
     };
   }
 
-  // 12. Daily & Monthly Quota Check
+  // 11. Daily & Monthly Quota Check
   const quotaCheck = apiKeysRepo.checkQuotas(keyRecord);
   if (!quotaCheck.allowed) {
     return {
@@ -392,28 +396,11 @@ export async function authenticateApiV1Request(
     };
   }
 
-  // 13. Check Idempotency-Key if provided
+  // 12. Extract Idempotency-Key if provided (payload verification happens in handler)
   const idempotencyHeader = request.headers.get("idempotency-key");
   let idempotencyKey: string | null = null;
   if (idempotencyHeader) {
     idempotencyKey = idempotencyHeader.trim().slice(0, 128);
-
-    // Look for previous cached response
-    const cached = apiKeysRepo.getIdempotentResponse(keyRecord.key_hash, idempotencyKey);
-    if (cached) {
-      const respHeaders = new Headers(cached.headers);
-      respHeaders.set("X-Idempotent-Replay", "true");
-      respHeaders.set("X-Request-Id", requestId);
-
-      const bodyBuffer = cached.isBase64 ? Buffer.from(cached.body, "base64") : cached.body;
-      return {
-        authorized: false, // short-circuit directly with the cached replay!
-        response: new Response(bodyBuffer, {
-          status: cached.statusCode,
-          headers: respHeaders,
-        }),
-      };
-    }
   }
 
   // Success: Update last used metadata asynchronously

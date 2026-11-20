@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { authenticateApiV1Request, createApiErrorResponse } from "./guard";
 import { parseApiImageRequest } from "./request-parser";
 import { getEndpointCreditCost } from "./pricing";
@@ -7,6 +8,7 @@ import { apiKeysRepo } from "../db/api-keys-repo";
 import { creditLedgerRepo } from "../db/credit-ledger-repo";
 import { getOpenApiSpec, getPostmanCollection } from "./openapi-spec";
 import { getDb } from "../db/client";
+import { PUBLIC_MODELS, DEFAULT_PUBLIC_MODEL, isValidPublicModel } from "./models";
 
 interface EndpointRouteConfig {
   toolKey: string;
@@ -72,10 +74,35 @@ const TOOL_ROUTES: Record<string, EndpointRouteConfig> = {
   },
 };
 
+/**
+ * Handles CORS pre-flight OPTIONS request strictly.
+ */
+function handleCorsPreflight(request: Request): Response {
+  const origin = request.headers.get("origin") || "";
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, X-API-Key, Idempotency-Key, Content-Type, Accept",
+    "Access-Control-Max-Age": "86400",
+    "Cache-Control": "public, max-age=86400",
+  };
+
+  if (origin) {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Vary"] = "Origin";
+  }
+
+  return new Response(null, { status: 204, headers });
+}
+
 export async function handleApiV1(request: Request, clientIp: string): Promise<Response> {
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/+$/, "");
   const startTime = Date.now();
+
+  // 0. Handle CORS Pre-flight OPTIONS
+  if (request.method === "OPTIONS") {
+    return handleCorsPreflight(request);
+  }
 
   // 1. Documentation & Specs (Publicly available)
   if (pathname === "/api/v1/openapi.json" && request.method === "GET") {
@@ -100,7 +127,8 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
     });
   }
 
-  // 2. Health Check Endpoint
+  // 2. Public Health Check Endpoint: Returns ONLY {"status":"ok"|"degraded"}
+  // Leaks NO DB details, versions, latency, uptime, or internal hostnames
   if (pathname === "/api/v1/health" && request.method === "GET") {
     let dbStatus = "ok";
     try {
@@ -109,49 +137,21 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
       dbStatus = "error";
     }
 
-    let bgRemoverStatus = "offline";
-    try {
-      const ping1 = await fetch("http://127.0.0.1:5000/ping", { signal: AbortSignal.timeout(500) });
-      if (ping1.ok) bgRemoverStatus = "online";
-    } catch {}
-
-    let watermarkStatus = "offline";
-    try {
-      const ping2 = await fetch("http://127.0.0.1:5001/ping", { signal: AbortSignal.timeout(500) });
-      if (ping2.ok) watermarkStatus = "online";
-    } catch {}
-
     const isHealthy = dbStatus === "ok";
     return new Response(
-      JSON.stringify(
-        {
-          status: isHealthy ? "healthy" : "degraded",
-          version: "v1",
-          uptimeSeconds: Math.floor(process.uptime()),
-          timestamp: new Date().toISOString(),
-          services: {
-            database: dbStatus,
-            bg_remover_engine: bgRemoverStatus,
-            watermark_engine: watermarkStatus,
-            active_inference_workers: inferenceLimiter.running,
-            queued_requests: inferenceLimiter.queued,
-          },
-        },
-        null,
-        2
-      ),
+      JSON.stringify({ status: isHealthy ? "ok" : "degraded" }),
       {
         status: isHealthy ? 200 : 503,
         headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store",
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
           "Access-Control-Allow-Origin": "*",
         },
       }
     );
   }
 
-  // 3. Account Details Endpoint
+  // 3. Account Details Endpoint: Strictly scoped to authenticated key owner
   if (pathname === "/api/v1/account" && request.method === "GET") {
     const auth = await authenticateApiV1Request(request);
     if (!auth.authorized || !auth.context) {
@@ -174,11 +174,8 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
             total_processed: user.total_processed,
           },
           key: {
-            id: key.id,
-            name: key.name,
             prefix: key.key_prefix,
             type: key.key_type,
-            scopes: JSON.parse(key.scopes),
             rateLimitPerMinute: key.rate_limit_per_minute,
             dailyQuota: key.daily_quota,
             monthlyQuota: key.monthly_quota,
@@ -193,7 +190,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
       {
         status: 200,
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=utf-8",
           "X-Request-Id": requestId,
           ...rateLimitHeaders,
         },
@@ -201,7 +198,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
     );
   }
 
-  // 4. Usage History Endpoint
+  // 4. Usage History Endpoint: Strictly scoped to authenticated user, limit capped at 100
   if (pathname === "/api/v1/usage" && request.method === "GET") {
     const auth = await authenticateApiV1Request(request);
     if (!auth.authorized || !auth.context) {
@@ -213,6 +210,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
     const offsetParam = parseInt(url.searchParams.get("offset") || "0", 10);
     const daysParam = parseInt(url.searchParams.get("days") || "30", 10);
 
+    // Strict cap at 100 items per request
     const limit = Math.max(1, Math.min(100, isNaN(limitParam) ? 50 : limitParam));
     const offset = Math.max(0, isNaN(offsetParam) ? 0 : offsetParam);
     const days = Math.max(1, Math.min(90, isNaN(daysParam) ? 30 : daysParam));
@@ -239,7 +237,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
       {
         status: 200,
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=utf-8",
           "X-Request-Id": requestId,
           ...rateLimitHeaders,
         },
@@ -278,46 +276,100 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
   // 7. Calculate Credit Cost (Sandbox keys cost 0 credits)
   const creditCost = isSandbox ? 0 : getEndpointCreditCost(routeCfg.toolKey);
 
-  // 8. Atomically Reserve Credits in SQLite before downstream execution
-  let remainingCredits = user.credits;
-  if (!isSandbox && creditCost > 0) {
-    const deductRes = creditLedgerRepo.deductUserCredits(user.id, creditCost, routeCfg.toolKey, clientIp);
-    if (!deductRes.success) {
-      return createApiErrorResponse(
-        402,
-        "insufficient_credits",
-        deductRes.error || `Insufficient credits. Required: ${creditCost}, available: ${deductRes.balanceAfter}. Purchase credits at https://bg.tools/pricing.`,
-        requestId,
-        {
-          "X-Credits-Required": String(creditCost),
-          "X-Credits-Available": String(deductRes.balanceAfter),
-          ...rateLimitHeaders,
-        }
-      );
-    }
-    remainingCredits = deductRes.balanceAfter;
+  // Pre-check balance before any expensive operations
+  if (!isSandbox && creditCost > 0 && user.credits < creditCost) {
+    return createApiErrorResponse(
+      402,
+      "insufficient_credits",
+      `Insufficient credits. Required: ${creditCost}, available: ${user.credits}. Purchase credits at https://bg.tools/pricing.`,
+      requestId,
+      {
+        "X-Credits-Required": String(creditCost),
+        "X-Credits-Available": String(user.credits),
+        ...rateLimitHeaders,
+      }
+    );
   }
 
-  // 9. Parse and Validate Image Input
+  // 8. Parse and Validate Image Input (enforces 30MB binary / 40MB JSON & 50MP pixel bomb limit)
   const parseResult = await parseApiImageRequest(request, requestId);
   if (!parseResult.success || !parseResult.input) {
-    // Auto-refund reserved credits on parsing failure
-    if (!isSandbox && creditCost > 0) {
-      creditLedgerRepo.refundUserCredits(user.id, creditCost, routeCfg.toolKey, "Input validation error");
-    }
     return parseResult.response!;
   }
 
   const { buffer, mimeType, responseFormat, options } = parseResult.input;
 
-  // 10. Concurrency Queue: Protect VPS RAM from overload
+  // 9. Model validation (Single source of truth via PUBLIC_MODELS)
+  const urlObj = new URL(request.url);
+  const rawModel = String(options["model"] || urlObj.searchParams.get("model") || "").toLowerCase().trim();
+  let selectedModel = DEFAULT_PUBLIC_MODEL;
+
+  if (rawModel) {
+    if (!isValidPublicModel(rawModel)) {
+      return createApiErrorResponse(
+        400,
+        "invalid_model",
+        `Invalid model '${rawModel}'. Supported models: ${PUBLIC_MODELS.join(", ")}.`,
+        requestId,
+        rateLimitHeaders
+      );
+    }
+    selectedModel = rawModel;
+  } else if (routeCfg.toolKey === "remove-watermark") {
+    selectedModel = "narmada" as any;
+  } else if (routeCfg.toolKey === "blur-face" || routeCfg.toolKey === "detect-faces") {
+    selectedModel = "saraswati" as any;
+  } else if (
+    routeCfg.toolKey.startsWith("convert-") ||
+    routeCfg.toolKey.startsWith("resize-") ||
+    routeCfg.toolKey.startsWith("crop-") ||
+    routeCfg.toolKey.startsWith("compress-")
+  ) {
+    selectedModel = "brahmaputra";
+  }
+
+  // 10. Idempotency Check with Request Hash Verification (RFC 9457 / Stripe specification)
+  // Compute deterministic SHA-256 hash of: endpoint + model + options + image binary
+  const requestHash = crypto
+    .createHash("sha256")
+    .update(`${pathname}:${selectedModel}:${JSON.stringify(options)}:${buffer.toString("base64")}`)
+    .digest("hex");
+
+  if (idempotencyKey) {
+    const cached = apiKeysRepo.getIdempotentResponse(key.key_hash, idempotencyKey);
+    if (cached) {
+      // If same key is used with a different payload -> 422 Unprocessable Entity
+      if (cached.requestHash && cached.requestHash !== requestHash) {
+        return createApiErrorResponse(
+          422,
+          "idempotency_conflict",
+          "Idempotency key has already been used with a different request payload.",
+          requestId,
+          rateLimitHeaders
+        );
+      }
+
+      // Exact replay match: Return previous response without charging credits or running engine
+      const respHeaders = new Headers(cached.headers);
+      respHeaders.set("X-Idempotent-Replay", "true");
+      respHeaders.set("X-Request-Id", requestId);
+      for (const [k, v] of Object.entries(rateLimitHeaders)) {
+        respHeaders.set(k, v);
+      }
+
+      const bodyBuffer = cached.isBase64 ? Buffer.from(cached.body, "base64") : cached.body;
+      return new Response(bodyBuffer, {
+        status: cached.statusCode,
+        headers: respHeaders,
+      });
+    }
+  }
+
+  // 11. Concurrency Queue: Protect Host RAM from overload
   let releasePermit: (() => void) | null = null;
   try {
     releasePermit = await inferenceLimiter.acquire(15000);
-  } catch (err: any) {
-    if (!isSandbox && creditCost > 0) {
-      creditLedgerRepo.refundUserCredits(user.id, creditCost, routeCfg.toolKey, "Inference queue timeout");
-    }
+  } catch {
     return createApiErrorResponse(
       503,
       "engine_busy",
@@ -330,35 +382,8 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
     );
   }
 
-  // 11. Prepare Engine Payload & Dispatch to 127.0.0.1
+  // 12. Prepare Engine Payload & Dispatch to 127.0.0.1
   const rawBase64 = buffer.toString("base64");
-
-  // Validate model parameter against whitelist
-  const urlObj = new URL(request.url);
-  const rawModel = String(options["model"] || urlObj.searchParams.get("model") || "").toLowerCase().trim();
-  const ALLOWED_MODELS = ["karudi", "ganga", "brahmaputra", "narmada", "saraswati", "isnet", "u2net", "rmbg"];
-  let selectedModel = "ganga";
-
-  if (rawModel) {
-    if (ALLOWED_MODELS.includes(rawModel)) {
-      selectedModel = rawModel;
-    } else if (rawModel.startsWith("karudi")) {
-      selectedModel = "karudi";
-    } else if (rawModel.startsWith("ganga")) {
-      selectedModel = "ganga";
-    } else if (rawModel.startsWith("brahma")) {
-      selectedModel = "brahmaputra";
-    } else {
-      selectedModel = "ganga";
-    }
-  } else if (routeCfg.toolKey === "remove-watermark") {
-    selectedModel = "narmada";
-  } else if (routeCfg.toolKey === "blur-face" || routeCfg.toolKey === "detect-faces") {
-    selectedModel = "saraswati";
-  } else if (routeCfg.toolKey.startsWith("convert-") || routeCfg.toolKey.startsWith("resize-") || routeCfg.toolKey.startsWith("crop-") || routeCfg.toolKey.startsWith("compress-")) {
-    selectedModel = "brahmaputra";
-  }
-
   const enginePayload: Record<string, any> = {
     base64Image: `data:${mimeType};base64,${rawBase64}`,
     image: rawBase64,
@@ -383,17 +408,8 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
 
   const latencyMs = Date.now() - startTime;
 
-  // 12. Handle Downstream Failure -> Immediate Credit Refund
+  // 13. Handle Downstream Failure -> Zero credits deducted
   if (!engineResult.ok || !engineResult.data?.success) {
-    if (!isSandbox && creditCost > 0) {
-      creditLedgerRepo.refundUserCredits(
-        user.id,
-        creditCost,
-        routeCfg.toolKey,
-        engineResult.error || "Engine inference error"
-      );
-    }
-
     apiKeysRepo.recordUsage({
       requestId,
       keyId: key.id,
@@ -409,13 +425,34 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
     return createApiErrorResponse(
       engineResult.status || 500,
       "processing_error",
-      engineResult.error || "Image processing engine error. Your credits have been automatically refunded.",
+      engineResult.error || "Image processing engine error. No credits were deducted.",
       requestId,
       rateLimitHeaders
     );
   }
 
-  // 13. Record Successful Execution & Usage
+  // 14. Billing Safety: Deduct credits atomically in DB transaction ONLY after successful processing
+  // Row lock and atomic check prevent concurrent double-spending
+  let remainingCredits = user.credits;
+  if (!isSandbox && creditCost > 0) {
+    const deductRes = creditLedgerRepo.deductUserCredits(user.id, creditCost, routeCfg.toolKey, clientIp);
+    if (!deductRes.success) {
+      return createApiErrorResponse(
+        402,
+        "insufficient_credits",
+        deductRes.error || `Insufficient credits. Required: ${creditCost}.`,
+        requestId,
+        {
+          "X-Credits-Required": String(creditCost),
+          "X-Credits-Available": String(deductRes.balanceAfter),
+          ...rateLimitHeaders,
+        }
+      );
+    }
+    remainingCredits = deductRes.balanceAfter;
+  }
+
+  // 15. Record Successful Execution & Usage
   apiKeysRepo.recordUsage({
     requestId,
     keyId: key.id,
@@ -430,7 +467,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
 
   const engineData = engineResult.data;
 
-  // 14. Format Response (Binary or JSON)
+  // 16. Format Response (Binary or JSON)
   const baseHeaders: Record<string, string> = {
     "X-Request-Id": requestId,
     "X-Credits-Used": String(creditCost),
@@ -439,6 +476,8 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
     "X-Processing-Time-Ms": String(latencyMs),
     "Cache-Control": "no-store, no-cache, must-revalidate",
     "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     ...rateLimitHeaders,
   };
 
@@ -467,7 +506,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
       apiKeysRepo.saveIdempotentResponse({
         keyHash: key.key_hash,
         idempotencyKey,
-        requestHash: requestId,
+        requestHash,
         statusCode: 200,
         headers: baseHeaders,
         body: jsonBody,
@@ -523,7 +562,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
       apiKeysRepo.saveIdempotentResponse({
         keyHash: key.key_hash,
         idempotencyKey,
-        requestHash: requestId,
+        requestHash,
         statusCode: 200,
         headers: baseHeaders,
         body: jsonPayload,
@@ -551,7 +590,7 @@ export async function handleApiV1(request: Request, clientIp: string): Promise<R
     apiKeysRepo.saveIdempotentResponse({
       keyHash: key.key_hash,
       idempotencyKey,
-      requestHash: requestId,
+      requestHash,
       statusCode: 200,
       headers: binaryHeaders,
       body: outputB64,

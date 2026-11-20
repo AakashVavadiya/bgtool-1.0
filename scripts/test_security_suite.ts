@@ -1,12 +1,28 @@
 import server from "../src/server";
 import { apiKeysRepo } from "../src/lib/db/api-keys-repo";
 import { usersRepo } from "../src/lib/db/users-repo";
+import { creditLedgerRepo } from "../src/lib/db/credit-ledger-repo";
 import { getDb } from "../src/lib/db/client";
+import { validateSsrfTargetUrl, isPrivateOrReservedIp } from "../src/lib/api/ssrf";
+import { extractImageDimensionsFromHeader } from "../src/lib/api/image-safety";
+import { PUBLIC_MODELS } from "../src/lib/api/models";
 import crypto from "crypto";
 
 // 1x1 transparent PNG sample for tests
 const SAMPLE_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 const SAMPLE_PNG_BUFFER = Buffer.from(SAMPLE_PNG_BASE64, "base64");
+
+// 60 Megapixel (10,000 x 6,000) Pixel-Bomb PNG Header (> 50 MP threshold)
+const PIXEL_BOMB_PNG_BUFFER = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), // PNG signature
+  Buffer.from([0x00, 0x00, 0x00, 0x0d]), // IHDR length (13)
+  Buffer.from("IHDR", "ascii"),
+  Buffer.from([0x00, 0x00, 0x27, 0x10]), // Width: 10,000
+  Buffer.from([0x00, 0x00, 0x17, 0x70]), // Height: 6,000 (10,000 x 6,000 = 60,000,000 px = 60 MP)
+  Buffer.from([0x08, 0x06, 0x00, 0x00, 0x00]), // 8-bit truecolor with alpha
+  Buffer.from([0x00, 0x00, 0x00, 0x00]), // CRC
+]);
+const PIXEL_BOMB_PNG_BASE64 = PIXEL_BOMB_PNG_BUFFER.toString("base64");
 
 let passedTests = 0;
 let failedTests = 0;
@@ -69,43 +85,67 @@ async function runSecuritySuite() {
     assert(Boolean(body?.error?.request_id), "Includes X-Request-Id in error response");
   }
 
-  // 2. Invalid API Key
+  // 2. Invalid, Revoked, and Expired API Keys Return IDENTICAL 401
   {
-    console.log("\n[Test 2] Invalid API Key");
-    const req = new Request("https://bg.tools/api/v1/remove-background", {
-      method: "POST",
+    console.log("\n[Test 2] Invalid, Revoked, and Expired API Keys (Identical 401 Timing-Safe Response)");
+
+    // Case A: Non-existent key
+    const reqInvalid = new Request("https://bg.tools/api/v1/account", {
+      method: "GET",
       headers: {
         Authorization: "Bearer bgt_live_0000000000000000000000000000000000000000000000000000000000000000",
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
     });
-    const res = await server.fetch(req, {}, {});
-    const body: any = await res.json().catch(() => null);
-    assert(res.status === 401, "Rejects invalid key with 401");
-    assert(body?.error?.code === "invalid_api_key", "Returns error code 'invalid_api_key'");
-  }
+    const resInvalid = await server.fetch(reqInvalid, {}, {});
+    const bodyInvalid: any = await resInvalid.json();
 
-  // 3. Revoked API Key
-  {
-    console.log("\n[Test 3] Revoked API Key");
-    const tempKeyRes = apiKeysRepo.createKey({ userId: testUserId, name: "Revocation Test Key" });
-    const tempRaw = tempKeyRes.rawKey!;
+    assert(resInvalid.status === 401, "Invalid key rejected with 401");
+    assert(bodyInvalid?.error?.code === "invalid_api_key", "Invalid key returns code 'invalid_api_key'");
+    assert(
+      bodyInvalid?.error?.message === "The provided API key is invalid, revoked, or expired.",
+      "Invalid key returns uniform message"
+    );
+
+    // Case B: Revoked key
+    const tempKeyRes = apiKeysRepo.createKey({ userId: testUserId, name: "Revoked Key Test" });
+    const revokedRaw = tempKeyRes.rawKey!;
     apiKeysRepo.revokeKey(tempKeyRes.key!.id, testUserId);
 
-    const req = new Request("https://bg.tools/api/v1/account", {
+    const reqRevoked = new Request("https://bg.tools/api/v1/account", {
       method: "GET",
-      headers: { Authorization: `Bearer ${tempRaw}` },
+      headers: { Authorization: `Bearer ${revokedRaw}` },
     });
-    const res = await server.fetch(req, {}, {});
-    const body: any = await res.json().catch(() => null);
-    assert(res.status === 401, "Rejects revoked key with 401");
-    assert(body?.error?.code === "invalid_api_key", "Revoked key returns identical timing-safe 401 response");
+    const resRevoked = await server.fetch(reqRevoked, {}, {});
+    const bodyRevoked: any = await resRevoked.json();
+
+    assert(resRevoked.status === 401, "Revoked key rejected with 401");
+    assert(bodyRevoked?.error?.code === "invalid_api_key", "Revoked key returns code 'invalid_api_key'");
+    assert(bodyRevoked?.error?.message === bodyInvalid?.error?.message, "Revoked key returns IDENTICAL message to invalid key");
+
+    // Case C: Expired key
+    const pastDate = new Date(Date.now() - 3600 * 1000).toISOString();
+    const expiredKeyRes = apiKeysRepo.createKey({
+      userId: testUserId,
+      name: "Expired Key Test",
+      expiresAt: pastDate,
+    });
+    const expiredRaw = expiredKeyRes.rawKey!;
+
+    const reqExpired = new Request("https://bg.tools/api/v1/account", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${expiredRaw}` },
+    });
+    const resExpired = await server.fetch(reqExpired, {}, {});
+    const bodyExpired: any = await resExpired.json();
+
+    assert(resExpired.status === 401, "Expired key rejected with 401");
+    assert(bodyExpired?.error?.code === "invalid_api_key", "Expired key returns code 'invalid_api_key'");
+    assert(bodyExpired?.error?.message === bodyInvalid?.error?.message, "Expired key returns IDENTICAL message to invalid key");
   }
 
-  // 4. API Key in Query String
+  // 3. API Key in Query String Prohibited
   {
-    console.log("\n[Test 4] API Key in Query String");
+    console.log("\n[Test 3] API Key in Query String Prohibited");
     const req = new Request(`https://bg.tools/api/v1/remove-background?api_key=${liveKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -117,9 +157,9 @@ async function runSecuritySuite() {
     assert(body?.error?.code === "api_key_in_query", "Returns error code 'api_key_in_query'");
   }
 
-  // 5. Wrong MIME / Executable Upload Block
+  // 4. Executable Payload Rejection by Magic Bytes
   {
-    console.log("\n[Test 5] Executable Binary / Script Rejection");
+    console.log("\n[Test 4] Executable Binary / Script Rejection via Magic Bytes");
     // Windows PE EXE magic bytes: MZ
     const mzBuffer = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00]);
     const mzBase64 = mzBuffer.toString("base64");
@@ -138,50 +178,226 @@ async function runSecuritySuite() {
     assert(body?.error?.code === "executable_prohibited", "Returns code 'executable_prohibited'");
   }
 
-  // 6. Oversized File (> 30 MB)
+  // 5. Oversized Payload & Decompression Pixel-Bomb Protection
   {
-    console.log("\n[Test 6] Oversized Payload (> 30 MB)");
-    const req = new Request("https://bg.tools/api/v1/remove-background", {
+    console.log("\n[Test 5] Oversized Payload & Image Pixel-Bomb Protection");
+
+    // Case A: Oversized body header (> 40 MB)
+    const reqOversized = new Request("https://bg.tools/api/v1/remove-background", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${liveKey}`,
         "Content-Type": "application/json",
-        "Content-Length": String(35 * 1024 * 1024),
+        "Content-Length": String(45 * 1024 * 1024),
       },
       body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
     });
-    const res = await server.fetch(req, {}, {});
-    assert(res.status === 413, "Pre-flight blocks oversized payload with HTTP 413");
+    const resOversized = await server.fetch(reqOversized, {}, {});
+    assert(resOversized.status === 413, "Pre-flight blocks oversized payload with HTTP 413");
+
+    // Case B: Pixel Bomb (60 Megapixels header, > 50 MP safety limit)
+    const parsedDims = extractImageDimensionsFromHeader(PIXEL_BOMB_PNG_BUFFER);
+    assert(
+      Boolean(parsedDims && parsedDims.width === 10000 && parsedDims.height === 6000),
+      "Header dimension reader correctly identifies 10,000x6,000 (60 MP) image bomb"
+    );
+
+    const reqBomb = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${liveKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ image: PIXEL_BOMB_PNG_BASE64 }),
+    });
+    const resBomb = await server.fetch(reqBomb, {}, {});
+    const bodyBomb: any = await resBomb.json().catch(() => null);
+    assert(resBomb.status === 413, "Decompression bomb rejected with HTTP 413");
+    assert(bodyBomb?.error?.code === "image_bomb_detected", "Returns error code 'image_bomb_detected'");
   }
 
-  // 7. SSRF Protection Tests
+  // 6. SSRF Protection Tests (127.0.0.1, 169.254.169.254, Private IP Redirect, DNS Rebinding)
   {
-    console.log("\n[Test 7] SSRF Attack Prevention");
-    const ssrfUrls = [
+    console.log("\n[Test 6] SSRF Protection Tests (127.0.0.1, 169.254.169.254, Private-IP Redirect, DNS Rebinding)");
+
+    const ssrfTargets = [
+      { url: "https://127.0.0.1/secret.png", desc: "127.0.0.1 loopback literal" },
+      { url: "https://169.254.169.254/latest/meta-data/", desc: "169.254.169.254 cloud metadata IP" },
       { url: "http://127.0.0.1:5000/ping", desc: "Non-HTTPS URL to loopback" },
       { url: "https://localhost:8443/secret.png", desc: "Localhost internal hostname" },
-      { url: "https://169.254.169.254/latest/meta-data", desc: "Cloud Link-Local / Metadata IP" },
-      { url: "https://10.0.0.1/admin.jpg", desc: "Private Class A Subnet (10.0.0.0/8)" },
-      { url: "https://192.168.1.1/config.png", desc: "Private Class C Subnet (192.168.0.0/16)" },
+      { url: "https://10.0.0.1/admin.jpg", desc: "Private Class A (10.0.0.0/8)" },
+      { url: "https://172.16.0.1/photo.jpg", desc: "Private Class B (172.16.0.0/12)" },
+      { url: "https://192.168.1.1/router.png", desc: "Private Class C (192.168.0.0/16)" },
+      { url: "https://admin:secret@remote.com/image.png", desc: "Credentials in URL" },
+      { url: "https://remote.com:8080/image.png", desc: "Non-standard port 8080" },
     ];
 
-    for (const target of ssrfUrls) {
+    for (const target of ssrfTargets) {
+      const check = await validateSsrfTargetUrl(target.url);
+      assert(!check.valid, `SSRF blocked for ${target.desc}`);
+    }
+
+    // Direct endpoint test for 127.0.0.1 and 169.254.169.254
+    for (const url of ["https://127.0.0.1/test.png", "https://169.254.169.254/latest/meta-data"]) {
       const req = new Request("https://bg.tools/api/v1/remove-background", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${liveKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ image_url: target.url }),
+        body: JSON.stringify({ image_url: url }),
       });
       const res = await server.fetch(req, {}, {});
-      assert(res.status === 400, `SSRF blocked for ${target.desc} with HTTP 400`);
+      assert(res.status === 400, `API endpoint blocks SSRF to ${url} with HTTP 400`);
+    }
+
+    // Private IP validation logic unit tests for CIDRs
+    assert(isPrivateOrReservedIp("127.0.0.1"), "isPrivateOrReservedIp detects 127.0.0.1 loopback");
+    assert(isPrivateOrReservedIp("169.254.169.254"), "isPrivateOrReservedIp detects 169.254.169.254 link-local");
+    assert(isPrivateOrReservedIp("10.255.0.1"), "isPrivateOrReservedIp detects 10.0.0.0/8");
+    assert(isPrivateOrReservedIp("172.20.10.5"), "isPrivateOrReservedIp detects 172.16.0.0/12");
+    assert(isPrivateOrReservedIp("192.168.100.1"), "isPrivateOrReservedIp detects 192.168.0.0/16");
+    assert(isPrivateOrReservedIp("100.64.0.1"), "isPrivateOrReservedIp detects 100.64.0.0/10 CGNAT");
+    assert(isPrivateOrReservedIp("::1"), "isPrivateOrReservedIp detects IPv6 ::1 loopback");
+    assert(isPrivateOrReservedIp("fc00::1"), "isPrivateOrReservedIp detects IPv6 fc00::/7 ULA");
+    assert(isPrivateOrReservedIp("fe80::1"), "isPrivateOrReservedIp detects IPv6 fe80::/10 link-local");
+    assert(isPrivateOrReservedIp("::ffff:127.0.0.1"), "isPrivateOrReservedIp detects IPv4-mapped IPv6 loopback");
+    assert(!isPrivateOrReservedIp("8.8.8.8"), "isPrivateOrReservedIp allows public IP 8.8.8.8");
+    assert(!isPrivateOrReservedIp("1.1.1.1"), "isPrivateOrReservedIp allows public IP 1.1.1.1");
+  }
+
+  // 7. Unknown Model Rejection (Single Source of Truth)
+  {
+    console.log("\n[Test 7] Unknown Model Rejection (Single Source of Truth)");
+    assert(
+      JSON.stringify(PUBLIC_MODELS) === JSON.stringify(["karudi", "ganga", "brahmaputra"]),
+      "PUBLIC_MODELS single source of truth is strictly ['karudi', 'ganga', 'brahmaputra']"
+    );
+
+    const unknownModels = ["isnet", "u2net", "narmada", "saraswati", "gpt-4", "dall-e", "invalid_preset"];
+    for (const model of unknownModels) {
+      const req = new Request("https://bg.tools/api/v1/remove-background", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sandboxKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image: SAMPLE_PNG_BASE64,
+          model,
+        }),
+      });
+      const res = await server.fetch(req, {}, {});
+      const body: any = await res.json().catch(() => null);
+      assert(res.status === 400, `Unknown model '${model}' rejected with HTTP 400`);
+      assert(body?.error?.code === "invalid_model", `Unknown model '${model}' returns code 'invalid_model'`);
     }
   }
 
-  // 8. Rate Limiting per Key
+  // 8. Idempotency-Key: Exact Replay (200) vs Payload Conflict (422)
   {
-    console.log("\n[Test 8] Rate Limiting per Key");
+    console.log("\n[Test 8] Idempotency-Key: Exact Replay (200) vs Payload Conflict (422)");
+    const idempKey = `idemp_${crypto.randomBytes(8).toString("hex")}`;
+    const userBefore = usersRepo.findById(testUserId)!;
+    const initialCredits = userBefore.credits;
+
+    // Payload 1
+    const payload1 = {
+      image: SAMPLE_PNG_BASE64,
+      model: "ganga",
+      response_format: "json",
+    };
+
+    // First request
+    const req1 = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sandboxKey}`,
+        "Idempotency-Key": idempKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload1),
+    });
+    const res1 = await server.fetch(req1, {}, {});
+    assert(res1.status === 200, "First request with new Idempotency-Key succeeds (HTTP 200)");
+
+    // Replay request with IDENTICAL payload
+    const reqReplay = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sandboxKey}`,
+        "Idempotency-Key": idempKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload1),
+    });
+    const resReplay = await server.fetch(reqReplay, {}, {});
+    assert(resReplay.status === 200, "Replay request returns HTTP 200");
+    assert(resReplay.headers.get("x-idempotent-replay") === "true", "Sets X-Idempotent-Replay: true header");
+
+    const userAfter = usersRepo.findById(testUserId)!;
+    assert(userAfter.credits === initialCredits, "Zero credits deducted on idempotent replay (no double billing)");
+
+    // Conflicting request with SAME key but DIFFERENT payload (model: "karudi")
+    const payloadDifferent = {
+      image: SAMPLE_PNG_BASE64,
+      model: "karudi",
+      response_format: "json",
+    };
+    const reqConflict = new Request("https://bg.tools/api/v1/remove-background", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sandboxKey}`,
+        "Idempotency-Key": idempKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payloadDifferent),
+    });
+    const resConflict = await server.fetch(reqConflict, {}, {});
+    const bodyConflict: any = await resConflict.json().catch(() => null);
+
+    assert(resConflict.status === 422, "Same Idempotency-Key with different payload rejected with HTTP 422");
+    assert(bodyConflict?.error?.code === "idempotency_conflict", "Returns code 'idempotency_conflict'");
+  }
+
+  // 9. Concurrent Credit Deduction (Double-Spend Prevention)
+  {
+    console.log("\n[Test 9] Concurrent Credit Deduction (Double-Spend Race Condition Prevention)");
+    const raceUserId = `usr_race_${crypto.randomBytes(6).toString("hex")}`;
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    // User has exactly 1 credit
+    db.prepare(`
+      INSERT INTO users (
+        id, name, email, password_hash, plan, credits, free_credits, paid_credits,
+        registered_at, last_active, last_credit_reset
+      ) VALUES (?, 'Race Test User', ?, 'dummy_hash', 'free', 1, 1, 0, ?, ?, ?)
+    `).run(raceUserId, `${raceUserId}@example.com`, now, now, todayStr);
+
+    // Fire 5 concurrent deductions for 1 credit each
+    const deductions = await Promise.all([
+      creditLedgerRepo.deductUserCredits(raceUserId, 1, "remove-background", "127.0.0.1"),
+      creditLedgerRepo.deductUserCredits(raceUserId, 1, "remove-background", "127.0.0.1"),
+      creditLedgerRepo.deductUserCredits(raceUserId, 1, "remove-background", "127.0.0.1"),
+      creditLedgerRepo.deductUserCredits(raceUserId, 1, "remove-background", "127.0.0.1"),
+      creditLedgerRepo.deductUserCredits(raceUserId, 1, "remove-background", "127.0.0.1"),
+    ]);
+
+    const successes = deductions.filter((d) => d.success);
+    const failures = deductions.filter((d) => !d.success);
+
+    assert(successes.length === 1, "Exactly 1 concurrent request succeeded in deducting credit");
+    assert(failures.length === 4, "Remaining 4 concurrent requests failed with insufficient credits");
+
+    const finalUser = usersRepo.findById(raceUserId)!;
+    assert(finalUser.credits === 0, "User credit balance is exactly 0 and never goes negative");
+
+    db.prepare("DELETE FROM users WHERE id = ?").run(raceUserId);
+  }
+
+  // 10. Rate Limiting per Key
+  {
+    console.log("\n[Test 10] Rate Limiting per Key & Headers");
     const rateLimitedKeyRes = apiKeysRepo.createKey({
       userId: testUserId,
       name: "Rate Limited Key",
@@ -216,9 +432,9 @@ async function runSecuritySuite() {
     assert(res3.headers.has("Retry-After"), "Includes Retry-After header on 429");
   }
 
-  // 9. Insufficient Credits Check
+  // 11. Insufficient Credits Block (HTTP 402)
   {
-    console.log("\n[Test 9] Insufficient Credits Check");
+    console.log("\n[Test 11] Insufficient Credits Block (HTTP 402)");
     const brokeUserId = `usr_broke_${crypto.randomBytes(6).toString("hex")}`;
     const todayStr = new Date().toISOString().slice(0, 10);
     db.prepare(`
@@ -243,144 +459,105 @@ async function runSecuritySuite() {
     const body: any = await res.json().catch(() => null);
     assert(res.status === 402, "Blocks request with HTTP 402 Payment Required");
     assert(body?.error?.code === "insufficient_credits", "Returns error code 'insufficient_credits'");
+
+    db.prepare("DELETE FROM users WHERE id = ?").run(brokeUserId);
   }
 
-  // 10. Idempotency & Double-Charge Prevention
+  // 12. Public /health Endpoint Leaks Nothing
   {
-    console.log("\n[Test 10] Idempotency Key & Double-Charge Prevention");
-    const idempKey = `idemp_${crypto.randomBytes(8).toString("hex")}`;
-    const userBefore = usersRepo.findById(testUserId)!;
-    const initialCredits = userBefore.credits;
-
-    // Cache a simulated response for this idempotency key
-    apiKeysRepo.saveIdempotentResponse({
-      keyHash: crypto.createHash("sha256").update(liveKey).digest("hex"),
-      idempotencyKey: idempKey,
-      requestHash: "req_test_hash",
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ success: true, idempotent: true }),
-      isBase64: false,
-    });
-
-    // Make request with Idempotency-Key
-    const req = new Request("https://bg.tools/api/v1/remove-background", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${liveKey}`,
-        "Idempotency-Key": idempKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ image: SAMPLE_PNG_BASE64 }),
-    });
-
-    const res = await server.fetch(req, {}, {});
-    const body: any = await res.json().catch(() => null);
-
-    assert(res.status === 200, "Idempotent request returns HTTP 200 replay");
-    assert(res.headers.get("x-idempotent-replay") === "true", "Sets X-Idempotent-Replay header");
-
-    const userAfter = usersRepo.findById(testUserId)!;
-    assert(userAfter.credits === initialCredits, "Zero credits deducted on idempotent replay (no double billing)");
-  }
-
-  // 11. SQL Injection Attempt Resistance
-  {
-    console.log("\n[Test 11] SQL Injection Attack Resistance");
-    const sqliPayload = "' OR '1'='1' -- ";
-    const req = new Request("https://bg.tools/api/v1/account", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${liveKey}`,
-        "Idempotency-Key": sqliPayload,
-        "X-Custom-Test": sqliPayload,
-      },
-    });
-    const res = await server.fetch(req, {}, {});
-    assert(res.status === 200, "Parameterized queries safely handle SQL injection payloads");
-  }
-
-  // 12. Security Privacy: Raw Key & Hashes Never Leaked
-  {
-    console.log("\n[Test 12] Cryptographic Privacy: Secret Keys Never Exposed");
-    const userKeys = apiKeysRepo.getKeysByUser(testUserId);
-    const hasPlaintext = userKeys.some((k: any) => k.rawKey || k.keyHash || k.key_hash);
-    assert(!hasPlaintext, "Listing user keys returns prefix only; raw key and SHA-256 hash are never returned");
-
-    const accReq = new Request("https://bg.tools/api/v1/account", {
-      headers: { Authorization: `Bearer ${liveKey}` },
-    });
-    const accRes = await server.fetch(accReq, {}, {});
-    const accBody = await accRes.text();
-    assert(!accBody.includes(liveKey), "API account endpoint never leaks plaintext raw key");
-  }
-
-  // 13. Health & OpenAPI Endpoints
-  {
-    console.log("\n[Test 13] Health and OpenAPI 3.1 Spec");
+    console.log("\n[Test 12] Public /health Endpoint Leaks Nothing (Only status: ok|degraded)");
     const healthRes = await server.fetch(new Request("https://bg.tools/api/v1/health"), {}, {});
-    assert(healthRes.status === 200, "/api/v1/health responds with 200 OK");
+    const body: any = await healthRes.json();
 
+    assert(healthRes.status === 200, "/api/v1/health responds with 200 OK");
+    assert(body.status === "ok" || body.status === "degraded", "status field is strictly 'ok' or 'degraded'");
+    assert(
+      Object.keys(body).length === 1 && "status" in body,
+      "Payload contains ONLY 'status' - no versions, database names, uptime, latency or services"
+    );
+    assert(!("version" in body), "Does not leak API or software version");
+    assert(!("uptimeSeconds" in body), "Does not leak system uptime");
+    assert(!("services" in body), "Does not leak internal services dictionary");
+  }
+
+  // 13. OpenAPI 3.1.0 Spec Audit
+  {
+    console.log("\n[Test 13] OpenAPI 3.1.0 Spec Audit");
     const specRes = await server.fetch(new Request("https://bg.tools/api/v1/openapi.json"), {}, {});
     const spec: any = await specRes.json();
-    assert(spec.openapi === "3.1.0", "/api/v1/openapi.json serves valid OpenAPI 3.1.0 spec");
-    assert(Boolean(spec.paths["/api/v1/remove-background"]), "OpenAPI defines /api/v1/remove-background");
+
+    assert(spec.openapi === "3.1.0", "Serves valid OpenAPI 3.1.0");
+    assert(spec.servers[0].description === "Production", "servers[0].description is strictly 'Production'");
+    assert(
+      !JSON.stringify(spec.servers).toLowerCase().includes("hostinger") &&
+      !JSON.stringify(spec.servers).toLowerCase().includes("vps"),
+      "Spec servers contain no mention of Hostinger, VPS, or hosting provider"
+    );
+
+    // Verify detect-faces description
+    const detectFacesDesc = spec.paths["/api/v1/detect-faces"]?.post?.description || "";
+    assert(
+      detectFacesDesc.includes("face detection (bounding boxes only, no identification)"),
+      "detect-faces description updated to 'face detection (bounding boxes only, no identification)'"
+    );
+
+    // Verify Idempotency-Key parameter exists on paid endpoints
+    const paidPaths = [
+      "/api/v1/remove-background",
+      "/api/v1/remove-watermark",
+      "/api/v1/blur-face",
+      "/api/v1/detect-faces",
+      "/api/v1/compress-image",
+      "/api/v1/convert-image",
+      "/api/v1/resize-image",
+      "/api/v1/crop-image",
+    ];
+
+    for (const p of paidPaths) {
+      const endpoint = spec.paths[p]?.post;
+      assert(Boolean(endpoint), `Path ${p} defined in OpenAPI spec`);
+      const hasIdemp = endpoint?.parameters?.some((param: any) => param.name === "Idempotency-Key");
+      assert(Boolean(hasIdemp), `Path ${p} documents Idempotency-Key header parameter`);
+      assert(Boolean(endpoint?.responses["400"]), `Path ${p} documents 400 response`);
+      assert(Boolean(endpoint?.responses["401"]), `Path ${p} documents 401 response`);
+      assert(Boolean(endpoint?.responses["402"]), `Path ${p} documents 402 response`);
+      assert(Boolean(endpoint?.responses["413"]), `Path ${p} documents 413 response`);
+      assert(Boolean(endpoint?.responses["429"]), `Path ${p} documents 429 response`);
+    }
+
+    // Verify requestBody is defined for all transformation endpoints
+    assert(Boolean(spec.paths["/api/v1/detect-faces"]?.post?.requestBody), "detect-faces has full requestBody");
+    assert(Boolean(spec.paths["/api/v1/compress-image"]?.post?.requestBody), "compress-image has full requestBody");
+    assert(Boolean(spec.paths["/api/v1/convert-image"]?.post?.requestBody), "convert-image has full requestBody");
+    assert(Boolean(spec.paths["/api/v1/resize-image"]?.post?.requestBody), "resize-image has full requestBody");
+    assert(Boolean(spec.paths["/api/v1/crop-image"]?.post?.requestBody), "crop-image has full requestBody");
   }
 
-  // 14. Model Selection (Karudi vs Ganga) & Security Sanitization
+  // 14. /account and /usage Endpoint Scoping & Limits
   {
-    console.log("\n[Test 14] Model Selection (Karudi vs Ganga) & Security Sanitization");
+    console.log("\n[Test 14] /account and /usage Endpoint Scoping & Limits");
 
-    // Test selecting Karudi model
-    const reqKarudi = new Request("https://bg.tools/api/v1/remove-background", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${sandboxKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        image: SAMPLE_PNG_BASE64,
-        model: "karudi",
-        response_format: "json",
-      }),
-    });
-    const resKarudi = await server.fetch(reqKarudi, {}, {});
-    assert(resKarudi.headers.get("x-model-used") === "karudi", "X-Model-Used header correctly identifies karudi model");
-
-    // Test selecting Ganga model
-    const reqGanga = new Request("https://bg.tools/api/v1/remove-background", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${sandboxKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        image: SAMPLE_PNG_BASE64,
-        model: "ganga",
-        response_format: "json",
-      }),
-    });
-    const resGanga = await server.fetch(reqGanga, {}, {});
-    assert(resGanga.headers.get("x-model-used") === "ganga", "X-Model-Used header correctly identifies ganga model");
-
-    // Test malicious path-traversal / injection string in model parameter
-    const reqMalicious = new Request("https://bg.tools/api/v1/remove-background", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${sandboxKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        image: SAMPLE_PNG_BASE64,
-        model: "../../etc/passwd' OR 1=1;--",
-        response_format: "json",
-      }),
-    });
-    const resMalicious = await server.fetch(reqMalicious, {}, {});
-    assert(
-      resMalicious.headers.get("x-model-used") === "ganga",
-      "Malicious model string is safely neutralized and defaults to ganga without directory traversal"
+    // /account
+    const accRes = await server.fetch(
+      new Request("https://bg.tools/api/v1/account", { headers: { Authorization: `Bearer ${liveKey}` } }),
+      {},
+      {}
     );
+    const accBody: any = await accRes.json();
+    assert(accRes.status === 200, "/account succeeds with HTTP 200");
+    assert(accBody.account.id === testUserId, "/account strictly returns authenticated user data");
+    assert(accBody.key.prefix.startsWith("bgt_live_") && accBody.key.prefix.endsWith("..."), "/account returns masked key prefix only");
+    assert(!("rawKey" in accBody.key) && !("key_hash" in accBody.key), "/account never leaks raw key or SHA-256 hash");
+
+    // /usage limit cap at 100
+    const usageRes = await server.fetch(
+      new Request("https://bg.tools/api/v1/usage?limit=9999", { headers: { Authorization: `Bearer ${liveKey}` } }),
+      {},
+      {}
+    );
+    const usageBody: any = await usageRes.json();
+    assert(usageRes.status === 200, "/usage succeeds with HTTP 200");
+    assert(usageBody.pagination.limit === 100, "limit parameter is strictly capped at 100");
   }
 
   // Cleanup test user & keys

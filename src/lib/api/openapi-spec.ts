@@ -1,4 +1,46 @@
+import { PUBLIC_MODELS } from "./models";
+
 export function getOpenApiSpec(): Record<string, any> {
+  const idempotencyHeaderParam = {
+    name: "Idempotency-Key",
+    in: "header",
+    required: false,
+    schema: { type: "string" },
+    description: "Unique UUID or request identifier to safely retry requests without double billing (valid for 24h).",
+  };
+
+  const standardErrorResponses = {
+    400: {
+      description: "Bad Request - Invalid payload, parameters, or unsupported model",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } },
+    },
+    401: {
+      description: "Unauthorized - Missing, invalid, revoked, or expired API key",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } },
+    },
+    402: {
+      description: "Payment Required - Insufficient credits to perform operation",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } },
+    },
+    413: {
+      description: "Payload Too Large - File or request exceeds limit (30 MB binary, 40 MB JSON, or 50 MP image bomb)",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } },
+    },
+    422: {
+      description: "Unprocessable Entity - Idempotency key conflict with a differing request payload",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } },
+    },
+    429: {
+      description: "Too Many Requests - API key rate limit or daily quota exceeded",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } },
+    },
+  };
+
+  const commonAuthResponses = {
+    401: standardErrorResponses[401],
+    429: standardErrorResponses[429],
+  };
+
   return {
     openapi: "3.1.0",
     info: {
@@ -19,7 +61,7 @@ export function getOpenApiSpec(): Record<string, any> {
     servers: [
       {
         url: "https://bg.tools",
-        description: "Production API Server (Hostinger Cloud VPS)",
+        description: "Production",
       },
     ],
     security: [
@@ -57,6 +99,33 @@ export function getOpenApiSpec(): Record<string, any> {
             },
           },
         },
+        FaceBoundingBox: {
+          type: "object",
+          properties: {
+            x: { type: "integer", example: 120 },
+            y: { type: "integer", example: 85 },
+            width: { type: "integer", example: 200 },
+            height: { type: "integer", example: 200 },
+            confidence: { type: "number", example: 0.98 },
+          },
+        },
+        DetectFacesResponse: {
+          type: "object",
+          required: ["success", "facesDetected", "faces", "credits_used", "credits_remaining", "request_id"],
+          properties: {
+            success: { type: "boolean", example: true },
+            model: { type: "string", example: "saraswati" },
+            facesDetected: { type: "integer", example: 2 },
+            faces: {
+              type: "array",
+              items: { $ref: "#/components/schemas/FaceBoundingBox" },
+            },
+            duration: { type: "number", example: 0.42 },
+            credits_used: { type: "number", example: 0.5 },
+            credits_remaining: { type: "number", example: 49.5 },
+            request_id: { type: "string", example: "req_9f3a18b2c45e" },
+          },
+        },
         JsonImageResponse: {
           type: "object",
           required: ["success", "image", "format", "credits_used", "credits_remaining", "request_id"],
@@ -64,7 +133,12 @@ export function getOpenApiSpec(): Record<string, any> {
             success: { type: "boolean", example: true },
             image: { type: "string", example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." },
             format: { type: "string", example: "png" },
-            model: { type: "string", example: "ganga", description: "Neural AI model utilized for inference (e.g. karudi, ganga, brahmaputra, narmada, saraswati)" },
+            model: {
+              type: "string",
+              enum: [...PUBLIC_MODELS],
+              example: "ganga",
+              description: `Neural AI model utilized for inference (${PUBLIC_MODELS.join(", ")})`,
+            },
             width: { type: "integer", example: 1200 },
             height: { type: "integer", example: 800 },
             credits_used: { type: "number", example: 1 },
@@ -86,6 +160,7 @@ export function getOpenApiSpec(): Record<string, any> {
                 credits: { type: "number", example: 1250 },
                 free_credits: { type: "number", example: 10 },
                 paid_credits: { type: "number", example: 1240 },
+                total_processed: { type: "integer", example: 420 },
               },
             },
             key: {
@@ -95,8 +170,12 @@ export function getOpenApiSpec(): Record<string, any> {
                 type: { type: "string", example: "live" },
                 rateLimitPerMinute: { type: "integer", example: 60 },
                 dailyQuota: { type: "integer", example: 1000 },
+                monthlyQuota: { type: "integer", example: 25000 },
+                lastUsedAt: { type: "string", example: "2026-11-20T10:00:00.000Z" },
               },
             },
+            isSandbox: { type: "boolean", example: false },
+            request_id: { type: "string", example: "req_9f3a18b2c45e" },
           },
         },
       },
@@ -107,26 +186,19 @@ export function getOpenApiSpec(): Record<string, any> {
           summary: "Remove Image Background",
           description: "Neural foreground segmentation that removes backgrounds cleanly with transparent PNG output. Select 'ganga' for ultra-fine hair & fur alpha matting, or 'karudi' for universal orchestrator processing.",
           operationId: "removeBackground",
-          parameters: [
-            {
-              name: "Idempotency-Key",
-              in: "header",
-              required: false,
-              schema: { type: "string" },
-              description: "Unique UUID to safely retry requests without double billing.",
-            },
-          ],
+          parameters: [idempotencyHeaderParam],
           requestBody: {
             required: true,
             content: {
               "multipart/form-data": {
                 schema: {
                   type: "object",
+                  required: ["image"],
                   properties: {
                     image: { type: "string", format: "binary", description: "Image file (PNG, JPG, WebP up to 30 MB)" },
                     model: {
                       type: "string",
-                      enum: ["karudi", "ganga", "brahmaputra", "isnet", "u2net"],
+                      enum: [...PUBLIC_MODELS],
                       default: "ganga",
                       description: "AI Model preset: 'karudi' (universal orchestrator), 'ganga' (dedicated sub-pixel alpha matting, default), 'brahmaputra' (fast matting)",
                     },
@@ -142,7 +214,7 @@ export function getOpenApiSpec(): Record<string, any> {
                     image_url: { type: "string", format: "uri", description: "Remote HTTPS image URL" },
                     model: {
                       type: "string",
-                      enum: ["karudi", "ganga", "brahmaputra", "isnet", "u2net"],
+                      enum: [...PUBLIC_MODELS],
                       default: "ganga",
                       description: "AI Model preset: 'karudi' (universal orchestrator), 'ganga' (dedicated sub-pixel alpha matting, default), 'brahmaputra' (fast matting)",
                     },
@@ -160,11 +232,7 @@ export function getOpenApiSpec(): Record<string, any> {
                 "application/json": { schema: { $ref: "#/components/schemas/JsonImageResponse" } },
               },
             },
-            400: { description: "Invalid image or payload", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } } },
-            401: { description: "Missing or invalid API key", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } } },
-            402: { description: "Insufficient credits", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } } },
-            413: { description: "Payload exceeds 30 MB limit", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } } },
-            429: { description: "Rate limit or quota exceeded", content: { "application/json": { schema: { $ref: "#/components/schemas/ApiError" } } } },
+            ...standardErrorResponses,
           },
         },
       },
@@ -173,12 +241,14 @@ export function getOpenApiSpec(): Record<string, any> {
           summary: "Remove Watermark & Inpaint",
           description: "Deep inpainting engine that detects and erases watermarks, logos, stamps, and overlays.",
           operationId: "removeWatermark",
+          parameters: [idempotencyHeaderParam],
           requestBody: {
             required: true,
             content: {
               "multipart/form-data": {
                 schema: {
                   type: "object",
+                  required: ["image"],
                   properties: {
                     image: { type: "string", format: "binary" },
                     response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
@@ -189,8 +259,8 @@ export function getOpenApiSpec(): Record<string, any> {
                 schema: {
                   type: "object",
                   properties: {
-                    image: { type: "string" },
-                    image_url: { type: "string" },
+                    image: { type: "string", description: "Base64 encoded image string or data URI" },
+                    image_url: { type: "string", format: "uri", description: "Remote HTTPS image URL" },
                     response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
                   },
                 },
@@ -198,8 +268,15 @@ export function getOpenApiSpec(): Record<string, any> {
             },
           },
           responses: {
-            200: { description: "Watermark removed successfully" },
-            402: { description: "Insufficient credits" },
+            200: {
+              description: "Watermark removed successfully",
+              content: {
+                "image/png": { schema: { type: "string", format: "binary" } },
+                "image/jpeg": { schema: { type: "string", format: "binary" } },
+                "application/json": { schema: { $ref: "#/components/schemas/JsonImageResponse" } },
+              },
+            },
+            ...standardErrorResponses,
           },
         },
       },
@@ -208,15 +285,19 @@ export function getOpenApiSpec(): Record<string, any> {
           summary: "Anonymize & Blur Faces",
           description: "Detects human faces and applies smooth Gaussian, pixelate, or black box anonymization.",
           operationId: "blurFace",
+          parameters: [idempotencyHeaderParam],
           requestBody: {
+            required: true,
             content: {
               "multipart/form-data": {
                 schema: {
                   type: "object",
+                  required: ["image"],
                   properties: {
                     image: { type: "string", format: "binary" },
                     blurType: { type: "string", enum: ["gaussian", "pixelate", "solid_black"], default: "gaussian" },
                     strength: { type: "number", default: 25 },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
                   },
                 },
               },
@@ -225,26 +306,65 @@ export function getOpenApiSpec(): Record<string, any> {
                   type: "object",
                   properties: {
                     image: { type: "string" },
-                    image_url: { type: "string" },
+                    image_url: { type: "string", format: "uri" },
                     blurType: { type: "string", enum: ["gaussian", "pixelate", "solid_black"], default: "gaussian" },
                     strength: { type: "number", default: 25 },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
                   },
                 },
               },
             },
           },
           responses: {
-            200: { description: "Faces blurred successfully" },
+            200: {
+              description: "Faces blurred successfully",
+              content: {
+                "image/png": { schema: { type: "string", format: "binary" } },
+                "image/jpeg": { schema: { type: "string", format: "binary" } },
+                "application/json": { schema: { $ref: "#/components/schemas/JsonImageResponse" } },
+              },
+            },
+            ...standardErrorResponses,
           },
         },
       },
       "/api/v1/detect-faces": {
         post: {
           summary: "Detect Human Faces",
-          description: "Fast facial recognition model returning bounding boxes (x, y, width, height) without altering image.",
+          description: "Fast face detection (bounding boxes only, no identification) returning coordinates (x, y, width, height) without altering image.",
           operationId: "detectFaces",
+          parameters: [idempotencyHeaderParam],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["image"],
+                  properties: {
+                    image: { type: "string", format: "binary", description: "Image file (PNG, JPG, WebP up to 30 MB)" },
+                  },
+                },
+              },
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    image: { type: "string", description: "Base64 encoded image string or data URI" },
+                    image_url: { type: "string", format: "uri", description: "Remote HTTPS image URL" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "Detected face bounding boxes array" },
+            200: {
+              description: "Detected face bounding boxes array",
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/DetectFacesResponse" } },
+              },
+            },
+            ...standardErrorResponses,
           },
         },
       },
@@ -253,8 +373,45 @@ export function getOpenApiSpec(): Record<string, any> {
           summary: "Compress Image File Size",
           description: "Loss-minimized image compression reducing up to 85% of file size while retaining visual fidelity.",
           operationId: "compressImage",
+          parameters: [idempotencyHeaderParam],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["image"],
+                  properties: {
+                    image: { type: "string", format: "binary" },
+                    quality: { type: "integer", minimum: 1, maximum: 100, default: 80, description: "Compression quality (1-100)" },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    image: { type: "string" },
+                    image_url: { type: "string", format: "uri" },
+                    quality: { type: "integer", minimum: 1, maximum: 100, default: 80, description: "Compression quality (1-100)" },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "Compressed image file" },
+            200: {
+              description: "Compressed image file",
+              content: {
+                "image/jpeg": { schema: { type: "string", format: "binary" } },
+                "image/png": { schema: { type: "string", format: "binary" } },
+                "image/webp": { schema: { type: "string", format: "binary" } },
+                "application/json": { schema: { $ref: "#/components/schemas/JsonImageResponse" } },
+              },
+            },
+            ...standardErrorResponses,
           },
         },
       },
@@ -263,8 +420,47 @@ export function getOpenApiSpec(): Record<string, any> {
           summary: "Convert Image Format",
           description: "Cross-format conversion between PNG, JPEG, and WebP with optional quality parameter.",
           operationId: "convertImage",
+          parameters: [idempotencyHeaderParam],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["image"],
+                  properties: {
+                    image: { type: "string", format: "binary" },
+                    format: { type: "string", enum: ["png", "jpeg", "webp"], default: "webp" },
+                    quality: { type: "integer", minimum: 1, maximum: 100, default: 90 },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    image: { type: "string" },
+                    image_url: { type: "string", format: "uri" },
+                    format: { type: "string", enum: ["png", "jpeg", "webp"], default: "webp" },
+                    quality: { type: "integer", minimum: 1, maximum: 100, default: 90 },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "Converted image file" },
+            200: {
+              description: "Converted image file",
+              content: {
+                "image/png": { schema: { type: "string", format: "binary" } },
+                "image/jpeg": { schema: { type: "string", format: "binary" } },
+                "image/webp": { schema: { type: "string", format: "binary" } },
+                "application/json": { schema: { $ref: "#/components/schemas/JsonImageResponse" } },
+              },
+            },
+            ...standardErrorResponses,
           },
         },
       },
@@ -273,8 +469,49 @@ export function getOpenApiSpec(): Record<string, any> {
           summary: "Resize Image Dimensions",
           description: "High-quality Lanczos resampling to arbitrary dimensions (up to 6000x6000px).",
           operationId: "resizeImage",
+          parameters: [idempotencyHeaderParam],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["image"],
+                  properties: {
+                    image: { type: "string", format: "binary" },
+                    width: { type: "integer", minimum: 1, maximum: 6000, description: "Target width in pixels (max 6000)" },
+                    height: { type: "integer", minimum: 1, maximum: 6000, description: "Target height in pixels (max 6000)" },
+                    fit: { type: "string", enum: ["contain", "cover", "fill", "inside", "outside"], default: "contain" },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    image: { type: "string" },
+                    image_url: { type: "string", format: "uri" },
+                    width: { type: "integer", minimum: 1, maximum: 6000, description: "Target width in pixels (max 6000)" },
+                    height: { type: "integer", minimum: 1, maximum: 6000, description: "Target height in pixels (max 6000)" },
+                    fit: { type: "string", enum: ["contain", "cover", "fill", "inside", "outside"], default: "contain" },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "Resized image file" },
+            200: {
+              description: "Resized image file",
+              content: {
+                "image/png": { schema: { type: "string", format: "binary" } },
+                "image/jpeg": { schema: { type: "string", format: "binary" } },
+                "image/webp": { schema: { type: "string", format: "binary" } },
+                "application/json": { schema: { $ref: "#/components/schemas/JsonImageResponse" } },
+              },
+            },
+            ...standardErrorResponses,
           },
         },
       },
@@ -283,8 +520,51 @@ export function getOpenApiSpec(): Record<string, any> {
           summary: "Crop Image Rectangle",
           description: "Pixel-accurate crop rectangle defined by x, y, width, and height.",
           operationId: "cropImage",
+          parameters: [idempotencyHeaderParam],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["image"],
+                  properties: {
+                    image: { type: "string", format: "binary" },
+                    x: { type: "integer", minimum: 0, description: "Left coordinate" },
+                    y: { type: "integer", minimum: 0, description: "Top coordinate" },
+                    width: { type: "integer", minimum: 1, description: "Crop width" },
+                    height: { type: "integer", minimum: 1, description: "Crop height" },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    image: { type: "string" },
+                    image_url: { type: "string", format: "uri" },
+                    x: { type: "integer", minimum: 0, description: "Left coordinate" },
+                    y: { type: "integer", minimum: 0, description: "Top coordinate" },
+                    width: { type: "integer", minimum: 1, description: "Crop width" },
+                    height: { type: "integer", minimum: 1, description: "Crop height" },
+                    response_format: { type: "string", enum: ["binary", "json"], default: "binary" },
+                  },
+                },
+              },
+            },
+          },
           responses: {
-            200: { description: "Cropped image file" },
+            200: {
+              description: "Cropped image file",
+              content: {
+                "image/png": { schema: { type: "string", format: "binary" } },
+                "image/jpeg": { schema: { type: "string", format: "binary" } },
+                "image/webp": { schema: { type: "string", format: "binary" } },
+                "application/json": { schema: { $ref: "#/components/schemas/JsonImageResponse" } },
+              },
+            },
+            ...standardErrorResponses,
           },
         },
       },
@@ -298,6 +578,7 @@ export function getOpenApiSpec(): Record<string, any> {
               description: "Account details",
               content: { "application/json": { schema: { $ref: "#/components/schemas/AccountDetails" } } },
             },
+            ...commonAuthResponses,
           },
         },
       },
@@ -307,24 +588,51 @@ export function getOpenApiSpec(): Record<string, any> {
           description: "Paginated log of recent API requests and 30-day aggregated call/credit statistics.",
           operationId: "getUsage",
           parameters: [
-            { name: "limit", in: "query", schema: { type: "integer", default: 50 } },
+            { name: "limit", in: "query", schema: { type: "integer", default: 50, maximum: 100 }, description: "Max 100 items" },
             { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
             { name: "days", in: "query", schema: { type: "integer", default: 30 } },
           ],
           responses: {
             200: { description: "Usage history and analytics" },
+            ...commonAuthResponses,
           },
         },
       },
       "/api/v1/health": {
         get: {
-          summary: "Health Check & Status",
-          description: "Reports operational health of API gateway, database, and background AI inference engines.",
+          summary: "Health Check",
+          description: "Reports operational status of public API gateway.",
           operationId: "getHealth",
           security: [],
           responses: {
-            200: { description: "System operational" },
-            503: { description: "Service degraded" },
+            200: {
+              description: "Operational",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["status"],
+                    properties: {
+                      status: { type: "string", enum: ["ok", "degraded"], example: "ok" },
+                    },
+                  },
+                },
+              },
+            },
+            503: {
+              description: "Degraded",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["status"],
+                    properties: {
+                      status: { type: "string", enum: ["degraded"], example: "degraded" },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -333,7 +641,6 @@ export function getOpenApiSpec(): Record<string, any> {
 }
 
 export function getPostmanCollection(): Record<string, any> {
-  const spec = getOpenApiSpec();
   return {
     info: {
       name: "bg.tools Public API Collection",
@@ -386,6 +693,66 @@ export function getPostmanCollection(): Record<string, any> {
             options: { raw: { language: "json" } },
           },
           url: { raw: "{{baseUrl}}/api/v1/blur-face", host: ["{{baseUrl}}"], path: ["api", "v1", "blur-face"] },
+        },
+      },
+      {
+        name: "Detect Faces",
+        request: {
+          method: "POST",
+          body: {
+            mode: "raw",
+            raw: JSON.stringify({ image_url: "https://example.com/people.jpg" }, null, 2),
+            options: { raw: { language: "json" } },
+          },
+          url: { raw: "{{baseUrl}}/api/v1/detect-faces", host: ["{{baseUrl}}"], path: ["api", "v1", "detect-faces"] },
+        },
+      },
+      {
+        name: "Compress Image",
+        request: {
+          method: "POST",
+          body: {
+            mode: "raw",
+            raw: JSON.stringify({ image_url: "https://example.com/photo.png", quality: 80 }, null, 2),
+            options: { raw: { language: "json" } },
+          },
+          url: { raw: "{{baseUrl}}/api/v1/compress-image", host: ["{{baseUrl}}"], path: ["api", "v1", "compress-image"] },
+        },
+      },
+      {
+        name: "Convert Image",
+        request: {
+          method: "POST",
+          body: {
+            mode: "raw",
+            raw: JSON.stringify({ image_url: "https://example.com/photo.png", format: "webp", quality: 90 }, null, 2),
+            options: { raw: { language: "json" } },
+          },
+          url: { raw: "{{baseUrl}}/api/v1/convert-image", host: ["{{baseUrl}}"], path: ["api", "v1", "convert-image"] },
+        },
+      },
+      {
+        name: "Resize Image",
+        request: {
+          method: "POST",
+          body: {
+            mode: "raw",
+            raw: JSON.stringify({ image_url: "https://example.com/photo.jpg", width: 800, height: 600, fit: "contain" }, null, 2),
+            options: { raw: { language: "json" } },
+          },
+          url: { raw: "{{baseUrl}}/api/v1/resize-image", host: ["{{baseUrl}}"], path: ["api", "v1", "resize-image"] },
+        },
+      },
+      {
+        name: "Crop Image",
+        request: {
+          method: "POST",
+          body: {
+            mode: "raw",
+            raw: JSON.stringify({ image_url: "https://example.com/photo.jpg", x: 50, y: 50, width: 400, height: 300 }, null, 2),
+            options: { raw: { language: "json" } },
+          },
+          url: { raw: "{{baseUrl}}/api/v1/crop-image", host: ["{{baseUrl}}"], path: ["api", "v1", "crop-image"] },
         },
       },
       {

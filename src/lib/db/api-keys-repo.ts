@@ -68,6 +68,7 @@ export interface IdempotentResponse {
   headers: Record<string, string>;
   body: string; // text, json, or base64
   isBase64: boolean;
+  requestHash: string;
 }
 
 export const MAX_ACTIVE_KEYS_PER_USER = 5;
@@ -644,6 +645,7 @@ export const apiKeysRepo = {
       SELECT * FROM api_idempotency
       WHERE key_hash = ? AND idempotency_key = ? AND expires_at > ?
     `).get(keyHash, idempotencyKey, now) as {
+      request_hash: string;
       response_status: number;
       response_headers: string;
       response_body: string;
@@ -662,6 +664,7 @@ export const apiKeysRepo = {
       headers,
       body: row.response_body,
       isBase64: row.response_is_base64 === 1,
+      requestHash: row.request_hash,
     };
   },
 
